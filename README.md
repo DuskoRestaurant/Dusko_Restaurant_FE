@@ -18,7 +18,7 @@ FE có 8 trang chính. Menu thay đổi theo vai trò đăng nhập.
 - Tạo đơn từ thực đơn và bàn còn trống của chi nhánh; thanh toán theo quyền thu ngân/quản lý. Đơn được lưu trên máy khi mất mạng và đồng bộ với mã UUID chống ghi trùng.
 - Gom mẻ bếp, bắt đầu nấu, hoàn thành.
 - Xem/cập nhật tồn kho; lập và duyệt kế hoạch mua hàng.
-- Chạy dự báo, phát hiện bất thường, huấn luyện mô hình (ADMIN).
+- Chạy dự báo, phát hiện bất thường, huấn luyện mô hình (ADMIN). Khi chưa đủ dữ liệu LSTM, BE dùng trung bình số suất bán từ các ngày có đơn đã thanh toán trong 30 ngày trước ngày dự báo; FE hiển thị rõ phương pháp này.
 - Phân tích giá vốn và lợi nhuận từng món.
 - Quản lý chi nhánh và bàn; tạo/sửa nhóm món, món, công thức định lượng; ngừng bán hoặc bật bán lại món. Quản trị viên tạo/sửa nguyên liệu, quản lý có thể sửa bàn trong chi nhánh.
 - Đăng nhập trước khi sử dụng; menu hiển thị theo vai trò ADMIN, MANAGER, CASHIER, WAITER và CHEF. Chi nhánh của nhân viên được lấy từ tài khoản.
