@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { request, money, escapeHtml } from './api.js';
+import { request, ApiError, money, escapeHtml } from './api.js';
 
 test('request sends JSON and bearer token, reads data', async () => {
   const result = await request('/api/orders', { method: 'POST', body: { branchId: 1 }, token: 'abc', fetcher: async (url, options) => {
@@ -12,7 +12,8 @@ test('request sends JSON and bearer token, reads data', async () => {
 });
 
 test('request surfaces backend errors', async () => {
-  await assert.rejects(request('/api/auth/login', { fetcher: async () => ({ ok: false, status: 401, json: async () => ({ success: false, error: 'Sai mật khẩu' }) }) }), /Sai mật khẩu/);
+  await assert.rejects(request('/api/auth/login', { fetcher: async () => ({ ok: false, status: 401, json: async () => ({ success: false, error: 'Sai mật khẩu' }) }) }), error => error instanceof ApiError && error.status === 401 && /Sai mật khẩu/.test(error.message));
+  await assert.rejects(request('/api/orders', { fetcher: async () => { throw new TypeError('Failed to fetch'); } }), TypeError);
 });
 
 test('display helpers format and escape values', () => {

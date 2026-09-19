@@ -1,5 +1,9 @@
 export const API_BASE = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '');
 
+export class ApiError extends Error {
+  constructor(message, status) { super(message); this.name = 'ApiError'; this.status = status; }
+}
+
 export async function request(path, { method = 'GET', body, token, fetcher = fetch } = {}) {
   const response = await fetcher(`${API_BASE}${path}`, {
     method,
@@ -8,7 +12,7 @@ export async function request(path, { method = 'GET', body, token, fetcher = fet
   });
   let payload;
   try { payload = await response.json(); } catch { throw new Error(`Máy chủ trả về dữ liệu không hợp lệ (${response.status})`); }
-  if (!response.ok || payload.success === false) throw new Error(payload.error || payload.message || `Yêu cầu thất bại (${response.status})`);
+  if (!response.ok || payload.success === false) throw new ApiError(payload.error || payload.message || `Yêu cầu thất bại (${response.status})`, response.status);
   return payload.data ?? payload;
 }
 
