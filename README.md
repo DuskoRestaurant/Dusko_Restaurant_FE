@@ -12,12 +12,15 @@ Nếu API chạy ở địa chỉ khác, tạo `.env` với `VITE_API_URL=https:
 
 ## Chức năng
 
+FE có 8 trang chính. Menu thay đổi theo vai trò đăng nhập.
+
 - Tổng quan doanh thu, đơn hàng, bếp, cảnh báo kho.
 - Tạo đơn từ thực đơn và bàn còn trống của chi nhánh; thanh toán theo quyền thu ngân/quản lý. Đơn được lưu trên máy khi mất mạng và đồng bộ với mã UUID chống ghi trùng.
 - Gom mẻ bếp, bắt đầu nấu, hoàn thành.
 - Xem/cập nhật tồn kho; lập và duyệt kế hoạch mua hàng.
 - Chạy dự báo, phát hiện bất thường, huấn luyện mô hình (ADMIN).
 - Phân tích giá vốn và lợi nhuận từng món.
+- Quản lý chi nhánh và bàn; tạo/sửa nhóm món, món, công thức định lượng; ngừng bán hoặc bật bán lại món. Quản trị viên tạo/sửa nguyên liệu, quản lý có thể sửa bàn trong chi nhánh.
 - Đăng nhập trước khi sử dụng; menu hiển thị theo vai trò ADMIN, MANAGER, CASHIER, WAITER và CHEF. Chi nhánh của nhân viên được lấy từ tài khoản.
 
 Chạy `npm test` cho kiểm thử API client, `npm run build` để kiểm tra bản build.
