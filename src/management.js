@@ -15,7 +15,7 @@ export function locationsHtml({ branches, tables, branchId, admin }) {
 export function catalogHtml({ categories, products, admin, chef }) {
   const categoryRows = categories.map(c => `<div class="manage-row"><div><strong>${e(c.name)}</strong><small>${e(c.code)}</small></div>${admin ? button('Sửa', 'edit-category', c.id) : ''}</div>`).join('') || empty('Chưa có nhóm món.');
   const productRows = products.map(p => `<div class="manage-row product-row">${productPhoto(p)}<div><strong>${e(p.name)}</strong><small>${e(p.code)} · ${e(p.category?.name || '')} · ${money(p.sellingPrice)} · ${e(stationName[p.stationType] || p.stationType)}${p.isActive?'':' · Đã ngừng bán'}</small></div><div class="manage-actions">${admin ? button('Sửa', 'edit-product', p.id) : ''}${admin || chef ? button('Công thức', 'recipe', p.id) : ''}${admin ? button(p.isActive?'Ngừng bán':'Bán lại', 'toggle-product', p.id) : ''}</div></div>`).join('') || empty('Chưa có món.');
-  return `<div class="two-col">${panel('Nhóm món', categoryRows, admin ? button('Thêm nhóm', 'new-category', '') : '')}${panel('Món ăn', productRows, admin ? button('Thêm món', 'new-product', '') : '')}</div>`;
+  return `<div class="two-col catalog-layout">${panel('Nhóm món', categoryRows, admin ? button('Thêm nhóm', 'new-category', '') : '')}${panel('Món ăn', productRows, admin ? button('Thêm món', 'new-product', '') : '')}</div>`;
 }
 
 export function numberField(value, name, min = 0, step = '1') {

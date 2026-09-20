@@ -1,6 +1,7 @@
 import './style.css';
 import './offline.css';
 import './management.css';
+import './theme.css';
 import { request, uploadProductImage, ApiError, money, number, dateTime, tomorrow, escapeHtml as e } from './api.js';
 import { readQueue, saveQueue, pendingFor, applySyncResults } from './offline.js';
 import { locationsHtml, catalogHtml, numberField, recipeEntries } from './management.js';
