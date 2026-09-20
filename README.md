@@ -20,7 +20,7 @@ Thực đơn và màn hình tạo đơn hiển thị ảnh món. Quản trị vi
 - Tạo đơn từ thực đơn và bàn còn trống của chi nhánh; thanh toán theo quyền thu ngân/quản lý. Đơn được lưu trên máy khi mất mạng và đồng bộ với mã UUID chống ghi trùng.
 - Gom mẻ bếp, bắt đầu nấu, hoàn thành.
 - Xem/cập nhật tồn kho; lập và duyệt kế hoạch mua hàng.
-- Chạy dự báo, phát hiện bất thường, huấn luyện mô hình (ADMIN). Khi chưa đủ dữ liệu LSTM, BE dùng trung bình số suất bán từ các ngày có đơn đã thanh toán trong 30 ngày trước ngày dự báo; FE hiển thị rõ phương pháp này.
+- Chạy dự báo, phát hiện bất thường, huấn luyện mô hình (ADMIN). Màn hình cho biết số ngày dữ liệu thực tế đã có theo món/chi nhánh trước khi train. LSTM cần 38 ngày bán liên tiếp đã hoàn tất; mô hình bất thường cần 30 ngày có đơn đã thanh toán. Khi chưa đủ dữ liệu LSTM, BE dùng trung bình số suất bán từ các ngày có đơn đã thanh toán trong 30 ngày trước ngày dự báo. Kiểm tra bất thường lấy chỉ số từ đơn thật của ngày được chọn.
 - Phân tích giá vốn và lợi nhuận từng món.
 - Quản lý chi nhánh và bàn; tạo/sửa nhóm món, món, công thức định lượng; ngừng bán hoặc bật bán lại món. Quản trị viên tạo/sửa nguyên liệu, quản lý có thể sửa bàn trong chi nhánh.
 - Đăng nhập trước khi sử dụng; menu hiển thị theo vai trò ADMIN, MANAGER, CASHIER, WAITER và CHEF. Chi nhánh của nhân viên được lấy từ tài khoản.
