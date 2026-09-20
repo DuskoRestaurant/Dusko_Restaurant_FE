@@ -1,5 +1,14 @@
 export const API_BASE = (import.meta.env?.VITE_API_URL || '').replace(/\/$/, '');
 
+export async function uploadProductImage(productId, file, token, fetcher = fetch) {
+  const response = await fetcher(`${API_BASE}/api/catalog/products/${productId}/image`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': file.type }, body: file,
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.success === false) throw new ApiError(payload.error || 'Không thể tải ảnh lên', response.status);
+  return payload.data;
+}
+
 export class ApiError extends Error {
   constructor(message, status) { super(message); this.name = 'ApiError'; this.status = status; }
 }

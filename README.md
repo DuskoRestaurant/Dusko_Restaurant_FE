@@ -14,7 +14,7 @@ Nếu API chạy ở địa chỉ khác, tạo `.env` với `VITE_API_URL=https:
 
 FE có 8 trang chính. Menu thay đổi theo vai trò đăng nhập.
 
-Thực đơn và màn hình tạo đơn hiển thị ảnh món. Quản trị viên có thể nhập đường dẫn ảnh HTTP(S) khi thêm hoặc sửa món. Hai ảnh trong `public/dishes/` là ảnh minh họa được tạo cho dữ liệu mẫu, không phải ảnh món phục vụ thực tế; hãy thay bằng ảnh của nhà hàng khi đưa vào sử dụng.
+Thực đơn và màn hình tạo đơn hiển thị ảnh món. Quản trị viên chọn file JPG, PNG hoặc WebP (tối đa 5 MB) khi thêm hoặc sửa món. BE lưu ảnh tải lên trong `uploads/dishes/`; cần giữ thư mục này khi triển khai và sao lưu. Hai ảnh trong `public/dishes/` là ảnh minh họa được tạo cho dữ liệu mẫu, không phải ảnh món phục vụ thực tế; có thể thay ngay trong màn hình sửa món.
 
 - Tổng quan doanh thu, đơn hàng, bếp, cảnh báo kho.
 - Tạo đơn từ thực đơn và bàn còn trống của chi nhánh; thanh toán theo quyền thu ngân/quản lý. Đơn được lưu trên máy khi mất mạng và đồng bộ với mã UUID chống ghi trùng.

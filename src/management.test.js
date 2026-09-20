@@ -14,6 +14,7 @@ test('menu photo renders a safe image and handles a missing image', () => {
   const product = { name: '<script>', imageUrl: '/dishes/seafood-fried-rice.webp' };
   assert.match(productPhoto(product), /seafood-fried-rice\.webp/);
   assert.match(productPhoto(product), /&lt;script&gt;/);
+  assert.match(productPhoto({ name: 'Soup', imageUrl: '/api/uploads/dishes/123e4567-e89b-12d3-a456-426614174000.png' }), /api\/uploads\/dishes/);
   assert.match(productPhoto({ name: 'Soup', imageUrl: 'javascript:alert(1)' }), /Chưa có ảnh/);
 });
 
