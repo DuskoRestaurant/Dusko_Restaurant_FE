@@ -1,5 +1,14 @@
 # Dusko Restaurant FE
 
+## Hai ứng dụng gọi món mới
+
+- `customer-web/`: website khách mở từ QR của từng bàn, chạy local bằng `cd customer-web; npm ci; npm run dev` ở `http://localhost:5174`.
+- `staff-app/`: PWA phục vụ độc lập, chạy bằng `cd staff-app; npm ci; npm run dev` ở `http://localhost:5175`.
+
+Hai app gọi BE ở `http://localhost:8080` theo mặc định. Khi triển khai, đặt `VITE_API_BASE_URL` ở từng app và `CUSTOMER_WEB_URL` ở BE trước khi in QR. Không in QR chứa `localhost` cho bàn thật. Nhân viên cần tài khoản có `branchId`; quản lý tạo lại QR qua `POST /api/catalog/branches/:branchId/tables/:id/qr` rồi in nội dung SVG/URL nhận được. QR cũ hết hiệu lực ngay khi tạo mới.
+
+Các app hiện là bản chức năng đầu tiên. Chưa có offline queue đầy đủ, cảnh báo bếp khi KDS mất kết nối, giới hạn tần suất gửi đơn hay kiểm thử trên điện thoại thật. Xem checklist ở thư mục `DoAnTotNghiep` để theo dõi các hạng mục này.
+
 Dashboard tiếng Việt cho backend Express trong thư mục `Dusko_Restaurant_BE`.
 
 ## Chạy local
