@@ -17,6 +17,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .branch-picker input{background:#fff;border-color:#d4d4d4;color:#171717}
 .avatar{background:#111;color:#fff}
 .content{padding-top:38px}
+.login-welcome{min-height:calc(100vh - 184px);display:grid;place-items:center}
+.login-card{width:min(560px,100%);padding:44px;background:#fff;border:1px solid #dedede;border-radius:14px;box-shadow:0 8px 32px #00000008}
+.login-card h1{margin:12px 0 10px;color:#111;font-size:32px;letter-spacing:-.035em}
+.login-card p{margin:0 0 26px;color:#686868;line-height:1.6}
+.manage-form label.check-field{display:flex;align-items:flex-start;gap:12px;padding:14px;background:#f3f3f3;border:1px solid #ddd;border-radius:9px;line-height:1.5}
+.manage-form .check-field input{width:20px;height:20px;flex:none;margin:1px 0 0;accent-color:#111}
+@media(max-width:700px){.login-welcome{min-height:calc(100vh - 170px)}.login-card{padding:28px 22px}.login-card h1{font-size:26px}}
 .eyebrow{color:#525252}
 .page-head h1{color:#111;letter-spacing:-.035em}
 .page-head p,.panel-head p{color:#686868;line-height:1.5}
@@ -95,5 +102,7 @@ td strong{color:#171717}
 .kds-ticket.late{box-shadow:none}
 .kds-orders{display:grid;gap:4px;font-size:11px;padding:8px 10px;background:#f2f2f2;border-radius:7px;margin:8px 0}.kds-orders span{color:#444;overflow-wrap:anywhere}
 .kds-stale-hint,.recipe-warning{border-left:4px solid #111;background:#f1f1f1;padding:10px 12px;margin:10px 0;color:#222;font-size:12px;line-height:1.5}.recipe-warning{font-weight:700}
+.product-choice:disabled{opacity:.55;cursor:not-allowed;background:#eee}
 @media(max-width:1050px){.kds-summary{grid-template-columns:repeat(2,1fr)}.kds-board{grid-template-columns:1fr 1fr}.kds-board>section:last-child{grid-column:1 / -1}.kds-board>section:last-child .kds-column{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}}
 @media(max-width:700px){.kds-summary{grid-template-columns:1fr 1fr}.kds-summary>div{padding:12px}.kds-toolbar{align-items:stretch;flex-direction:column}.kds-toolbar label{min-width:0}.kds-toolbar p{margin:0}.kds-board{grid-template-columns:1fr;gap:12px}.kds-board>section:last-child{grid-column:auto}.kds-ticket{padding:13px}.kds-photo{width:68px;height:68px}}
+.legacy-order-tools{margin-top:28px;padding:18px;border:1px solid #d8d8d8;border-radius:10px;background:#fff}.legacy-order-tools>summary{cursor:pointer;font-weight:700}.legacy-order-tools>p{font-size:13px;color:#666}.legacy-order-tools .order-layout{margin-top:18px}

@@ -1,47 +1,47 @@
 import './style.css';
+import {createServiceWorkspace} from '../../src/service-workspace.js';
+import '../../src/readability.css';
+import '../../src/font.css';
+
 const api = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const app = document.querySelector('#app');
-const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
-const money = n => new Intl.NumberFormat('vi-VN', { style:'currency', currency:'VND' }).format(n);
-const state = { auth: JSON.parse(sessionStorage.getItem('dusko-auth') || 'null'), tables: [], products: [], table: null, session: null, cart: new Map(), notes: new Map(), message: '', busy: false, category:'ALL', pendingDraft:null };
-async function request(path, options = {}) { const response = await fetch(api + path, { ...options, headers: { 'Content-Type':'application/json', ...(state.auth ? { Authorization:`Bearer ${state.auth.token}` } : {}), ...options.headers } }); const result = await response.json().catch(() => ({})); if (response.status === 401) { state.auth = null; sessionStorage.removeItem('dusko-auth'); render(); } if (!response.ok) throw Error(result.error || 'Không kết nối được máy chủ'); return result.data; }
-const post = (path, body) => request(path, { method:'POST', body: JSON.stringify(body) });
-function render() {
-  if (!state.auth) { app.innerHTML = `<main class="login"><h1>DUSKO <small>NHÂN VIÊN</small></h1><p>Đăng nhập để phục vụ bàn.</p><form id="login"><label>Tài khoản<input name="username" required autocomplete="username"></label><label>Mật khẩu<input name="password" required type="password" autocomplete="current-password"></label><button class="primary">Đăng nhập</button></form><p role="status">${esc(state.message)}</p></main>`; app.querySelector('#login').onsubmit = login; return; }
-  const branchId = state.auth.user.branchId;
-  const table = state.table;
-  const cart = [...state.cart.entries()].filter(([, q]) => q > 0);
-  app.innerHTML = `<header><b>DUSKO <small>NHÂN VIÊN</small></b><button id="logout">Đăng xuất</button></header><main><p class="message" role="status">${esc(state.message)}</p>
-    ${table ? `<button id="back" class="link">← Danh sách bàn</button><h1>${esc(table.tableName)}</h1><p>Trạng thái: ${esc(table.status)}</p>${state.session ? `<section><h2>Lượt gọi món trong phiên</h2>${state.session.orders.length ? state.session.orders.map(order => `<article class="order"><b>${esc(order.orderCode)}</b><span>${order.source === 'CUSTOMER_QR' ? 'Khách quét QR' : 'Nhân viên'} · ${order.status === 'AWAITING_CONFIRMATION' ? 'Chờ xác nhận' : order.status}</span><small>${order.items.map(item => `${esc(item.product.name)} × ${item.quantity}${item.note ? ` (${esc(item.note)})` : ''}`).join(', ')}</small>${order.status === 'AWAITING_CONFIRMATION' ? `<button class="confirm" data-confirm="${order.id}">Đã kiểm tra tại bàn · Gửi bếp</button>` : ''}</article>`).join('') : '<p>Chưa có món.</p>'}</section>` : `<button id="open" class="primary">Mở phiên phục vụ</button>`}${state.pendingDraft?`<section class="offline-draft"><h2>Bản nháp chưa gửi</h2><p>${state.pendingDraft.items.map(item=>`${esc(state.products.find(p=>p.id===item.productId)?.name||'Món')} × ${item.quantity}`).join(' · ')}</p><strong>Chưa gửi đến máy chủ và bếp chưa nhận món này.</strong><div class="draft-actions"><button id="retry-draft" class="primary">Thử gửi lại</button><button id="discard-draft" class="secondary">Xóa bản nháp</button></div></section>`:''}
-    ${state.session ? `<section><h2>Gọi thêm món</h2><div class="menu-tools"><input id="search" type="search" placeholder="Tìm món"><select id="category"><option value="ALL">Tất cả nhóm</option>${[...new Set(state.products.map(p=>p.category?.name).filter(Boolean))].map(name=>`<option value="${esc(name)}" ${state.category===name?'selected':''}>${esc(name)}</option>`).join('')}</select></div><div class="products">${state.products.map(p => `<article class="product" data-name="${esc(p.name.toLowerCase())}" data-category="${esc(p.category?.name||'')}"><span>${p.imageUrl ? `<img src="${esc(p.imageUrl.startsWith('http') ? p.imageUrl : api + p.imageUrl)}" alt="${esc(p.name)}">` : ''}</span><div><b>${esc(p.name)}</b><small>${esc(p.category?.name||'Món ăn')} · ${money(p.sellingPrice)}</small></div><button data-add="${p.id}" aria-label="Thêm ${esc(p.name)}">+</button></article>`).join('')}</div><h3>Đang chọn</h3>${cart.map(([id,q]) => { const p = state.products.find(x => x.id === id); return `<div class="selected"><p class="cartline">${esc(p.name)} × ${q}<button data-remove="${id}">−</button></p><input data-note="${id}" maxlength="500" value="${esc(state.notes.get(id) || '')}" placeholder="Ghi chú món"></div>`; }).join('') || '<p>Chưa chọn món.</p>'}<button id="send" class="primary" ${cart.length && !state.busy ? '' : 'disabled'}>Gửi ${cart.length ? money(cart.reduce((n,[id,q]) => n + state.products.find(p => p.id === id).sellingPrice*q,0)) : 'đơn'}</button></section>` : ''}
-    ${state.session && ['ADMIN','MANAGER','CASHIER'].includes(state.auth.user.role) ? '<button id="checkout" class="secondary">Thanh toán tiền mặt và đóng bàn</button>' : ''}` : `<h1>Bàn phục vụ</h1><p class="hint">Ưu tiên các bàn có yêu cầu khách đang chờ xác nhận.</p><input id="table-search" type="search" placeholder="Tìm bàn"><div class="tables">${state.tables.map(t => `<button class="table ${t.unconfirmedOrderCount?'attention':''}" data-table="${t.id}"><b>${esc(t.tableName)}</b><span>${esc(t.status)}</span>${t.unconfirmedOrderCount?`<em>${t.unconfirmedOrderCount} yêu cầu chờ xác nhận</em>`:t.pendingOrderCount?`<em>${t.pendingOrderCount} lượt đang phục vụ</em>`:''}</button>`).join('')}</div>`}</main>`;
-  app.querySelector('#logout').onclick = () => { sessionStorage.removeItem('dusko-auth'); state.auth = null; state.table = null; render(); };
-  if (!table) { app.querySelectorAll('[data-table]').forEach(button => button.onclick = () => selectTable(Number(button.dataset.table))); app.querySelector('#table-search').oninput = e => { const q = e.target.value.toLowerCase(); app.querySelectorAll('.table').forEach(el => el.hidden = !el.textContent.toLowerCase().includes(q)); }; return; }
-  app.querySelector('#back').onclick = () => { state.table = null; state.session = null; loadTables(); };
-  app.querySelector('#retry-draft')?.addEventListener('click',retryDraft);
-  app.querySelector('#discard-draft')?.addEventListener('click',discardDraft);
-  if (!state.session) { app.querySelector('#open').onclick = open; return; }
-  const filterProducts=()=>{const q=app.querySelector('#search').value.toLowerCase(),category=app.querySelector('#category').value;state.category=category;app.querySelectorAll('.product').forEach(el=>el.hidden=!el.dataset.name.includes(q)||(category!=='ALL'&&el.dataset.category!==category));};
-  app.querySelector('#search').oninput = filterProducts;
-  app.querySelector('#category').onchange = filterProducts;
-  app.querySelectorAll('[data-add]').forEach(button => button.onclick = () => { const id = Number(button.dataset.add); state.cart.set(id, Math.min(1000, (state.cart.get(id) || 0)+1)); render(); });
-  app.querySelectorAll('[data-remove]').forEach(button => button.onclick = () => { const id = Number(button.dataset.remove); state.cart.set(id, Math.max(0, (state.cart.get(id) || 0)-1)); render(); });
-  app.querySelectorAll('[data-note]').forEach(input => input.oninput = () => state.notes.set(Number(input.dataset.note), input.value));
-  app.querySelectorAll('[data-confirm]').forEach(button => button.onclick = () => confirmCustomerOrder(button.dataset.confirm));
-  app.querySelector('#send').onclick = send;
-  if (app.querySelector('#checkout')) app.querySelector('#checkout').onclick = checkout;
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[c]);
+let auth;
+try { auth=JSON.parse(sessionStorage.getItem('dusko-auth')||'null'); } catch { auth=null; }
+let workspace;
+async function request(path,{method='GET',body}={}) {
+  const response=await fetch(api+path,{method,headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${auth.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+  const payload=await response.json().catch(()=>({}));
+  if(response.status===401) {auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');}
+  if(!response.ok) {const error=Error(payload.error||'Không kết nối được máy chủ');error.status=response.status;throw error;}
+  return payload.data;
 }
-async function login(e) { e.preventDefault(); try { const form = new FormData(e.target); const result = await post('/api/auth/login', { username:form.get('username'), password:form.get('password') }); if (!['ADMIN','MANAGER','CASHIER','WAITER'].includes(result.user.role)) throw Error('Tài khoản này không có quyền phục vụ bàn'); state.auth = result; sessionStorage.setItem('dusko-auth', JSON.stringify(result)); state.message = ''; await loadTables(); } catch (error) { state.message = error.message; render(); } }
-async function loadTables() { try { const branchId = state.auth.user.branchId; if (!branchId) throw Error('Tài khoản cần được gán chi nhánh để dùng app'); state.tables = await request(`/api/catalog/branches/${branchId}/tables`); state.products = await request('/api/catalog/products'); render(); } catch (error) { state.message = error.message; render(); } }
-async function selectTable(id) { state.table = state.tables.find(t => t.id === id); state.cart.clear(); state.pendingDraft=JSON.parse(localStorage.getItem(draftKey(id))||'null'); try { const result = await request(`/api/staff/tables/${id}/session?branchId=${state.auth.user.branchId}`); state.session = result.session; state.message = ''; } catch (error) { state.message = error.message; } render(); }
-const draftKey=id=>`dusko-staff-draft:${state.auth?.user?.id}:${state.auth?.user?.branchId}:${id}`;
-async function retryDraft(){if(!state.pendingDraft||!state.table||!state.session)return;try{const result=await post(`/api/staff/tables/${state.table.id}/orders`,{...state.pendingDraft,branchId:state.auth.user.branchId});localStorage.removeItem(draftKey(state.table.id));state.pendingDraft=null;state.message=result.kitchenPending?'Đơn đã lưu nhưng đang chờ chuyển tới bếp; báo bếp kiểm tra.':'Đã đồng bộ bản nháp lên máy chủ và chuyển bếp.';await selectTable(state.table.id);}catch(error){state.message=`Chưa đồng bộ được: ${error.message}. Bản nháp vẫn còn trên thiết bị.`;render();}}
-function discardDraft(){if(!state.table||!confirm('Xóa vĩnh viễn bản nháp chưa gửi trên thiết bị này?'))return;localStorage.removeItem(draftKey(state.table.id));state.pendingDraft=null;state.message='Đã xóa bản nháp trên thiết bị.';render();}
-async function open() { if (!confirm(`Mở phiên phục vụ cho ${state.table.tableName}?`)) return; try { await post(`/api/staff/tables/${state.table.id}/open`, { branchId:state.auth.user.branchId }); await loadTables(); await selectTable(state.table.id); } catch (error) { state.message = error.message; render(); } }
-async function confirmCustomerOrder(orderId) { if (!confirm('Bạn đã tới đúng bàn, đọc lại món với khách và xác nhận gửi xuống bếp?')) return; try { const result = await post(`/api/staff/orders/${orderId}/confirm`, { branchId:state.auth.user.branchId }); state.message = result.kitchenPending ? 'Đã xác nhận nhưng KDS đang lỗi; báo bếp kiểm tra ngay.' : 'Đã xác nhận và chuyển yêu cầu xuống bếp.'; await selectTable(state.table.id); } catch (error) { state.message = error.message; render(); } }
-async function send() { if (state.busy || !state.cart.size) return; const items = [...state.cart.entries()].filter(([,q]) => q > 0).map(([id,quantity]) => ({ productId:id, quantity, price:state.products.find(p=>p.id===id).sellingPrice, ...(state.notes.get(id)?.trim() ? { note:state.notes.get(id).trim() } : {}) })); if (!confirm(`Gửi ${items.reduce((n,i)=>n+i.quantity,0)} món cho ${state.table.tableName}?`)) return; state.busy = true; state.message = ''; render(); let pending=state.pendingDraft; if(!pending||JSON.stringify(pending.items)!==JSON.stringify(items)){pending={id:crypto.randomUUID(),items};} try { const result = await post(`/api/staff/tables/${state.table.id}/orders`, { ...pending, branchId:state.auth.user.branchId }); localStorage.removeItem(draftKey(state.table.id));state.pendingDraft=null; state.cart.clear(); state.notes.clear(); state.message = result.kitchenPending ? 'Đơn đã lưu nhưng đang chờ chuyển tới bếp; cần báo bếp kiểm tra.' : 'Đơn đã được máy chủ ghi nhận.'; await selectTable(state.table.id); } catch (error) { if(error instanceof TypeError){state.pendingDraft=pending;localStorage.setItem(draftKey(state.table.id),JSON.stringify(pending));state.message='Mất kết nối. Đã lưu bản nháp trên thiết bị; CHƯA gửi đến bếp.';}else state.message=`${error.message}. Giữ nguyên yêu cầu để kiểm tra hoặc thử gửi lại.`; } finally { state.busy = false; render(); } }
-async function checkout() { if (!confirm(`Thanh toán toàn bộ phiên tại ${state.table.tableName} và đóng bàn?`)) return; try { const result = await post(`/api/staff/tables/${state.table.id}/checkout`, { branchId:state.auth.user.branchId, paymentMethod:'CASH' }); state.message = `Đã thanh toán ${money(result.finalAmount)}.`; state.table = null; state.session = null; await loadTables(); } catch (error) { state.message = error.message; render(); } }
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
-if (state.auth) loadTables(); else render();
-window.addEventListener('online',()=>{if(state.table&&state.pendingDraft){state.message='Đã có mạng trở lại. Kiểm tra bàn và bấm Thử gửi lại để đồng bộ bản nháp.';render();}});
-setInterval(async()=>{if(!state.auth||state.busy||document.hidden)return;if(state.table){try{const id=state.table.id;const result=await request(`/api/staff/tables/${id}/session?branchId=${state.auth.user.branchId}`);state.session=result.session;state.tables=state.tables.map(table=>table.id===id?{...table,...result.table}:table);render();}catch{/* Giữ nội dung hiện tại để nhân viên không mất thao tác đang nhập. */}}else await loadTables();},12000);
+function renderLogin(message='') {
+  workspace?.destroy();workspace=null;
+  app.innerHTML=`<main class="login"><h1>DUSKO <small>NHÂN VIÊN</small></h1><p>Chọn bàn, nhận yêu cầu và mang món ra.</p><form id="login"><label>Tài khoản<input name="username" required autocomplete="username"></label><label>Mật khẩu<input name="password" type="password" required autocomplete="current-password"></label><button class="primary">Đăng nhập</button></form><p role="status">${esc(message)}</p></main>`;
+  app.querySelector('#login').onsubmit=async event=>{
+    event.preventDefault();const form=new FormData(event.target);const button=event.target.querySelector('button');button.disabled=true;
+    try {
+      const result=await request('/api/auth/login',{method:'POST',body:{username:form.get('username'),password:form.get('password')}});
+      if(!['ADMIN','MANAGER','CASHIER','WAITER'].includes(result.user.role))throw Error('Tài khoản này không có quyền phục vụ bàn');
+      auth=result;sessionStorage.setItem('dusko-auth',JSON.stringify(auth));await startWorkspace();
+    } catch(error) {renderLogin(error.message);}
+  };
+}
+async function startWorkspace() {
+  let branches=[];
+  const branchId=auth.user.branchId;
+  if(!branchId) {
+    if(auth.user.role!=='ADMIN')throw Error('Tài khoản chưa được gán chi nhánh. Nhờ quản lý cập nhật.');
+    branches=await request('/api/catalog/branches');
+    if(!branches.length)throw Error('Chưa có chi nhánh để phục vụ.');
+  }
+  workspace?.destroy();
+  app.innerHTML=`<header class="staff-app-header"><b>DUSKO <small>NHÂN VIÊN</small></b><button id="logout">Đăng xuất</button></header><main><p class="staff-identity">${esc(auth.user.fullName)} · ${esc({ADMIN:'Quản trị',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ'}[auth.user.role])}</p>${branches.length?`<label class="staff-branch">Chi nhánh<select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}<div id="service-workspace"></div></main>`;
+  app.querySelector('#logout').onclick=()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin();};
+  const mount=id=>{workspace?.destroy();workspace=createServiceWorkspace({root:app.querySelector('#service-workspace'),request,branchId:Number(id),role:auth.user.role,userId:auth.user.id,imageBase:api});};
+  mount(branchId||branches[0].id);
+  app.querySelector('#staff-branch')?.addEventListener('change',event=>mount(event.target.value));
+}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+if(auth)request('/api/auth/profile').then(startWorkspace).catch(error=>renderLogin(error.message));else renderLogin();
