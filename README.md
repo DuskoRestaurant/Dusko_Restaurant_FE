@@ -36,6 +36,6 @@ Thực đơn và màn hình tạo đơn hiển thị ảnh món. Quản trị vi
 - Quản lý chi nhánh và bàn; tạo/sửa nhóm món, món, công thức định lượng; ngừng bán hoặc bật bán lại món. Quản trị viên tạo/sửa nguyên liệu, quản lý có thể sửa bàn trong chi nhánh.
 - Đăng nhập trước khi sử dụng; menu hiển thị theo vai trò ADMIN, MANAGER, CASHIER, WAITER và CHEF. Chi nhánh của nhân viên được lấy từ tài khoản.
 
-Chạy `npm test` cho kiểm thử API client, `npm run build` để kiểm tra bản build.
+Chạy `npm run build` để kiểm tra bản build.
 
 Đơn offline được lưu trong localStorage của trình duyệt hiện tại. Khi có mạng, vào mục Đơn hàng và chọn **Đồng bộ đơn**; các đơn bị từ chối (ví dụ bàn đã bận hoặc giá món thay đổi) vẫn nằm trong danh sách để xử lý. Không xóa dữ liệu trình duyệt trước khi đồng bộ.
