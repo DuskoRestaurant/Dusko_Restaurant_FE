@@ -7,7 +7,9 @@
 
 Hai app gọi BE ở `http://localhost:8080` theo mặc định. Khi triển khai, đặt `VITE_API_BASE_URL` ở từng app và `CUSTOMER_WEB_URL` ở BE trước khi in QR. Không in QR chứa `localhost` cho bàn thật. `POST /api/catalog/branches/:branchId/tables/:id/qr` luôn trả QR cố định của bàn để in lại khi cần; `/qr/reissue` chỉ dùng khi phải thu hồi mã cũ. Món khách gửi chỉ chuyển xuống bếp sau khi nhân viên tới bàn và bấm xác nhận trong Staff PWA.
 
-Các app hiện là bản chức năng đầu tiên. Chưa có offline queue đầy đủ, cảnh báo bếp khi KDS mất kết nối, giới hạn tần suất gửi đơn hay kiểm thử trên điện thoại thật. Xem checklist ở thư mục `DoAnTotNghiep` để theo dõi các hạng mục này.
+Customer Web lọc món theo nhóm, theo dõi các lượt đã gọi trong phiên và cập nhật trạng thái định kỳ. Staff PWA làm mới danh sách bàn/phiên định kỳ; khi mất mạng lúc gửi món, bản nháp được giữ trên thiết bị với UUID cũ để nhân viên chủ động thử gửi lại. Giao diện ghi rõ bản nháp chưa tới máy chủ và bếp chưa nhận món. Đây là lưu nháp cục bộ, chưa phải hàng đợi đồng bộ chạy nền.
+
+Màn hình bếp tự tải lại mỗi 15 giây, có chế độ toàn màn hình, lọc trạm, số suất, bàn, mã lượt, ghi chú từng món và nhóm riêng cho mẻ chờ trên 60 phút để nhân viên xác minh. Quản lý QR tại mục **Chi nhánh & bàn** cho phép tạo/tải lại, khóa và cấp mã mới. Ảnh trong `public/dishes/` và `Dusko_Restaurant_BE/assets/dishes/` là ảnh minh họa tạo cho dữ liệu mẫu; thay bằng ảnh chụp món thật của cửa hàng trước khi vận hành chính thức.
 
 Dashboard tiếng Việt cho backend Express trong thư mục `Dusko_Restaurant_BE`.
 
@@ -23,7 +25,7 @@ Nếu API chạy ở địa chỉ khác, tạo `.env` với `VITE_API_URL=https:
 
 FE có 8 trang chính. Menu thay đổi theo vai trò đăng nhập.
 
-Thực đơn và màn hình tạo đơn hiển thị ảnh món. Quản trị viên chọn file JPG, PNG hoặc WebP (tối đa 5 MB) khi thêm hoặc sửa món. BE lưu ảnh tải lên trong `uploads/dishes/`; cần giữ thư mục này khi triển khai và sao lưu. Hai ảnh trong `public/dishes/` là ảnh minh họa được tạo cho dữ liệu mẫu, không phải ảnh món phục vụ thực tế; có thể thay ngay trong màn hình sửa món.
+Thực đơn và màn hình tạo đơn hiển thị ảnh món. Quản trị viên chọn file JPG, PNG hoặc WebP (tối đa 5 MB) khi thêm hoặc sửa món. BE lưu ảnh tải lên trong `uploads/dishes/`; cần giữ thư mục này khi triển khai và sao lưu. Ảnh dùng cho dữ liệu mẫu được đóng gói trong `public/dishes/` và `Dusko_Restaurant_BE/assets/dishes/` để có mặt sau khi clone/deploy.
 
 - Tổng quan doanh thu, đơn hàng, bếp, cảnh báo kho.
 - Tạo đơn từ thực đơn và bàn còn trống của chi nhánh; thanh toán theo quyền thu ngân/quản lý. Đơn được lưu trên máy khi mất mạng và đồng bộ với mã UUID chống ghi trùng.
