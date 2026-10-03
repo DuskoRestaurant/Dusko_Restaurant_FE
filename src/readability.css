@@ -66,3 +66,144 @@ table{font-size:17px;line-height:1.5}th{font-size:14px;font-weight:600;letter-sp
 .sw-service-call small{display:block;margin-top:4px;color:#68707a}
 .recipe-row input{width:100%;padding:11px;border:1px solid #d8dce1;border-radius:7px;font-size:16px}
 @media(max-width:700px){.recipe-row{grid-template-columns:1fr 1fr}.recipe-row label:first-child{grid-column:1/-1}.sw-service-call{align-items:flex-start;flex-wrap:wrap}}
+
+/* Shared forest, cream and warm accent palette for the restaurant console. */
+:root{--canvas:#f3f6f4;--ink:#20312b;--muted:#687970;--line:#dfe8e2;--accent:#24744d;--accent-soft:#e6f5ed;--warm:#e5a13d;--blue:#4f8bd5}
+body{background:var(--canvas);color:var(--ink)}
+.sidebar{background:#153d32;color:#fff;border-right-color:#153d32}
+.brand-mark{background:#fff;color:#153d32}
+.brand small,.workspace-label{color:#bed4cc}
+.sidebar-foot{border-color:#31584c}
+.sidebar-foot strong{color:#fff}
+.sidebar-foot small{color:#bed4cc}
+.online-dot{background:#86d6a8;box-shadow:0 0 0 4px #ffffff20}
+.nav-item{color:#d2e2da}
+.nav-item:hover{background:#ffffff17;color:#fff}
+.nav-item.active{background:#dff1e5;color:#194c37;border-color:#dff1e5}
+.topbar{background:#fff;border-bottom-color:#dfe8e2}
+.breadcrumb,.branch-picker,.date-pill,.user-name{color:#52675d}
+.avatar{background:#e6f5ed;color:#24744d}
+.content{background:transparent}
+.eyebrow{color:#31805a}
+.page-head h1,.panel-head h2{color:#20382d}
+.page-head p,.panel-head p{color:#687970}
+.btn{background:#24744d;border-color:#24744d;color:#fff}
+.btn:hover{background:#1b603e;border-color:#1b603e}
+.btn.secondary,.btn.small{background:#fff;color:#285d43;border-color:#cfdfd4}
+.btn.secondary:hover,.btn.small:hover{background:#edf6f0;border-color:#9dc3a9}
+.btn.text{color:#347653}
+.metric,.panel,.batch-card{border-color:#dfe8e2;box-shadow:0 3px 12px #193f3308}
+.metric{border-top:3px solid #9dcbb0}
+.metric-grid>.metric:nth-child(2){border-top-color:#efc276}
+.metric-grid>.metric:nth-child(3){border-top-color:#9bbce5}
+.metric-grid>.metric:nth-child(4){border-top-color:#bdaddf}
+.metric>span,.metric small{color:#687970}
+.metric strong,.metric i{color:#20382d}
+.panel-head{border-bottom-color:#e8efea}
+.field,.manage-form label{color:#435a4c}
+.field input,.field select,select,.manage-form input,.manage-form select,.stock-control input{border-color:#d5e2d9;color:#243b30}
+.field input:focus,.field select:focus,.manage-form input:focus,.manage-form select:focus{border-color:#58a77b;box-shadow:0 0 0 3px #58a77b25}
+.manage-form .check-field input{accent-color:#24744d}
+th{background:#edf4ef;color:#496254;border-bottom-color:#dfe8e2}
+td{color:#43564b;border-bottom-color:#e8efea}
+td strong{color:#20382d}
+.badge{background:#eef3ef;color:#4a6253;border-color:#dce8df}
+.badge.paid,.badge.completed,.badge.good{background:#e6f5ed;color:#28764e;border-color:#c3e4d0}
+.badge.pending,.badge.scheduled,.badge.warning{background:#fff3df;color:#94621e;border-color:#f1d7a8;border-style:solid}
+.badge.cooking{background:#e8f2ff;color:#386da3;border-color:#c8ddf6}
+.notice-icon{background:#e6f5ed;color:#28764e}
+.empty{background:#f7fbf8}
+.empty span{color:#78a88a}
+.empty strong{color:#385b47}
+.field input:focus-visible,.field select:focus-visible,.manage-form input:focus-visible{outline-color:#36875c}
+.manage-form label.check-field{background:#f1f7f3;border-color:#dce9e0}
+.login-card{border-color:#dce8e1;border-top:4px solid #2c8b5b;box-shadow:0 12px 34px #173e3014}
+.login-card h1{color:#173f33}
+.login-card p{color:#687970}
+.product-choice:hover,.product-choice.selected{background:#edf6f0;border-color:#78ad89;box-shadow:inset 0 0 0 1px #78ad89}
+.product-photo{background:#eff4f0}
+.product-photo.no-photo{color:#718078;border-color:#cad8cf;background:#f2f6f3}
+.result-box{background:#edf6f0;border-color:#d7e9dd}
+.batch-qty{background:#eef6f0;color:#234b37}
+.ratio{color:#34845a}
+.ratio.high{color:#a9671d}
+.recipe-warning,.kds-stale-hint,.sw-alert{border-left:4px solid #e2a244;background:#fff5e5;color:#75501d}
+.kds-summary>div{background:#1d493a}
+.kds-summary>div:nth-child(2){background:#795122}
+.kds-summary>div:nth-child(3){background:#355f86}
+.kds-summary>div:nth-child(4){background:#4c4269}
+.kds-summary span{color:#e1eae5}
+.kds-board>section{background:#eaf1ec;border-color:#d5e2d9}
+.kds-board>section:nth-child(2){background:#f8f1e7;border-color:#ead9bb}
+.kds-board>section:nth-child(3){background:#edf3fa;border-color:#d2dfef}
+.kds-board>section>header h2{color:#274b38}
+.kds-board>section:nth-child(2)>header h2{color:#7b551f}
+.kds-board>section:nth-child(3)>header h2{color:#385d82}
+.kds-ticket{border-color:#d8e3dc;border-left-color:#5c9a72;box-shadow:0 3px 12px #193f330b}
+.kds-ticket.cooking{border-left-color:#4f8bd5}
+.kds-ticket.late{border-color:#e3ae60;border-left-color:#d78531;box-shadow:0 0 0 2px #faedd8}
+.kds-count{background:#e6f5ed;color:#214d36}
+.kds-count strong{color:#214d36}
+.kds-note{border-color:#e8ca93;background:#fff8eb}
+.kds-time.overdue strong{background:#a95834;color:#fff}
+.kds-stale-hint{border-left-color:#df9c36;background:#fff5e5;color:#75501d}
+.toast{background:#24744d;color:#fff;border-color:#24744d}
+.toast.bad{background:#a9463a;border-color:#a9463a}
+.modal-wrap{background:#10281f9c}
+.modal{border:1px solid #dce8e1;box-shadow:0 24px 80px #10281f40}
+.modal-close{color:#607368}
+.sw-service-call{border-left-color:#e5a13d;background:#fff7e9}
+.sw-progress{background:#edf4ef}
+.sw-progress h4{color:#315844}
+.sw-ready{border-color:#e3ebe6}
+.sw-photo{background:#eff4f0}
+.sw-cart{background:#f8fbf9}
+.sw-button.sw-primary{background:#24744d;border-color:#24744d}
+.sw-button.sw-primary:hover:not(:disabled){background:#1b603e}
+@media(max-width:700px){.sidebar{border-bottom-color:#31584c}.kds-board>section:nth-child(2),.kds-board>section:nth-child(3){background:#eaf1ec}}
+
+/* Keep the daily stock workflow visible and move planning/history out of the way. */
+.inventory-guide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.inventory-guide>div{display:flex;align-items:flex-start;gap:12px;padding:16px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.inventory-step{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:50%;background:#202124;color:#fff;font-weight:700}
+.inventory-guide strong{display:block;font-size:16px}
+.inventory-guide p{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.5}
+.inventory-panel{padding-bottom:12px}
+.inventory-toolbar{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:0 0 16px}
+.inventory-toolbar .field{margin:0;min-width:180px}
+.inventory-toolbar .field:first-child{flex:1}
+.inventory-toolbar input,.inventory-toolbar select{min-height:42px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.inventory-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:205px}
+.inventory-actions .btn{font-size:14px;min-height:38px;padding:7px 9px;white-space:nowrap}
+.inventory-recipe-link{display:grid;justify-items:start;border-bottom:1px solid var(--line);padding:3px 0}
+.inventory-recipe-link:last-child{border:0}
+.inventory-recipe-link small{padding:0 8px;color:var(--muted);font-size:13px}
+.inventory-no-results{padding:20px;text-align:center;color:var(--muted)}
+.inventory-advanced{margin-top:12px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.inventory-advanced>summary{cursor:pointer;font-size:16px;font-weight:650}
+.inventory-advanced>p{margin:8px 0 14px;color:var(--muted);font-size:14px}
+@media(max-width:700px){.inventory-guide{grid-template-columns:1fr}.inventory-toolbar{align-items:stretch}.inventory-toolbar .field{min-width:0}.inventory-actions{min-width:0}.inventory-panel .table-scroll{overflow-x:auto}}
+.inventory-excel-wrap{z-index:1000}
+.inventory-excel-modal{width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto}
+.inventory-excel-modal>h2{margin:0 48px 8px 0}
+.inventory-excel-modal>p{max-width:660px}
+.inventory-import-steps{display:grid;gap:12px;padding-left:24px;margin:14px 0 18px}
+.inventory-import-steps li{padding-left:5px}
+.inventory-import-steps strong,.inventory-import-steps span{display:block}
+.inventory-import-steps span{margin-top:2px;color:var(--muted);font-size:14px}
+.inventory-template-actions{margin:14px 0 20px;padding:14px;background:#f5f6f7;border-radius:9px}
+.excel-form{display:grid;gap:14px}
+.excel-form .field{margin:0}
+.excel-form select,.excel-form input[type=file]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.excel-form .form-help{margin:0;color:var(--muted);font-size:14px}
+.excel-preview-summary{margin-top:16px;padding:15px;border:1px solid var(--line);border-radius:9px;background:#fff}
+.excel-preview-summary>strong{font-size:17px}
+.excel-preview-summary>p{color:var(--muted);font-size:14px}
+.excel-preview-summary ul{list-style:none;padding:0;margin:12px 0 0}
+.excel-preview-summary li{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.excel-preview-summary li:last-child{border:0}
+.excel-errors{margin-top:12px;padding:12px;border-radius:8px;background:#f4f4f4;color:#222;font-size:14px}
+.excel-errors ul{padding-left:20px;list-style:disc}
+.excel-errors li{display:list-item;border:0}
+.excel-loading{margin-top:14px;color:var(--muted)}
+#inventory-excel-submit{margin-top:12px}

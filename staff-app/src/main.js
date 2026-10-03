@@ -2,6 +2,7 @@ import './style.css';
 import {createServiceWorkspace} from '../../src/service-workspace.js';
 import '../../src/readability.css';
 import '../../src/font.css';
+import './staff-workspace.css';
 
 const api = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const app = document.querySelector('#app');
@@ -37,7 +38,7 @@ async function startWorkspace() {
     if(!branches.length)throw Error('Chưa có chi nhánh để phục vụ.');
   }
   workspace?.destroy();
-  app.innerHTML=`<header class="staff-app-header"><b>DUSKO <small>NHÂN VIÊN</small></b><button id="logout">Đăng xuất</button></header><main><p class="staff-identity">${esc(auth.user.fullName)} · ${esc({ADMIN:'Quản trị',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ'}[auth.user.role])}</p>${branches.length?`<label class="staff-branch">Chi nhánh<select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}<div id="service-workspace"></div></main>`;
+  app.innerHTML=`<header class="staff-app-header"><b><span class="staff-brand-mark">D</span><span>DUSKO<small>NHÂN VIÊN</small></span></b><button id="logout">Đăng xuất</button></header><main><div class="staff-toolbar"><p class="staff-identity"><span class="staff-avatar">${esc((auth.user.fullName||'N').slice(0,1).toLocaleUpperCase('vi'))}</span><span><strong>${esc(auth.user.fullName)}</strong><small>${esc({ADMIN:'Quản trị viên',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ'}[auth.user.role])}</small></span></p>${branches.length?`<label class="staff-branch"><span>Chi nhánh</span><select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}</div><div id="service-workspace" class="staff-app-surface"></div></main>`;
   app.querySelector('#logout').onclick=()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin();};
   const mount=id=>{workspace?.destroy();workspace=createServiceWorkspace({root:app.querySelector('#service-workspace'),request,branchId:Number(id),role:auth.user.role,userId:auth.user.id,imageBase:api});};
   mount(branchId||branches[0].id);
