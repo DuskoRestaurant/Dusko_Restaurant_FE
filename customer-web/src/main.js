@@ -1,5 +1,6 @@
 import './style.css';
 import '../../src/font.css';
+import { confirmDialog } from '../../src/confirm-dialog.js';
 
 const api = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const token = location.pathname.match(/^\/t\/([a-f0-9]{64})$/)?.[1];
@@ -57,7 +58,7 @@ function updateCart(id) {
 async function submit() {
   if (state.busy || !state.data.sessionOpen) return;
   const items = [...state.cart.entries()].filter(([, quantity]) => quantity > 0).map(([id, quantity]) => ({ productId: id, quantity, price: state.data.products.find(p => p.id === id).sellingPrice, ...(state.notes.get(id)?.trim() ? { note: state.notes.get(id).trim() } : {}) }));
-  if (!items.length || !confirm(`Gửi ${items.reduce((n, item) => n + item.quantity, 0)} món cho ${state.data.table.name}?`)) return;
+  if (!items.length || !await confirmDialog({title:'Gửi yêu cầu gọi món?',message:`Gửi ${items.reduce((n, item) => n + item.quantity, 0)} món tới nhân viên của ${state.data.table.name}. Món chỉ được chuyển vào bếp sau khi nhân viên xác nhận tại bàn.`,confirmLabel:'Gửi yêu cầu'})) return;
   state.busy = true; state.message = ''; render();
   const pendingKey = `dusko-pending-${token}`;
   let pending = JSON.parse(localStorage.getItem(pendingKey) || 'null');

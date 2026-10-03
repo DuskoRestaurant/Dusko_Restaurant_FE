@@ -1,0 +1,14 @@
+.app-confirm{width:min(460px,calc(100vw - 32px));max-width:none;border:1px solid #d9dde2;border-radius:12px;padding:0;color:#202124;background:#fff;box-shadow:0 20px 60px #10131833}
+.app-confirm::backdrop{background:#17191dcc;backdrop-filter:blur(2px)}
+.app-confirm__body{padding:24px}
+.app-confirm__title{margin:0;font-size:21px;line-height:1.35;font-weight:650;letter-spacing:-.02em}
+.app-confirm__message{margin:12px 0 0;color:#525861;font-size:16px;line-height:1.6;white-space:pre-line}
+.app-confirm__actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.app-confirm__button{min-height:44px;padding:9px 15px;border:1px solid #d2d6dc;border-radius:7px;background:#fff;color:#262a30;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.app-confirm__button:hover{background:#f2f3f5}
+.app-confirm__button:focus-visible{outline:3px solid #8a929d;outline-offset:2px}
+.app-confirm__button--primary{background:#202124;border-color:#202124;color:#fff}
+.app-confirm__button--primary:hover{background:#373a40}
+.app-confirm__button--danger{background:#202124;border-color:#202124;color:#fff}
+.app-confirm__button--danger:hover{background:#373a40}
+@media(max-width:480px){.app-confirm__body{padding:20px}.app-confirm__title{font-size:19px}.app-confirm__actions{flex-direction:column-reverse}.app-confirm__button{width:100%}}
