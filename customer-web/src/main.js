@@ -40,7 +40,7 @@ async function submit() {
   const pendingKey = `dusko-pending-${token}`;
   let pending = JSON.parse(localStorage.getItem(pendingKey) || 'null');
   if (!pending || JSON.stringify(pending.items) !== JSON.stringify(items)) { pending = { id: crypto.randomUUID(), items }; localStorage.setItem(pendingKey, JSON.stringify(pending)); }
-  try { const result = await request(`/api/public/tables/${token}/orders`, { method: 'POST', body: JSON.stringify(pending) }); state.order = result.order; state.cart.clear(); state.notes.clear(); localStorage.removeItem(pendingKey); state.message = result.kitchenPending ? 'Đơn đã lưu nhưng đang chờ chuyển tới bếp. Vui lòng báo nhân viên.' : 'Lượt gọi món đã được hệ thống ghi nhận.'; }
+  try { const result = await request(`/api/public/tables/${token}/orders`, { method: 'POST', body: JSON.stringify(pending) }); state.order = result.order; state.cart.clear(); state.notes.clear(); localStorage.removeItem(pendingKey); state.message = result.awaitingStaffConfirmation ? 'Đã gửi yêu cầu. Nhân viên sẽ tới bàn xác nhận trước khi chuyển món xuống bếp.' : 'Lượt gọi món đã được hệ thống ghi nhận.'; }
   catch (error) { state.message = `${error.message}. Nếu mất mạng, hãy thử lại; yêu cầu đang giữ cùng mã để tránh tạo trùng.`; }
   finally { state.busy = false; render(); }
 }
