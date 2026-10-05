@@ -2,7 +2,7 @@ import './style.css';
 import '../../src/font.css';
 import { confirmDialog } from '../../src/confirm-dialog.js';
 
-const api = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+const api = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const token = location.pathname.match(/^\/t\/([a-f0-9]{64})$/)?.[1];
 const app = document.querySelector('#app');
 const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -26,7 +26,7 @@ function render() {
     <div id="service-actions">${serviceActions()}</div>
     <p id="customer-message" class="message" role="status" ${state.message?'':'hidden'}>${escape(state.message)}</p>
     ${state.orders.length ? `<section class="receipt"><h2>Các lượt gọi món của bạn</h2>${state.orders.map(order=>`<article class="tracked-order"><p>Lượt gọi lúc <b>${new Date(order.createdAt).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</b></p><p class="tracked-status" data-order-status="${escape(order.id)}">Đang tải trạng thái…</p></article>`).join('')}</section>` : ''}
-    <div class="customer-layout"><section class="customer-menu"><div class="toolbar"><h2>Thực đơn</h2><div class="menu-filters"><input id="search" type="search" placeholder="Tìm món ăn" aria-label="Tìm món ăn"><select id="category" aria-label="Lọc nhóm món"><option value="ALL">Tất cả nhóm món</option>${[...new Set(products.map(p=>p.category.name))].map(name=>`<option value="${escape(name)}">${escape(name)}</option>`).join('')}</select></div></div>
+    <div class="customer-layout"><section class="customer-menu"><div class="toolbar"><h2>Thực đơn</h2><a class="pos-cart-jump" href="#customer-cart">Xem giỏ món ↓</a><div class="menu-filters"><input id="search" type="search" placeholder="Tìm món ăn" aria-label="Tìm món ăn"><select id="category" aria-label="Lọc nhóm món"><option value="ALL">Tất cả nhóm món</option>${[...new Set(products.map(p=>p.category.name))].map(name=>`<option value="${escape(name)}">${escape(name)}</option>`).join('')}</select></div></div>
     <div id="menu" class="menu">${products.map(p => `<article class="dish ${p.canOrder?'':'unavailable'}" data-product="${p.id}" data-name="${escape(p.name.toLowerCase())}" data-category="${escape(p.category.name)}"><div class="photo">${p.imageUrl ? `<img src="${escape(p.imageUrl.startsWith('http') ? p.imageUrl : api + p.imageUrl)}" alt="${escape(p.name)}" loading="lazy">` : '<span>Chưa có ảnh</span>'}</div><div class="dish-body"><small>${escape(p.category.name)}</small><h3>${escape(p.name)}</h3><b>${money(p.sellingPrice)}</b>${p.canOrder?`<div class="stepper"><button data-minus="${p.id}" aria-label="Giảm ${escape(p.name)}">−</button><span data-quantity="${p.id}">${state.cart.get(p.id) || 0}</span><button data-plus="${p.id}" aria-label="Thêm ${escape(p.name)}">+</button></div>`:`<p class="unavailable-note">${escape(p.availabilityReason||'Tạm chưa thể đặt')}. Vui lòng hỏi nhân viên.</p>`}</div></article>`).join('')}</div>
     </section><section class="cart" id="customer-cart">${cartHtml()}</section></div></main>`;
   bindQuantityControls();
@@ -116,6 +116,8 @@ async function refreshTable() {
     await updateStatus();
   } catch { /* Keep the menu usable during a temporary connection failure. */ }
 }
-async function load() { if (!token) { app.innerHTML = '<main><h1>Mã QR không hợp lệ</h1><p>Vui lòng nhờ nhân viên kiểm tra mã tại bàn.</p></main>'; return; } try { state.data = await request(`/api/public/tables/${token}`); await updateStatus();render(); setInterval(refreshTable, 15000); } catch (error) { app.innerHTML = `<main><h1>Không mở được thực đơn</h1><p>${escape(error.message)}</p><p>Vui lòng gọi nhân viên.</p></main>`; } }
+async function load() { if (!token) { app.innerHTML = '<main class="guest-entry"><div class="guest-entry-brand">DUSKO</div><section><span class="guest-entry-icon" aria-hidden="true">▦</span><h1>Quét mã QR tại bàn</h1><p>Mở camera điện thoại và quét mã QR được đặt trên bàn để xem thực đơn, chọn món và gửi yêu cầu.</p><ol><li>Nhân viên mở bàn khi bạn đến.</li><li>Quét QR và chọn món yêu thích.</li><li>Nhân viên xác nhận rồi chuyển món tới bếp.</li></ol><p class="guest-entry-help">Không quét được mã? Nhân viên có thể gọi món giúp bạn.</p></section></main>'; return; } try { state.data = await request(`/api/public/tables/${token}`); await updateStatus();render(); setInterval(refreshTable, 15000); } catch (error) { app.innerHTML = `<main><h1>Không mở được thực đơn</h1><p>${escape(error.message)}</p><p>Vui lòng gọi nhân viên.</p></main>`; } }
 app.addEventListener('click',event=>{const button=event.target.closest('[data-remove]');if(!button)return;const id=Number(button.dataset.remove);state.cart.delete(id);state.notes.delete(id);updateCart(id);});
 load();
+
+import '../../src/pos-theme.css';

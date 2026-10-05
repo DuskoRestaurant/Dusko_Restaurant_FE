@@ -39,6 +39,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .metric.warn i{color:#111}
 .panel-head{padding-bottom:15px;border-bottom:1px solid #ededed}
 .panel-head h2{color:#171717}
+.data-origin{display:inline-block;margin:2px 0;padding:3px 8px;border:1px solid #e4cf91;border-radius:999px;background:#fff7dc;color:#70520b;font-size:11px;font-weight:650;vertical-align:middle}
 .field,.manage-form label{color:#333}
 .field input,.field select,select,.manage-form input,.manage-form select,.stock-control input{border-color:#ccc;background:#fff;color:#171717;border-radius:7px}
 .field input:focus,.field select:focus,.manage-form input:focus,.manage-form select:focus{border-color:#111;box-shadow:0 0 0 3px #00000018}
