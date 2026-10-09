@@ -3,6 +3,7 @@ import './style.css';
 import {createServiceWorkspace} from '../../src/service-workspace.js';
 import '../../src/readability.css';
 import '../../src/font.css';
+import '../../src/pos-theme.css';
 
 
 const api = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
@@ -43,5 +44,3 @@ async function startWorkspace() {
 }
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 if(auth)request('/api/auth/profile').then(startWorkspace).catch(error=>renderLogin(error.message));else renderLogin();
-
-import '../../src/pos-theme.css';
