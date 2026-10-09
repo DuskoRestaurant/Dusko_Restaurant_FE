@@ -1,5 +1,6 @@
 import './style.css';
 import '../../src/font.css';
+import '../../src/pos-theme.css';
 import { confirmDialog } from '../../src/confirm-dialog.js';
 
 const api = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
@@ -119,5 +120,3 @@ async function refreshTable() {
 async function load() { if (!token) { app.innerHTML = '<main class="guest-entry"><div class="guest-entry-brand">DUSKO</div><section><span class="guest-entry-icon" aria-hidden="true">▦</span><h1>Quét mã QR tại bàn</h1><p>Mở camera điện thoại và quét mã QR được đặt trên bàn để xem thực đơn, chọn món và gửi yêu cầu.</p><ol><li>Nhân viên mở bàn khi bạn đến.</li><li>Quét QR và chọn món yêu thích.</li><li>Nhân viên xác nhận rồi chuyển món tới bếp.</li></ol><p class="guest-entry-help">Không quét được mã? Nhân viên có thể gọi món giúp bạn.</p></section></main>'; return; } try { state.data = await request(`/api/public/tables/${token}`); await updateStatus();render(); setInterval(refreshTable, 15000); } catch (error) { app.innerHTML = `<main><h1>Không mở được thực đơn</h1><p>${escape(error.message)}</p><p>Vui lòng gọi nhân viên.</p></main>`; } }
 app.addEventListener('click',event=>{const button=event.target.closest('[data-remove]');if(!button)return;const id=Number(button.dataset.remove);state.cart.delete(id);state.notes.delete(id);updateCart(id);});
 load();
-
-import '../../src/pos-theme.css';
