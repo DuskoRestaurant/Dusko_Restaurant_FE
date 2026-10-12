@@ -1,18 +1,35 @@
-// Long-poll invalidation: acknowledge a revision only after the view refresh succeeds.
+// Authenticated WebSocket invalidation; REST APIs retain business authorization.
 export function watchChanges(request, onChange, path='/api/live') {
-  let stopped=false, revision='', timer, controller;
-  async function loop(){
-    controller=new AbortController();
-    const deadline=setTimeout(()=>controller.abort(),35000);
-    try {
-      const value=await request(`${path}?since=${encodeURIComponent(revision)}`,{signal:controller.signal});
-      clearTimeout(deadline);
-      if(stopped)return;
-      if(value?.revision===undefined)throw Error('Missing live revision');
-      if(String(value.revision)!==revision){await onChange();revision=String(value.revision);}
-      if(!stopped)timer=setTimeout(loop,100);
-    } catch {if(!stopped)timer=setTimeout(loop,3000);}
-    finally{clearTimeout(deadline);}
+  let stopped=false, socket, reconnectTimer, retryTimer, controller;
+  let pending=false, refreshing=false, retries=0;
+  async function refresh(){
+    if(stopped||refreshing||!pending)return;
+    refreshing=true;pending=false;
+    try{await onChange();}
+    catch{pending=true;retryTimer=setTimeout(()=>{retryTimer=null;refresh();},1000);}
+    finally{refreshing=false;}
+    if(pending&&!retryTimer&&!stopped)queueMicrotask(refresh);
   }
-  loop();return ()=>{stopped=true;clearTimeout(timer);controller?.abort();};
+  function changed(){pending=true;clearTimeout(retryTimer);retryTimer=null;refresh();}
+  async function connect(){
+    if(stopped)return;
+    controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),15000);
+    try{
+      const ticket=await request(path,{signal:controller.signal});
+      if(stopped)return;
+      const base=import.meta.env?.VITE_API_URL||import.meta.env?.VITE_API_BASE_URL||location.origin;
+      const url=new URL(ticket.path,base);url.protocol=url.protocol==='https:'?'wss:':'ws:';
+      const ws=socket=new WebSocket(url);
+      const handshake=setTimeout(()=>ws.close(),10000);
+      ws.onopen=()=>ws.send(JSON.stringify({type:'authenticate',ticket:ticket.ticket}));
+      ws.onmessage=event=>{try{const message=JSON.parse(event.data);if(message.type==='change'){clearTimeout(handshake);retries=0;changed();}}catch{ws.close();}};
+      ws.onerror=()=>ws.close();
+      ws.onclose=()=>{clearTimeout(handshake);if(!stopped)schedule();};
+    }catch{if(!stopped)schedule();}
+    finally{clearTimeout(timeout);}
+  }
+  function schedule(){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,Math.min(1000*2**retries++,15000)+Math.random()*300);}
+  connect();
+  return ()=>{stopped=true;clearTimeout(reconnectTimer);clearTimeout(retryTimer);controller?.abort();socket?.close();};
 }

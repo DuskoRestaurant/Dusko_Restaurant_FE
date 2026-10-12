@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  server: { port: 5173, proxy: { '/api': 'http://localhost:8080', '/health': 'http://localhost:8080' } },
+  server: { port: 5173, proxy: { '/api': {target:'http://localhost:8080',ws:true}, '/health': 'http://localhost:8080' } },
 });
