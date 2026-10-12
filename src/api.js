@@ -13,9 +13,9 @@ export class ApiError extends Error {
   constructor(message, status) { super(message); this.name = 'ApiError'; this.status = status; }
 }
 
-export async function request(path, { method = 'GET', body, token, fetcher = fetch } = {}) {
+export async function request(path, { method = 'GET', body, token, signal, fetcher = fetch } = {}) {
   const response = await fetcher(`${API_BASE}${path}`, {
-    method,
+    method, signal,
     headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });

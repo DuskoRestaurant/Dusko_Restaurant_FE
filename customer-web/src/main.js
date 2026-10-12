@@ -1,3 +1,5 @@
+import { watchChanges } from '../../src/live-updates.js';
+import { createCustomerHelp } from './customer-help.js';
 import './style.css';
 import '../../src/font.css';
 import '../../src/pos-theme.css';
@@ -16,6 +18,7 @@ async function request(path, options = {}) {
   if (!response.ok) { const error=Error(payload.error || 'Không kết nối được máy chủ');error.status=response.status;throw error; }
   return payload.data;
 }
+const customerHelp = token ? createCustomerHelp({token,request,getState:()=>state,api,addCombo:ids=>{for(const id of ids){state.cart.set(id,(state.cart.get(id)||0)+1);updateCart(id);}}}) : null;
 function render() {
   if (!state.data) return;
   const { branch, table, sessionOpen, products } = state.data;
@@ -27,9 +30,10 @@ function render() {
     <div id="service-actions">${serviceActions()}</div>
     <p id="customer-message" class="message" role="status" ${state.message?'':'hidden'}>${escape(state.message)}</p>
     ${state.orders.length ? `<section class="receipt"><h2>Các lượt gọi món của bạn</h2>${state.orders.map(order=>`<article class="tracked-order"><p>Lượt gọi lúc <b>${new Date(order.createdAt).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</b></p><p class="tracked-status" data-order-status="${escape(order.id)}">Đang tải trạng thái…</p></article>`).join('')}</section>` : ''}
-    <div class="customer-layout"><section class="customer-menu"><div class="toolbar"><h2>Thực đơn</h2><a class="pos-cart-jump" href="#customer-cart">Xem giỏ món ↓</a><div class="menu-filters"><input id="search" type="search" placeholder="Tìm món ăn" aria-label="Tìm món ăn"><select id="category" aria-label="Lọc nhóm món"><option value="ALL">Tất cả nhóm món</option>${[...new Set(products.map(p=>p.category.name))].map(name=>`<option value="${escape(name)}">${escape(name)}</option>`).join('')}</select></div></div>
+    <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu"><div class="toolbar"><h2>Thực đơn</h2><a class="pos-cart-jump" href="#customer-cart">Xem giỏ món ↓</a><div class="menu-filters"><input id="search" type="search" placeholder="Tìm món ăn" aria-label="Tìm món ăn"><select id="category" aria-label="Lọc nhóm món"><option value="ALL">Tất cả nhóm món</option>${[...new Set(products.map(p=>p.category.name))].map(name=>`<option value="${escape(name)}">${escape(name)}</option>`).join('')}</select></div></div>
     <div id="menu" class="menu">${products.map(p => `<article class="dish ${p.canOrder?'':'unavailable'}" data-product="${p.id}" data-name="${escape(p.name.toLowerCase())}" data-category="${escape(p.category.name)}"><div class="photo">${p.imageUrl ? `<img src="${escape(p.imageUrl.startsWith('http') ? p.imageUrl : api + p.imageUrl)}" alt="${escape(p.name)}" loading="lazy">` : '<span>Chưa có ảnh</span>'}</div><div class="dish-body"><small>${escape(p.category.name)}</small><h3>${escape(p.name)}</h3><b>${money(p.sellingPrice)}</b>${p.canOrder?`<div class="stepper"><button data-minus="${p.id}" aria-label="Giảm ${escape(p.name)}">−</button><span data-quantity="${p.id}">${state.cart.get(p.id) || 0}</span><button data-plus="${p.id}" aria-label="Thêm ${escape(p.name)}">+</button></div>`:`<p class="unavailable-note">${escape(p.availabilityReason||'Tạm chưa thể đặt')}. Vui lòng hỏi nhân viên.</p>`}</div></article>`).join('')}</div>
     </section><section class="cart" id="customer-cart">${cartHtml()}</section></div></main>`;
+  customerHelp?.renderCombos();
   bindQuantityControls();
   app.querySelectorAll('[data-note]').forEach(input => input.oninput = () => state.notes.set(Number(input.dataset.note), input.value));
   const filterMenu=()=>{const query=app.querySelector('#search').value.trim().toLowerCase(),category=app.querySelector('#category').value;app.querySelectorAll('.dish').forEach(dish=>dish.hidden=!dish.dataset.name.includes(query)||(category!=='ALL'&&dish.dataset.category!==category));};
@@ -68,9 +72,9 @@ async function submit() {
   catch (error) { state.message = `${error.message}. Nếu mất mạng, hãy thử lại; yêu cầu đang giữ cùng mã để tránh tạo trùng.`; }
   finally { state.busy = false; render(); }
 }
-async function updateStatus() {
+async function updateStatus(strict=false) {
   if(!state.orders.length)return;
-  const results=await Promise.all(state.orders.map(async order=>{try{return await request(`/api/public/tables/${token}/orders/${order.id}`);}catch(error){return error.status===404?null:order;}}));
+  const results=await Promise.all(state.orders.map(async order=>{try{return await request(`/api/public/tables/${token}/orders/${order.id}`);}catch(error){if(error.status===404)return null;if(strict)throw error;return order;}}));
   state.orders=results.filter(Boolean);localStorage.setItem(orderHistoryKey,JSON.stringify(state.orders));
   for(const order of state.orders) {
     const element=document.querySelector(`[data-order-status="${CSS.escape(order.id)}"]`);if(!element)continue;
@@ -84,10 +88,15 @@ function bindQuantityControls() {
   app.querySelectorAll('[data-plus]').forEach(button => button.onclick = () => { const id = Number(button.dataset.plus); state.cart.set(id, Math.min(1000, state.data.products.find(p=>p.id===id)?.maxOrderQuantity??1000, (state.cart.get(id) || 0) + 1)); updateCart(id); });
   app.querySelectorAll('[data-minus]').forEach(button => button.onclick = () => { const id = Number(button.dataset.minus); state.cart.set(id, Math.max(0, (state.cart.get(id) || 0) - 1)); updateCart(id); });
 }
-async function refreshTable() {
+let tableRefreshing=false;
+async function refreshTable(strict=false) {
+  if(state.busy||tableRefreshing){if(strict)throw Error("busy");return;}
+  tableRefreshing=true;
   try {
     const data=await request(`/api/public/tables/${token}`);
+    if(state.busy){if(strict)throw Error("busy");return;}
     const changed=state.data?.sessionId!==data.sessionId;
+    const catalogChanged=JSON.stringify(state.data.products.map(p=>[p.id,p.name,p.imageUrl,p.category.name]))!==JSON.stringify(data.products.map(p=>[p.id,p.name,p.imageUrl,p.category.name]));
     if(changed&&!state.busy) {state.cart.clear();state.notes.clear();state.orders=[];localStorage.removeItem(orderHistoryKey);state.message=data.sessionOpen?'Bàn đã mở lượt phục vụ mới. Bạn có thể chọn món.':'Bàn đã kết thúc phục vụ. Vui lòng nhờ nhân viên nếu cần hỗ trợ.';}
     if(!state.busy) {
       const previous=state.data;
@@ -97,7 +106,8 @@ async function refreshTable() {
       state.data=data;const actions=app.querySelector('#service-actions');if(actions)actions.innerHTML=serviceActions();
       if(cartChanged){state.message='Một số món trong giỏ vừa thay đổi giá hoặc tình trạng còn hàng. Vui lòng kiểm tra trước khi gửi.';const notice=app.querySelector('#customer-message');if(notice){notice.textContent=state.message;notice.hidden=false;}}
 
-      if(changed)render();else {
+      customerHelp?.renderCombos();
+      if(changed||catalogChanged)render();else {
         for(const p of data.products) {
           const old=previous?.products.find(x=>x.id===p.id);const dish=app.querySelector(`.dish[data-product="${p.id}"]`);if(!dish)continue;
           dish.classList.toggle('unavailable',!p.canOrder);
@@ -114,9 +124,9 @@ async function refreshTable() {
 
       }
     }
-    await updateStatus();
-  } catch { /* Keep the menu usable during a temporary connection failure. */ }
+    await updateStatus(strict);
+  } catch(error) { if(strict)throw error; /* Keep the menu usable during a temporary connection failure. */ } finally {tableRefreshing=false;}
 }
-async function load() { if (!token) { app.innerHTML = '<main class="guest-entry"><div class="guest-entry-brand">DUSKO</div><section><span class="guest-entry-icon" aria-hidden="true">▦</span><h1>Quét mã QR tại bàn</h1><p>Mở camera điện thoại và quét mã QR được đặt trên bàn để xem thực đơn, chọn món và gửi yêu cầu.</p><ol><li>Nhân viên mở bàn khi bạn đến.</li><li>Quét QR và chọn món yêu thích.</li><li>Nhân viên xác nhận rồi chuyển món tới bếp.</li></ol><p class="guest-entry-help">Không quét được mã? Nhân viên có thể gọi món giúp bạn.</p></section></main>'; return; } try { state.data = await request(`/api/public/tables/${token}`); await updateStatus();render(); setInterval(refreshTable, 15000); } catch (error) { app.innerHTML = `<main><h1>Không mở được thực đơn</h1><p>${escape(error.message)}</p><p>Vui lòng gọi nhân viên.</p></main>`; } }
+async function load() { if (!token) { app.innerHTML = '<main class="guest-entry"><div class="guest-entry-brand">DUSKO</div><section><span class="guest-entry-icon" aria-hidden="true">▦</span><h1>Quét mã QR tại bàn</h1><p>Mở camera điện thoại và quét mã QR được đặt trên bàn để xem thực đơn, chọn món và gửi yêu cầu.</p><ol><li>Nhân viên mở bàn khi bạn đến.</li><li>Quét QR và chọn món yêu thích.</li><li>Nhân viên xác nhận rồi chuyển món tới bếp.</li></ol><p class="guest-entry-help">Không quét được mã? Nhân viên có thể gọi món giúp bạn.</p></section></main>'; return; } try { state.data = await request(`/api/public/tables/${token}`); await updateStatus();render(); customerHelp?.loadCombos(); watchChanges(request,async()=>{if(state.busy)throw Error('busy');await refreshTable(true);await customerHelp?.loadCombos(true);},`/api/public/tables/${token}/live`); setInterval(()=>refreshTable(), 15000); } catch (error) { app.innerHTML = `<main><h1>Không mở được thực đơn</h1><p>${escape(error.message)}</p><p>Vui lòng gọi nhân viên.</p></main>`; } }
 app.addEventListener('click',event=>{const button=event.target.closest('[data-remove]');if(!button)return;const id=Number(button.dataset.remove);state.cart.delete(id);state.notes.delete(id);updateCart(id);});
 load();

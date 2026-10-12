@@ -1,3 +1,4 @@
+import { watchChanges } from './live-updates.js';
 import './service-workspace.css';
 
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[c]);
@@ -168,6 +169,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   root.addEventListener('click',onClick);root.addEventListener('input',onInput);root.addEventListener('change',onInput);
   root.innerHTML='<p class="sw-empty">Đang tải bàn phục vụ…</p>';
   (initialData?Promise.resolve([state.tables,state.products]):Promise.all([request(`/api/catalog/branches/${branchId}/tables`),loadProducts()])).then(([tables,products])=>{if(disposed)return;state.tables=tables;state.products=products;render();}).catch(error=>{if(disposed)return;root.innerHTML='<p data-sw-message role="status" class="sw-message sw-error"></p>'+button('Thử lại','refresh');showMessage(error.message,true);});
+  const stopLive=watchChanges(request,async()=>{if(disposed)return;if(state.busy||polling)throw Error('retry');polling=true;try{productsAt=0;await refresh();}finally{polling=false;}});
   const interval=setInterval(async()=>{if(disposed||state.busy||polling||document.hidden)return;polling=true;try{await refresh();}catch(error){showMessage(`Không cập nhật được: ${error.message}`,true);}finally{polling=false;}},12000);
-  return {destroy(){disposed=true;clearInterval(interval);root.removeEventListener('click',onClick);root.removeEventListener('input',onInput);root.removeEventListener('change',onInput);}};
+  return {destroy(){disposed=true;stopLive();clearInterval(interval);root.removeEventListener('click',onClick);root.removeEventListener('input',onInput);root.removeEventListener('change',onInput);}};
 }

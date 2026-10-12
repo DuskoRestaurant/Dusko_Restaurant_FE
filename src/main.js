@@ -1,3 +1,6 @@
+import { mountComboApproval } from './combo-approval.js';
+import { watchChanges } from './live-updates.js';
+import { mountFpPipeline } from './fp-pipeline.js';
 import { mountLogin, staffUrl } from './app-entry.js';
 import './style.css';
 import './offline.css';
@@ -28,9 +31,9 @@ document.addEventListener('error', event => {
     image.replaceWith(placeholder);
   }
 }, true);
-const state = { page: 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null };
-const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'] ];
-const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','kitchen','inventory','forecast','analytics','locations','catalog'], CASHIER: ['orders'], WAITER: ['orders'], CHEF: ['kitchen','catalog'] };
+const state = { page: ['pipeline','combos'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null };
+const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'] ];
+const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','kitchen','inventory','forecast','pipeline','analytics','locations','catalog'], CASHIER: ['orders'], WAITER: ['orders'], CHEF: ['kitchen','catalog'] };
 const allowedPages = () => pages[state.user?.role] || [];
 const defaultPage = () => allowedPages()[0] || 'overview';
 const statusLabel = { AWAITING_CONFIRMATION:'Chờ nhân viên xác nhận', PENDING:'Chờ thanh toán', PAID:'Đã thanh toán', CANCELLED:'Đã hủy', SCHEDULED:'Chờ nấu', COOKING:'Đang nấu', COMPLETED:'Hoàn thành' };
@@ -82,6 +85,8 @@ async function loadPage() {
     if(requestedPage==='kitchen') { const batches=await api(`/api/kds/batches?branchId=${requestedBranch}`); if(!stillCurrent())return; state.data.batches=batches; kitchen(); }
     if(requestedPage==='inventory') { const [ingredients,plan,history]=await Promise.all([api('/api/inventory/ingredients'),api(`/api/inventory/plan?targetDate=${state.date}&branchId=${requestedBranch}`),api('/api/inventory/history')]); if(!stillCurrent())return; state.data={ingredients,plan,history}; inventory(); }
     if(requestedPage==='forecast') { const products=await api('/api/catalog/products'); if(!stillCurrent())return; state.data.forecastProducts=products; state.data.forecast=undefined; state.forecastResultDate=null; state.aiAnalysis={}; forecast(); }
+    if(requestedPage==='combos'){render('<div id="combo-approval"></div>');await mountComboApproval(document.querySelector('#combo-approval'),api,requestedBranch);}
+    if(requestedPage==='pipeline') { render('<div id="fp-root"></div>'); await mountFpPipeline(document.querySelector('#fp-root'),api,requestedBranch); }
     if(requestedPage==='analytics') { const products=await api('/api/analytics/recipe-cost'); if(!stillCurrent())return; state.data.products=products; analytics(); }
     if(requestedPage==='locations') { const [branches,tables,qr]=await Promise.all([api('/api/catalog/branches'),api(`/api/catalog/branches/${requestedBranch}/tables`),api(`/api/catalog/branches/${requestedBranch}/table-qr`)]); if(!stillCurrent())return; state.branches=branches; state.data={branches,tables,qr}; locations(); }
     if(requestedPage==='catalog') { const [categories,products]=await Promise.all([api('/api/catalog/categories'),api(access(['ADMIN'])?'/api/catalog/products/manage':'/api/catalog/products')]); if(!stillCurrent())return; state.data={categories,products}; catalog(); }
@@ -374,7 +379,7 @@ document.addEventListener('click', onClick);
 document.addEventListener('change',async ev=>{ if(ev.target.id==='kitchen-status') { state.kitchenStatus=ev.target.value; updateKitchenLive(); } if(ev.target.id==='kitchen-station') { state.kitchenStation=ev.target.value; updateKitchenLive(); } if(ev.target.id==='plan-date') { state.date=ev.target.value; loadPage(); } });
 window.addEventListener('online',()=>{ if(state.user && state.page==='orders' && pendingFor(readQueue(localStorage),state.user.id,state.branch).length) toast('Đã có mạng. Bạn có thể đồng bộ đơn đang chờ.'); });
 setInterval(()=>{ document.querySelectorAll('[data-kitchen-time]').forEach(el=>{el.textContent=kitchenAgeText(Math.max(0,Date.now()-new Date(el.dataset.kitchenTime).getTime()));}); },1000);
-async function refreshKitchen() { try { state.data.batches=await api(`/api/kds/batches?branchId=${state.branch}`); state.kitchenLastUpdated=new Date(); updateKitchenLive(); } catch(error) { toast(`Không thể cập nhật màn hình bếp: ${error.message}`,true); } }
+async function refreshKitchen(strict=false) { const branch=state.branch; try { const batches=await api(`/api/kds/batches?branchId=${branch}`);if(state.page!=='kitchen'||state.branch!==branch)return;state.data.batches=batches; state.kitchenLastUpdated=new Date(); updateKitchenLive(); } catch(error) { if(strict)throw error;toast(`Không thể cập nhật màn hình bếp: ${error.message}`,true); } }
 setInterval(async()=>{ if(state.page!=='kitchen'||!state.token||state.loading||document.hidden) return; await refreshKitchen(); },15000);
 async function start() {
   if(!state.user||!state.token){showEntry();return;}
@@ -388,3 +393,5 @@ async function start() {
 start();
 
 import './pos-theme.css';
+
+watchChanges((path,options)=>state.token?api(path,options):Promise.reject(Error('login')),async()=>{if(!state.token)throw Error('login');if(state.page==='kitchen'){if(state.loading)throw Error('busy');await refreshKitchen(true);}else if(state.page==='combos'){if(state.loading)throw Error('busy');await document.querySelector('#combo-approval')?.refreshLive?.();}});

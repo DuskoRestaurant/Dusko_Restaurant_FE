@@ -12,8 +12,8 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;',
 let auth;
 try { auth=JSON.parse(sessionStorage.getItem('dusko-auth')||'null'); } catch { auth=null; }
 let workspace;
-async function request(path,{method='GET',body}={}) {
-  const response=await fetch(api+path,{method,headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${auth.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+async function request(path,{method='GET',body,signal}={}) {
+  const response=await fetch(api+path,{method,signal,headers:{'Content-Type':'application/json',...(auth?{Authorization:`Bearer ${auth.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
   const payload=await response.json().catch(()=>({}));
   if(response.status===401 && auth) {auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');}
   if(!response.ok) {const error=Error(payload.error||'Không kết nối được máy chủ');error.status=response.status;throw error;}
