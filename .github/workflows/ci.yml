@@ -1,0 +1,79 @@
+name: Frontend checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm test
+      - run: npm run build:all
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_STAFF_APP_URL: ${{ vars.VITE_STAFF_APP_URL }}
+          VITE_MANAGEMENT_APP_URL: ${{ vars.VITE_MANAGEMENT_APP_URL }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: |
+            dist/
+            staff-app/dist/
+            customer-web/dist/
+          retention-days: 7
+          if-no-files-found: error
+  deploy:
+    needs: test-build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AZURE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: management
+            folder: dist
+            secret: AZURE_SWA_MANAGEMENT_TOKEN
+          - app: staff
+            folder: staff-app/dist
+            secret: AZURE_SWA_STAFF_TOKEN
+          - app: customer
+            folder: customer-web/dist
+            secret: AZURE_SWA_CUSTOMER_TOKEN
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+      - name: Validate public URLs and deployment token
+        env:
+          API_URL: ${{ vars.VITE_API_BASE_URL }}
+          STAFF_URL: ${{ vars.VITE_STAFF_APP_URL }}
+          MANAGEMENT_URL: ${{ vars.VITE_MANAGEMENT_APP_URL }}
+          DEPLOY_TOKEN: ${{ secrets[matrix.secret] }}
+        run: |
+          test -n "$DEPLOY_TOKEN"
+          for url in "$API_URL" "$STAFF_URL" "$MANAGEMENT_URL"; do [[ "$url" == https://* ]] || exit 1; done
+      - uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets[matrix.secret] }}
+          action: upload
+          app_location: ${{ matrix.folder }}
+          output_location: ''
+          skip_app_build: true
+          skip_api_build: true
