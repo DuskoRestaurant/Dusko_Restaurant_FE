@@ -1,8 +1,16 @@
 node_modules/
 dist/
+build/
+coverage/
+uploads/
 .env
 .env.*
 !.env.example
 *.log
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
 .DS_Store
 Thumbs.db
