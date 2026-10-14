@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "build:management": "vite build",
+    "build:staff": "vite build staff-app --config staff-app/vite.config.js",
+    "build:customer": "vite build customer-web --config customer-web/vite.config.js",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.js",
     "build:all": "vite build && vite build staff-app --config staff-app/vite.config.js && vite build customer-web --config customer-web/vite.config.js"
