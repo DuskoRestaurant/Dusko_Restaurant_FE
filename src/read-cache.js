@@ -26,5 +26,9 @@ export function createReadCache({ now = Date.now, onRefresh = () => {}, onError 
     if (age < maxAge) { fetchEntry(true).catch(() => {}); return Promise.resolve(entry.value); }
     return fetchEntry(false);
   }
-  return { read, clear };
+  function prime(key, value) {
+    entries.delete(key); entries.set(key, { value, at: now() });
+    if (entries.size > maxEntries) entries.delete(entries.keys().next().value);
+  }
+  return { read, clear, prime };
 }

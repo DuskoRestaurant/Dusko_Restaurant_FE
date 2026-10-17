@@ -60,19 +60,28 @@ function showDataNotice(text = 'Có dữ liệu mới. Cập nhật để xem th
 }
 const reads = createReadCache({
   onRefresh: () => showDataNotice(),
-  onError: error => { if (error.status === 401) signOut(); else if (error.status === 403) { reads.clear(); loadPage(); } else showDataNotice('Chưa cập nhật được dữ liệu. Nhấn cập nhật để thử lại.'); },
+  onError: error => { if (error.status === 401) signOut(); else if (error.status === 403) { invalidateReads(); loadPage(); } else showDataNotice('Chưa cập nhật được dữ liệu. Nhấn cập nhật để thử lại.'); },
 });
 const pipelineViews = new Map();
+const startupReads = new Map();
+let stopLive, startSeq = 0;
+function invalidateReads() { startupReads.clear(); reads.clear(); }
 async function api(path, options = {}) {
   const token = state.token, method = (options.method || 'GET').toUpperCase();
   const execute = () => request(path, { ...options, token });
   if (method !== 'GET') {
-    reads.clear();
-    try { return await execute(); } finally { reads.clear(); }
+    invalidateReads();
+    try { return await execute(); } finally { invalidateReads(); }
+  }
+  const key = `${token}:${path}`;
+  if (!options.signal && options.cache !== 'no-store' && startupReads.has(key)) {
+    const value = startupReads.get(key); startupReads.delete(key);
+    if (!path.startsWith('/api/users')) reads.prime(key, value);
+    return value;
   }
   // Session/live endpoints and account administration always check the server.
-  if (!/^\/api\/(catalog\/|analytics\/|inventory\/|orders\?|kds\/batches\?|fp-pipeline\?|combos\/approval\?)/.test(path) || options.signal || options.cache === 'no-store') return execute();
-  const volatile = /\/orders\?|\/kds\/|\/inventory\/|\/combos\/|\/tables(?:\?|$)/.test(path);
+  if (!/^\/api\/(workspace\?|catalog\/|analytics\/|inventory\/|orders\?|kds\/batches\?|fp-pipeline\?|combos\/approval\?)/.test(path) || options.signal || options.cache === 'no-store') return execute();
+  const volatile = /workspace\?module=(?:overview|orders|inventory|locations)&|\/orders\?|\/kds\/|\/inventory\/|\/combos\/|\/tables(?:\?|$)/.test(path);
   return reads.read(`${token}:${path}`, execute, volatile ? { ttl: 3000, maxAge: 15000 } : undefined);
 }
 function toast(message, bad=false) { const el=document.createElement('div'); el.className=`toast ${bad?'bad':''}`; el.textContent=message; document.body.append(el); setTimeout(()=>el.remove(),4000); }
@@ -109,18 +118,35 @@ async function loadPage() {
   document.querySelector('#data-refresh-notice')?.remove();
   render('<div class="loading">Đang tải dữ liệu…</div>');
   try {
-    if(requestedPage==='overview') { const [dashboard,orders,batches]=await Promise.all([api(`/api/analytics/dashboard?branchId=${requestedBranch}`),api(`/api/orders?branchId=${requestedBranch}`),api(`/api/kds/batches?branchId=${requestedBranch}`)]); if(!stillCurrent())return; state.data={dashboard,orders,batches}; overview(); }
-    if(requestedPage==='orders') { const [orders,products,tables]=await Promise.all([api(`/api/orders?branchId=${requestedBranch}`),api('/api/catalog/products'),api(`/api/catalog/branches/${requestedBranch}/tables`)]); if(!stillCurrent())return; state.data={orders,products,tables}; ordersPage(); }
+    if(['overview','orders','inventory','locations','catalog'].includes(requestedPage)) {
+      const path=`/api/workspace?module=${requestedPage}&branchId=${requestedBranch}${requestedPage==='inventory'?`&targetDate=${state.date}`:''}`;
+      const data=await workspaceRead(path,requestedPage,requestedBranch);
+      if(!stillCurrent())return;
+      state.data=data;
+      if(requestedPage==='locations')state.branches=data.branches;
+      ({overview,orders:ordersPage,inventory,locations,catalog})[requestedPage]();
+    }
     if(requestedPage==='kitchen') { const batches=await api(`/api/kds/batches?branchId=${requestedBranch}`); if(!stillCurrent())return; state.data.batches=batches; kitchen(); }
-    if(requestedPage==='inventory') { const [ingredients,plan,history]=await Promise.all([api('/api/inventory/ingredients'),api(`/api/inventory/plan?targetDate=${state.date}&branchId=${requestedBranch}`),api('/api/inventory/history')]); if(!stillCurrent())return; state.data={ingredients,plan,history}; inventory(); }
+
     if(requestedPage==='forecast') { const products=await api('/api/catalog/products'); if(!stillCurrent())return; state.data.forecastProducts=products; state.data.forecast=undefined; state.forecastResultDate=null; state.aiAnalysis={}; forecast(); }
     if(requestedPage==='users'){render('<div id=accounts-root></div>');await mountAccounts(document.querySelector('#accounts-root'),api,state.branches,{userId:state.user.id,signedOut:()=>{signOut();toast('Tài khoản đã thay đổi. Vui lòng đăng nhập lại.');}});}
     if(requestedPage==='combos'){render('<div id="combo-approval"></div>');await mountComboApproval(document.querySelector('#combo-approval'),api,requestedBranch);}
     if(requestedPage==='pipeline') { const key=`${requestedToken}:${requestedBranch}`; if(!pipelineViews.has(key))pipelineViews.set(key,{}); render('<div id="fp-root"></div>'); await mountFpPipeline(document.querySelector('#fp-root'),api,requestedBranch,pipelineViews.get(key)); }
     if(requestedPage==='analytics') { const products=await api('/api/analytics/recipe-cost'); if(!stillCurrent())return; state.data.products=products; analytics(); }
-    if(requestedPage==='locations') { const [branches,tables,qr]=await Promise.all([api('/api/catalog/branches'),api(`/api/catalog/branches/${requestedBranch}/tables`),api(`/api/catalog/branches/${requestedBranch}/table-qr`)]); if(!stillCurrent())return; state.branches=branches; state.data={branches,tables,qr}; locations(); }
-    if(requestedPage==='catalog') { const [categories,products]=await Promise.all([api('/api/catalog/categories'),api(access(['ADMIN'])?'/api/catalog/products/manage':'/api/catalog/products')]); if(!stillCurrent())return; state.data={categories,products}; catalog(); }
+
+
   } catch(err) { if(!stillCurrent())return; if(err.status===401) { signOut(); toast('Phiên đăng nhập đã hết hạn.',true); return; } render(title('KẾT NỐI','Không tải được dữ liệu','Kiểm tra kết nối backend và thử lại.',btn('Thử lại','reload'))+`<div class="error-panel">${e(err.message)}</div>`); }
+}
+async function workspaceRead(path,page,branch) {
+  try { return await api(path); } catch(error) { if(error.status!==404)throw error; }
+  const legacy={
+    overview:{dashboard:`/api/analytics/dashboard?branchId=${branch}`,orders:`/api/orders?branchId=${branch}`,batches:`/api/kds/batches?branchId=${branch}`},
+    orders:{orders:`/api/orders?branchId=${branch}`,products:'/api/catalog/products',tables:`/api/catalog/branches/${branch}/tables`},
+    inventory:{ingredients:'/api/inventory/ingredients',plan:`/api/inventory/plan?targetDate=${state.date}&branchId=${branch}`,history:'/api/inventory/history'},
+    locations:{branches:'/api/catalog/branches',tables:`/api/catalog/branches/${branch}/tables`,qr:`/api/catalog/branches/${branch}/table-qr`},
+    catalog:{categories:'/api/catalog/categories',products:access(['ADMIN'])?'/api/catalog/products/manage':'/api/catalog/products'},
+  };
+  return Object.fromEntries(await Promise.all(Object.entries(legacy[page]).map(async([key,url])=>[key,await api(url)])));
 }
 function overview() {
   const {dashboard:d,orders,batches}=state.data;
@@ -343,7 +369,7 @@ async function onClick(ev) {
   if(action==='recipe') { if(!access(['ADMIN','MANAGER','CHEF'])) return; const item=state.data.products.find(p=>p.id===Number(id)); if(item) await perform(()=>openRecipe(item));return; }
   if(action==='toggle-product') { if(!access(['ADMIN'])) return; const item=state.data.products.find(p=>p.id===Number(id)); if(!item||!await confirmDialog({title:item.isActive?'Ngừng bán món?':'Bán lại món?',message:item.isActive?'Món sẽ không còn xuất hiện trong thực đơn đặt món. Các đơn đã nhận không bị thay đổi.':'Món sẽ xuất hiện lại nếu còn đủ nguyên liệu và đã có định lượng.',confirmLabel:item.isActive?'Ngừng bán':'Bán lại',danger:item.isActive})) return; const result=await perform(()=>api(`/api/catalog/products/${id}`,{method:'PATCH',body:{isActive:!item.isActive}}),item.isActive?'Đã ngừng bán món.':'Đã bán lại món.'); if(result) loadPage(); return; }
   if(action==='new-ingredient'||action==='edit-ingredient') { if(!access(['ADMIN'])) return; const item=state.data.ingredients.find(i=>i.id===Number(id)); formModal(item?'Thông tin nguyên liệu':'Thêm nguyên liệu',ingredientFields(item),async v=>api(item?`/api/inventory/ingredients/${item.id}/details`:'/api/inventory/ingredients',{method:item?'PATCH':'POST',body:{name:textValue(v.name,'Tên nguyên liệu'),unit:textValue(v.unit,'Đơn vị'),minStock:numberField(v.minStock,'Mức nhắc bổ sung',0,'any'),safetyStock:numberField(v.safetyStock,'Mức dự phòng',0,'any'),shelfLifeDays:numberField(v.shelfLifeDays,'Hạn dùng',0),...(item?{}:{code:textValue(v.code,'Mã nguyên liệu'),currentStock:0})}}),{description:item?'Thay đổi tên, đơn vị hoặc mức nhắc bổ sung. Muốn ghi số hàng vừa nhận, dùng Nhập hàng; muốn sửa số theo lượng đếm thực tế, dùng Đếm kho.':'Tạo tên nguyên liệu trước. Sau đó dùng Nhập hàng để cộng số vừa nhận hoặc Đếm kho để nhập tổng số thực tế.'});return; }
-  if(action==='reload') { reads.clear(); document.querySelector('#data-refresh-notice')?.remove(); return state.page==='kitchen'?refreshKitchen():loadPage(); }
+  if(action==='reload') { invalidateReads(); document.querySelector('#data-refresh-notice')?.remove(); return state.page==='kitchen'?refreshKitchen():loadPage(); }
   if(action==='export-revenue') return exportRevenue();
   if(action==='open-inventory-import') { if(!access(['ADMIN']))return; openInventoryImport(); return; }
   if(action==='kitchen-fullscreen') { const root=document.querySelector('.main'); if(!document.fullscreenElement) await root?.requestFullscreen?.(); else await document.exitFullscreen?.(); return; }
@@ -394,7 +420,7 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='password') return passwordDialog(api,()=>{signOut();toast('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   if(action==='logout') signOut();
 }
-function signOut() { reads.clear(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
+function signOut() { startSeq++; stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
 function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
 function showEntry() {
   serviceWorkspace?.destroy();serviceWorkspace=null;
@@ -413,16 +439,45 @@ setInterval(()=>{ document.querySelectorAll('[data-kitchen-time]').forEach(el=>{
 async function refreshKitchen(strict=false) { const branch=state.branch; try { const batches=await api(`/api/kds/batches?branchId=${branch}`);if(state.page!=='kitchen'||state.branch!==branch)return;state.data.batches=batches; state.kitchenLastUpdated=new Date(); updateKitchenLive(); } catch(error) { if(strict)throw error;toast(`Không thể cập nhật màn hình bếp: ${error.message}`,true); } }
 setInterval(async()=>{ if(state.page!=='kitchen'||!state.token||state.loading||document.hidden) return; await refreshKitchen(); },15000);
 async function start() {
-  if(!state.user||!state.token){showEntry();return;}
-  const results=await Promise.allSettled([api('/api/catalog/branches'),api('/api/auth/profile')]);
-  if(results[0].status==='fulfilled')state.branches=results[0].value;
-  if(results[1].status==='rejected'&&results[1].reason.status===401){signOut();return;}
-  if(state.user?.role!=='ADMIN'&&state.user?.branchId)state.branch=state.user.branchId;
-  if(state.user?.role==='ADMIN'&&state.branches.length&&!state.branches.some(b=>b.id===state.branch))state.branch=state.branches[0].id;
-  shell();await loadPage();
+  const seq=++startSeq, token=state.token;
+  stopLive?.();stopLive=null;invalidateReads();
+  if(!state.user||!token){showEntry();return;}
+  app.innerHTML='<div class="loading" role="status">DUSKO · Đang tải không gian làm việc…</div>';
+  let revision;
+  try {
+    let data;
+    try { data=await api(`/api/bootstrap?page=${state.page}&branchId=${state.branch}&targetDate=${state.date}`,{cache:'no-store'}); }
+    catch(error) {
+      if(error.status!==404)throw error;
+      const [branches,profile]=await Promise.all([api('/api/catalog/branches'),api('/api/auth/profile')]);
+      const user={...state.user,...profile};
+      data={branches,user,branchId:user.role==='ADMIN'?(branches.some(b=>b.id===state.branch)?state.branch:branches[0]?.id):user.branchId,resources:{}};
+    }
+    if(seq!==startSeq||token!==state.token)return;
+    state.user=data.user;state.branches=data.branches;state.branch=data.branchId;
+    state.page=data.page||state.page;revision=data.revision;
+    sessionStorage.setItem('dusko_user',JSON.stringify(data.user));
+    localStorage.setItem('dusko_branch',state.branch);
+    for(const [path,value] of Object.entries(data.resources))startupReads.set(`${token}:${path}`,value);
+    shell();await loadPage();
+    if(seq!==startSeq||token!==state.token)return;
+    stopLive=watchChanges((path,options)=>api(path,options),async message=>{
+      if(token!==state.token)throw Error('login');
+      if(message?.revision!==undefined&&message.revision===revision)return;
+      invalidateReads();
+      if(state.page==='kitchen'){if(state.loading)throw Error('busy');await refreshKitchen(true);}
+      else if(state.page==='combos'){if(state.loading)throw Error('busy');await document.querySelector('#combo-approval')?.refreshLive?.();}
+      else showDataNotice();
+      revision=message?.revision;
+    });
+  } catch(error) {
+    if(seq!==startSeq||token!==state.token)return;
+    if(error.status===401){signOut();return;}
+    app.innerHTML=`<div class="loading" role="alert">${e(error.message)} <button id="startup-retry" class="btn">Thử lại</button><button id="startup-logout" class="btn">Đăng xuất</button></div>`;
+    document.querySelector('#startup-retry').onclick=start;
+    document.querySelector('#startup-logout').onclick=signOut;
+  }
 }
 start();
 
 import './pos-theme.css';
-
-watchChanges((path,options)=>state.token?api(path,options):Promise.reject(Error('login')),async()=>{if(!state.token)throw Error('login');reads.clear();if(state.page==='kitchen'){if(state.loading)throw Error('busy');await refreshKitchen(true);}else if(state.page==='combos'){if(state.loading)throw Error('busy');await document.querySelector('#combo-approval')?.refreshLive?.();}else showDataNotice();});
