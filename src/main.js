@@ -15,6 +15,7 @@ import { productPhoto } from './product-photo.js';
 import { API_BASE } from './api.js';
 import { createServiceWorkspace } from './service-workspace.js';
 import { confirmDialog } from './confirm-dialog.js';
+import { showQrPreview } from './qr-preview.js';
 import './readability.css';
 import './font.css';
 import './forecast.css';
@@ -373,7 +374,8 @@ async function onClick(ev) {
   if(action==='export-revenue') return exportRevenue();
   if(action==='open-inventory-import') { if(!access(['ADMIN']))return; openInventoryImport(); return; }
   if(action==='kitchen-fullscreen') { const root=document.querySelector('.main'); if(!document.fullscreenElement) await root?.requestFullscreen?.(); else await document.exitFullscreen?.(); return; }
-  if(action==='qr-create'||action==='qr-reissue') { if(!access(['ADMIN','MANAGER'])) return; if(action==='qr-reissue'&&!await confirmDialog({title:'Cấp mã QR mới?',message:'Mã QR đang in sẽ hết hiệu lực ngay sau khi cấp mã mới. Hãy in và thay mã tại bàn.',confirmLabel:'Cấp mã mới',danger:true})) return; const result=await perform(()=>api(`/api/catalog/branches/${state.branch}/tables/${id}/qr${action==='qr-reissue'?'/reissue':''}`,{method:'POST'}),action==='qr-reissue'?'Đã cấp lại QR.':'Đã tạo mã QR cố định.'); if(result){const blob=new Blob([result.svg],{type:'image/svg+xml'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`QR-${(result.tableName||id).replace(/[^\p{L}\p{N}-]+/gu,'-')}.svg`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);loadPage();} return; }
+  if(action==='qr-view') { const result=await perform(()=>api(`/api/catalog/branches/${state.branch}/tables/${id}/qr`)); if(result) showQrPreview(result); return; }
+  if(action==='qr-create'||action==='qr-reissue') { if(!access(['ADMIN','MANAGER'])) return; if(action==='qr-reissue'&&!await confirmDialog({title:'Cấp mã QR mới?',message:'Mã QR đang in sẽ hết hiệu lực ngay sau khi cấp mã mới. Hãy in và thay mã tại bàn.',confirmLabel:'Cấp mã mới',danger:true})) return; const result=await perform(()=>api(`/api/catalog/branches/${state.branch}/tables/${id}/qr${action==='qr-reissue'?'/reissue':''}`,{method:'POST'}),action==='qr-reissue'?'Đã cấp lại QR.':'Đã tạo mã QR cố định.'); if(result){showQrPreview(result);loadPage();} return; }
   if(action==='qr-revoke') { if(!access(['ADMIN','MANAGER'])||!await confirmDialog({title:'Khóa mã QR?',message:'Khách sẽ không thể mở thực đơn từ mã QR hiện tại. Bạn có thể cấp mã mới sau đó.',confirmLabel:'Khóa QR',danger:true})) return; const result=await perform(()=>api(`/api/catalog/branches/${state.branch}/tables/${id}/qr`,{method:'DELETE'}),'Đã khóa QR.'); if(result) loadPage(); return; }
   if(action==='goto-orders') { state.page='orders'; shell(); return loadPage(); }
   if(action==='select-product') { const select=document.querySelector('#product-select'); if(select) select.value=id; document.querySelectorAll('.product-choice').forEach(card=>card.classList.toggle('selected',card.dataset.id===id)); return; }

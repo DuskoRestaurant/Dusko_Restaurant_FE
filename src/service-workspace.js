@@ -1,5 +1,7 @@
 import { watchChanges } from './live-updates.js';
 import './service-workspace.css';
+import { showQrPreview } from './qr-preview.js';
+import { confirmDialog } from './confirm-dialog.js';
 
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[c]);
 const money = value => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(value || 0);
@@ -54,9 +56,10 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   function listView() {
     return `<section class="sw-service-hero"><div class="sw-hero-copy"><span class="sw-hero-kicker">DUSKO · PHỤC VỤ</span><h2>Không gian phục vụ</h2><p>Theo dõi bàn, xác nhận món khách gọi và mang món ra đúng lúc.</p></div><img src="/dishes/lau-thai.webp" alt="Lẩu Thái trong thực đơn" loading="lazy"></section><div class="sw-heading"><div><h2>Danh sách bàn</h2><p>Chọn bàn để nhận yêu cầu, gọi món hoặc thanh toán.</p></div>${button('Làm mới','refresh')}</div><div class="sw-overview">${listOverview()}</div><div class="sw-filters"><input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn" aria-label="Tìm bàn" value="${e(state.search)}"><select data-sw-input="table-filter" aria-label="Lọc bàn"><option value="ALL">Tất cả bàn</option><option value="CALL" ${state.filter==='CALL'?'selected':''}>Khách cần hỗ trợ</option><option value="CONFIRM" ${state.filter==='CONFIRM'?'selected':''}>Chờ xác nhận</option><option value="READY" ${state.filter==='READY'?'selected':''}>Có món sẵn sàng</option><option value="EMPTY" ${state.filter==='EMPTY'?'selected':''}>Bàn trống</option></select></div><div class="sw-tables">${tableCards()}</div><p class="sw-guide"><strong>Quy trình:</strong> Mở bàn → xác nhận yêu cầu QR hoặc gọi món giúp khách → mang món đã hoàn thành ra bàn.</p>`;
   }
+  const mayCloseEmpty = () => Boolean(state.session) && !(state.session.orders||[]).some(order=>['AWAITING_CONFIRMATION','PENDING'].includes(order.status));
   function tableView() {
     const table = state.table;
-    return `<div class="sw-heading"><div>${button('← Danh sách bàn','back')}<h2>${e(table.tableName)}</h2><p>${state.session?'Đang phục vụ · các lần gọi món dùng chung một hóa đơn':table.status==='RESERVED'?'Bàn đang được đặt trước. Quản lý cần cập nhật tình trạng bàn.':'Bàn chưa mở phục vụ'}</p></div>${button('Làm mới','refresh')}</div>${state.session?`<div data-sw-calls>${serviceCalls()}</div><div class="sw-table-summary" data-sw-summary>${summary()}</div><div class="sw-tabs" role="tablist" aria-label="Công việc tại bàn">${tabs()}</div><div class="sw-content" data-sw-panel>${panel()}</div>`:`<div class="sw-empty"><h3>${table.pendingOrderCount?'Bàn còn đơn cũ chưa thanh toán':'Khách đã đến bàn?'}</h3><p>${table.pendingOrderCount?'Thu ngân cần xử lý đơn cũ trong mục Mang đi và đơn cũ trước khi mở bàn.':'Mở bàn để khách sử dụng QR cố định hoặc để nhân viên gọi món.'}</p>${button('Mở bàn phục vụ','open',table.status==='RESERVED'||table.pendingOrderCount?'data-locked="true"':'',true)}</div>`}`;
+    return `<div class="sw-heading"><div>${button('← Danh sách bàn','back')}<h2>${e(table.tableName)}</h2><p>${state.session?'Đang phục vụ · các lần gọi món dùng chung một hóa đơn':table.status==='RESERVED'?'Bàn đang được đặt trước. Quản lý cần cập nhật tình trạng bàn.':'Bàn chưa mở phục vụ'}</p></div><div class="sw-actions">${button('Xem QR','view-qr')}<span data-sw-empty-close>${mayCloseEmpty()?button('Đóng bàn chưa gọi món','close'):''}</span>${button('Làm mới','refresh')}</div></div>${state.session?`<div data-sw-calls>${serviceCalls()}</div><div class="sw-table-summary" data-sw-summary>${summary()}</div><div class="sw-tabs" role="tablist" aria-label="Công việc tại bàn">${tabs()}</div><div class="sw-content" data-sw-panel>${panel()}</div>`:`<div class="sw-empty"><h3>${table.pendingOrderCount?'Bàn còn đơn cũ chưa thanh toán':'Khách đã đến bàn?'}</h3><p>${table.pendingOrderCount?'Thu ngân cần xử lý đơn cũ trong mục Mang đi và đơn cũ trước khi mở bàn.':'Mở bàn để khách sử dụng QR cố định hoặc để nhân viên gọi món.'}</p>${button('Mở bàn phục vụ','open',table.status==='RESERVED'||table.pendingOrderCount?'data-locked="true"':'',true)}</div>`}`;
   }
   function serviceCalls(){return (state.serviceRequests||[]).map(call=>`<div class="sw-service-call"><div><strong>${call.kind==='BILL'?'Khách yêu cầu thanh toán':'Khách cần nhân viên hỗ trợ'}</strong><small>Gửi lúc ${time(call.createdAt)}</small></div>${button('Đã hỗ trợ','resolve-call',`data-id="${call.id}"`)}</div>`).join('');}
   function summary() { return `<span><b>${waitingOrders().length}</b> chờ xác nhận</span><span><b>${quantities(readyItems())}</b> món sẵn sàng</span><span><b>${money(total())}</b> đã nhận</span>`; }
@@ -79,6 +82,8 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   function patchTable() {
     if(!state.session || !root.querySelector('[data-sw-panel]')) { render(); return; }
     root.querySelector('[data-sw-summary]').innerHTML = summary();root.querySelector('[data-sw-calls]').innerHTML=serviceCalls();
+    const closeAction = root.querySelector('[data-sw-empty-close]');
+    if(closeAction) closeAction.innerHTML = mayCloseEmpty() ? button('Đóng bàn chưa gọi món','close') : '';
     root.querySelector('.sw-tabs').innerHTML = tabs();
     const snapshot = JSON.stringify([state.session.orders, state.tab, state.draft]);
     const holder = root.querySelector('[data-sw-panel]');
@@ -146,6 +151,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       if(action==='tab') {state.tab=target.dataset.tab;render();return;}
       if(action==='resolve-call')return mutation(()=>post(`/api/staff/tables/${state.table.id}/service-requests/${target.dataset.id}/resolve`),'Đã ghi nhận hỗ trợ khách.');
       if(action==='refresh') {setBusy(true);target.textContent='Đang cập nhật…';try{await refresh(true);showMessage('Đã cập nhật.');}finally{target.textContent='Làm mới';setBusy(false);}return;}
+      if(action==='view-qr') {setBusy(true);try{showQrPreview(await request(`/api/catalog/branches/${branchId}/tables/${state.table.id}/qr`));}finally{setBusy(false);}return;}
       if(action==='open') return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/open`);state.tab='menu';},'Đã mở bàn. Khách có thể quét QR để gọi món.');
       if(action==='show-reject') {root.querySelector(`[data-reject="${CSS.escape(target.dataset.id)}"]`).hidden=false;return;}
       if(action==='confirm') return mutation(async()=>{return post(`/api/staff/orders/${target.dataset.id}/confirm`);},'Đã nhận yêu cầu. Món được chuyển đúng khu vực phục vụ.');
@@ -155,7 +161,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       if(action==='send') {const items=[...state.cart].filter(([,q])=>q>0).map(([id,quantity])=>({productId:id,quantity,price:state.products.find(p=>p.id===id).sellingPrice,...(state.notes.get(id)?.trim()?{note:state.notes.get(id).trim()}:{} )}));if(!items.length||state.draft)return;const draft={id:crypto.randomUUID(),sessionId:state.session.id,items};localStorage.setItem(draftKey(state.table.id),JSON.stringify(draft));state.draft=draft;return mutation(async()=>{try{return await submitDraft(draft);}catch(error){if(error.status>=400&&error.status<500){clearDraft(state.table.id);state.draft=null;}render();throw error;}},'Đã nhận món. Bếp nhận món cần chế biến tự động.');}
       if(action==='retry') return mutation(()=>submitDraft(state.draft),'Đã nhận lượt gọi món, không tạo trùng.');
       if(action==='discard') {clearDraft(state.table.id);state.draft=null;render();return;}
-      if(action==='close') return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/close-empty`);state.table=null;state.session=null;render();},'Đã đóng bàn, không phát sinh thanh toán.');
+      if(action==='close') { if(!mayCloseEmpty())throw Error('Bàn còn yêu cầu hoặc món đang phục vụ. Vui lòng xử lý trước khi đóng.'); if(state.draft)throw Error('Còn lượt gọi món chưa rõ đã gửi thành công. Kiểm tra hoặc xóa bản nháp trước khi đóng bàn.'); if(!await confirmDialog({title:'Đóng bàn chưa gọi món?',message:`${state.table.tableName} sẽ trở về trạng thái trống. Món đang chọn trong giỏ sẽ được bỏ.`,confirmLabel:'Đóng bàn'}))return; return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/close-empty`);clearDraft(state.table.id);state.cart.clear();state.notes.clear();state.table=null;state.session=null;render();},'Đã đóng bàn, không phát sinh thanh toán.'); }
       if(action==='checkout') {const method=root.querySelector('[data-sw-input="payment"]').value;return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/checkout`,{paymentMethod:method});state.table=null;state.session=null;render();},'Thanh toán thành công. Bàn đã trở về trạng thái trống.');}
     } catch(error) {showMessage(error.message,true);}
   }
