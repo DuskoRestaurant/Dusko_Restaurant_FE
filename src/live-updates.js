@@ -1,16 +1,16 @@
 // Authenticated WebSocket invalidation; REST APIs retain business authorization.
 export function watchChanges(request, onChange, path='/api/live') {
   let stopped=false, socket, reconnectTimer, retryTimer, controller;
-  let pending=false, refreshing=false, retries=0;
+  let pending=false, refreshing=false, retries=0, lastMessage;
   async function refresh(){
     if(stopped||refreshing||!pending)return;
     refreshing=true;pending=false;
-    try{await onChange();}
+    try{await onChange(lastMessage);}
     catch{pending=true;retryTimer=setTimeout(()=>{retryTimer=null;refresh();},1000);}
     finally{refreshing=false;}
     if(pending&&!retryTimer&&!stopped)queueMicrotask(refresh);
   }
-  function changed(){pending=true;clearTimeout(retryTimer);retryTimer=null;refresh();}
+  function changed(message){lastMessage=message;pending=true;clearTimeout(retryTimer);retryTimer=null;refresh();}
   async function connect(){
     if(stopped)return;
     controller=new AbortController();
@@ -23,7 +23,7 @@ export function watchChanges(request, onChange, path='/api/live') {
       const ws=socket=new WebSocket(url);
       const handshake=setTimeout(()=>ws.close(),10000);
       ws.onopen=()=>ws.send(JSON.stringify({type:'authenticate',ticket:ticket.ticket}));
-      ws.onmessage=event=>{try{const message=JSON.parse(event.data);if(message.type==='change'){clearTimeout(handshake);retries=0;changed();}}catch{ws.close();}};
+      ws.onmessage=event=>{try{const message=JSON.parse(event.data);if(message.type==='change'){clearTimeout(handshake);retries=0;changed(message);}}catch{ws.close();}};
       ws.onerror=()=>ws.close();
       ws.onclose=()=>{clearTimeout(handshake);if(!stopped)schedule();};
     }catch{if(!stopped)schedule();}

@@ -3,6 +3,15 @@ import assert from 'node:assert/strict';
 import { createReadCache } from '../src/read-cache.js';
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
+test('bootstrap resources are reused immediately and cleared on invalidation', async () => {
+  const cache=createReadCache(); let calls=0;
+  cache.prime('session:overview', {total:5});
+  assert.deepEqual(await cache.read('session:overview',async()=>++calls),{total:5});
+  assert.equal(calls,0);
+  cache.clear();
+  assert.equal(await cache.read('session:overview',async()=>++calls),1);
+});
+
 test('revisiting uses cached data, revalidates stale data, and keeps separate session/branch keys', async () => {
   let clock=0, calls=0, refreshes=0;
   const cache=createReadCache({now:()=>clock,onRefresh:()=>refreshes++});
