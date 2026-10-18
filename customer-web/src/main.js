@@ -1,3 +1,4 @@
+import { cartComboPricing } from '../../src/combo-cart.js';
 import { watchChanges } from '../../src/live-updates.js';
 import { createCustomerHelp } from './customer-help.js';
 import './style.css';
@@ -13,14 +14,14 @@ const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', curre
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const orderHistoryKey=token?`dusko-order-history:${token}`:'';
 const browserStorage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
-const state = { data: null, cart: new Map(), notes: new Map(), orders: token?readStoredJson(browserStorage,orderHistoryKey,[],value=>Array.isArray(value)&&value.every(order=>order&&typeof order.id==='string')):[], busy: false, message: '' };
+const state = { data: null, cart: new Map(), combos: [], notes: new Map(), orders: token?readStoredJson(browserStorage,orderHistoryKey,[],value=>Array.isArray(value)&&value.every(order=>order&&typeof order.id==='string')):[], busy: false, message: '' };
 async function request(path, options = {}) {
   const response = await fetch(`${api}${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) { const error=Error(payload.error || 'Không kết nối được máy chủ');error.status=response.status;throw error; }
   return payload.data;
 }
-const customerHelp = token ? createCustomerHelp({token,request,getState:()=>state,api,addCombo:ids=>{for(const id of ids){state.cart.set(id,(state.cart.get(id)||0)+1);updateCart(id);}}}) : null;
+const customerHelp = token ? createCustomerHelp({token,request,getState:()=>state,api,addCombo:combo=>{for(const item of combo.items)state.cart.set(item.id,(state.cart.get(item.id)||0)+1);const selected=state.combos.find(c=>c.key===combo.id);if(selected&&selected.price===combo.price)selected.quantity++;else if(selected){for(const item of combo.items)state.cart.set(item.id,state.cart.get(item.id)-1);state.message='Giá combo đã thay đổi. Bỏ combo cũ trong giỏ rồi chọn lại.';render();return;}else state.combos.push({key:combo.id,quantity:1,price:combo.price,productIds:combo.items.map(i=>i.id)});updateCart(combo.items[0].id);}}) : null;
 function render() {
   if (!state.data) return;
   const { branch, table, sessionOpen, products } = state.data;
@@ -31,7 +32,7 @@ function render() {
     <p class="notice ${sessionOpen ? '' : 'closed'}">${sessionOpen ? 'Bàn đang phục vụ · Bạn có thể gọi thêm món' : 'Bàn chưa mở phiên phục vụ. Vui lòng gọi nhân viên để được hỗ trợ.'}</p>
     <div id="service-actions">${serviceActions()}</div>
     <p id="customer-message" class="message" role="status" ${state.message?'':'hidden'}>${escape(state.message)}</p>
-    ${state.orders.length ? `<section class="receipt"><h2>Các lượt gọi món của bạn</h2>${state.orders.map(order=>`<article class="tracked-order"><p>Lượt gọi lúc <b>${new Date(order.createdAt).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</b></p><p class="tracked-status" data-order-status="${escape(order.id)}">Đang tải trạng thái…</p></article>`).join('')}</section>` : ''}
+    ${state.orders.length ? `<section class="receipt"><h2>Các lượt gọi món của bạn</h2>${state.orders.map(order=>`<article class="tracked-order"><p>Lượt gọi lúc <b>${new Date(order.createdAt).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</b></p>${Number.isFinite(order.finalAmount)?`<p>Thành tiền: <b>${money(order.finalAmount)}</b>${order.discountAmount?` · Đã giảm ${money(order.discountAmount)}`:''}</p>`:''}<p class="tracked-status" data-order-status="${escape(order.id)}">Đang tải trạng thái…</p></article>`).join('')}</section>` : ''}
     <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu"><div class="toolbar"><h2>Thực đơn</h2><a class="pos-cart-jump" href="#customer-cart">Xem giỏ món ↓</a><div class="menu-filters"><input id="search" type="search" placeholder="Tìm món ăn" aria-label="Tìm món ăn"><select id="category" aria-label="Lọc nhóm món"><option value="ALL">Tất cả nhóm món</option>${[...new Set(products.map(p=>p.category.name))].map(name=>`<option value="${escape(name)}">${escape(name)}</option>`).join('')}</select></div></div>
     <div id="menu" class="menu">${products.map(p => `<article class="dish ${p.canOrder?'':'unavailable'}" data-product="${p.id}" data-name="${escape(p.name.toLowerCase())}" data-category="${escape(p.category.name)}"><div class="photo">${p.imageUrl ? `<img src="${escape(p.imageUrl.startsWith('http') ? p.imageUrl : api + p.imageUrl)}" alt="${escape(p.name)}" loading="lazy">` : '<span>Chưa có ảnh</span>'}</div><div class="dish-body"><small>${escape(p.category.name)}</small><h3>${escape(p.name)}</h3><b>${money(p.sellingPrice)}</b>${p.canOrder?`<div class="stepper"><button data-minus="${p.id}" aria-label="Giảm ${escape(p.name)}">−</button><span data-quantity="${p.id}">${state.cart.get(p.id) || 0}</span><button data-plus="${p.id}" aria-label="Thêm ${escape(p.name)}">+</button></div>`:`<p class="unavailable-note">${escape(p.availabilityReason||'Tạm chưa thể đặt')}. Vui lòng hỏi nhân viên.</p>`}</div></article>`).join('')}</div>
     </section><section class="cart" id="customer-cart">${cartHtml()}</section></div></main>`;
@@ -52,11 +53,11 @@ app.addEventListener('click',async event=>{const button=event.target.closest('[d
 function cartHtml() {
   const {products,sessionOpen}=state.data;
   const entries=[...state.cart.entries()].filter(([,q])=>q>0);
-  const total=entries.reduce((n,[id,q])=>n+products.find(p=>p.id===id).sellingPrice*q,0);
-  return `<h2>Giỏ hàng <span>${entries.reduce((sum, [, quantity]) => sum + quantity, 0)} món</span></h2>${entries.length ? entries.map(([id, quantity]) => { const p = products.find(item => item.id === id); return `<div class="cart-item"><p>${escape(p.name)} × ${quantity}<b>${money(p.sellingPrice * quantity)}</b></p>${p.canOrder?'':`<small>${escape(p.availabilityReason||'Món không còn sẵn sàng')}</small>`}<button type="button" data-remove="${id}" class="cart-remove">Bỏ món này</button><input data-note="${id}" maxlength="500" value="${escape(state.notes.get(id) || '')}" placeholder="Ghi chú: ít cay, không hành…"></div>`; }).join('') : '<p>Chọn món từ thực đơn phía trên.</p>'}<div class="total">Tạm tính <b>${money(total)}</b></div><button id="submit" class="primary" ${!sessionOpen || !entries.length || state.busy || entries.some(([id,q])=>{const p=products.find(p=>p.id===id);return !p?.canOrder||q>(p.maxOrderQuantity??1000)}) ? 'disabled' : ''}>${state.busy ? 'Đang gửi…' : 'Gửi yêu cầu cho nhân viên'}</button><small>Thanh toán tại quầy hoặc qua nhân viên. Giá được kiểm tra lại khi gửi.</small>`;
+  const pricing=cartComboPricing(state.cart,products,state.combos);state.combos=pricing.valid;const total=pricing.total;
+  return `<h2>Giỏ hàng <span>${entries.reduce((sum, [, quantity]) => sum + quantity, 0)} món</span></h2>${entries.length ? entries.map(([id, quantity]) => { const p = products.find(item => item.id === id); return `<div class="cart-item"><p>${escape(p.name)} × ${quantity}<b>${money(p.sellingPrice * quantity)}</b></p>${p.canOrder?'':`<small>${escape(p.availabilityReason||'Món không còn sẵn sàng')}</small>`}<button type="button" data-remove="${id}" class="cart-remove">Bỏ món này</button><input data-note="${id}" maxlength="500" value="${escape(state.notes.get(id) || '')}" placeholder="Ghi chú: ít cay, không hành…"></div>`; }).join('') : '<p>Chọn món từ thực đơn phía trên.</p>'}${pricing.valid.length?`<div class="combo-cart-summary"><p>Giá món lẻ: ${money(pricing.retail)}</p>${pricing.valid.map(c=>`<p>Combo ${c.productIds.map(id=>escape(products.find(p=>p.id===id)?.name)).join(" + ")} × ${c.quantity} · ${money(c.price*c.quantity)} <button type="button" data-remove-combo="${escape(c.key)}">Bỏ combo</button></p>`).join('')}<p>Ưu đãi combo: −${money(pricing.discount)}</p></div>`:''}<div class="total">Tạm tính <b>${money(total)}</b></div><button id="submit" class="primary" ${!sessionOpen || !entries.length || state.busy || entries.some(([id,q])=>{const p=products.find(p=>p.id===id);return !p?.canOrder||q>(p.maxOrderQuantity??1000)}) ? 'disabled' : ''}>${state.busy ? 'Đang gửi…' : 'Gửi yêu cầu cho nhân viên'}</button><small>Thanh toán tại quầy hoặc qua nhân viên. Giá được kiểm tra lại khi gửi.</small>`;
 }
 function updateCart(id) {
-  const counter=app.querySelector(`[data-quantity="${id}"]`);if(counter)counter.textContent=state.cart.get(id)||0;
+  app.querySelectorAll('[data-quantity]').forEach(counter=>counter.textContent=state.cart.get(Number(counter.dataset.quantity))||0);
   const holder=app.querySelector('#customer-cart');if(!holder)return;holder.innerHTML=cartHtml();
   holder.querySelectorAll('[data-note]').forEach(input=>input.oninput=()=>state.notes.set(Number(input.dataset.note),input.value));
   holder.querySelector('#submit').onclick=submit;
@@ -70,9 +71,9 @@ async function submit() {
   const pendingKey = `dusko-pending-${token}`;
   let requestStarted = false;
   try {
-    const pending = preparePendingOrder(browserStorage, pendingKey, state.data.sessionId, items);
+    const pending = preparePendingOrder(browserStorage, pendingKey, state.data.sessionId, items, undefined, state.combos.map(({key,quantity,price})=>({key,quantity,price})));
     requestStarted = true;
-    const result = await request(`/api/public/tables/${token}/orders`, { method: 'POST', body: JSON.stringify(pending) }); state.orders=[...state.orders.filter(order=>order.id!==result.order.id),result.order];tryStoreJson(browserStorage,orderHistoryKey,state.orders);state.cart.clear(); state.notes.clear(); try { localStorage.removeItem(pendingKey); } catch {} state.message = result.awaitingStaffConfirmation ? 'Đã gửi yêu cầu. Nhân viên sẽ tới bàn xác nhận trước khi chuyển món xuống bếp.' : 'Lượt gọi món đã được hệ thống ghi nhận.'; }
+    const result = await request(`/api/public/tables/${token}/orders`, { method: 'POST', body: JSON.stringify(pending) }); state.orders=[...state.orders.filter(order=>order.id!==result.order.id),result.order];tryStoreJson(browserStorage,orderHistoryKey,state.orders);state.cart.clear();state.combos=[]; state.notes.clear(); try { localStorage.removeItem(pendingKey); } catch {} state.message = result.awaitingStaffConfirmation ? 'Đã gửi yêu cầu. Nhân viên sẽ tới bàn xác nhận trước khi chuyển món xuống bếp.' : 'Lượt gọi món đã được hệ thống ghi nhận.'; }
   catch (error) { state.message = requestStarted ? `${error.message}. Nếu mất mạng, hãy thử lại; yêu cầu đang giữ cùng mã để tránh tạo trùng.` : error.message; }
   finally { state.busy = false; render(); }
 }
@@ -101,7 +102,7 @@ async function refreshTable(strict=false) {
     if(state.busy){if(strict)throw Error("busy");return;}
     const changed=state.data?.sessionId!==data.sessionId;
     const catalogChanged=JSON.stringify(state.data.products.map(p=>[p.id,p.name,p.imageUrl,p.category.name]))!==JSON.stringify(data.products.map(p=>[p.id,p.name,p.imageUrl,p.category.name]));
-    if(changed&&!state.busy) {state.cart.clear();state.notes.clear();state.orders=[];try { localStorage.removeItem(orderHistoryKey); } catch {} state.message=data.sessionOpen?'Bàn đã mở lượt phục vụ mới. Bạn có thể chọn món.':'Bàn đã kết thúc phục vụ. Vui lòng nhờ nhân viên nếu cần hỗ trợ.';}
+    if(changed&&!state.busy) {state.cart.clear();state.combos=[];state.notes.clear();state.orders=[];try { localStorage.removeItem(orderHistoryKey); } catch {} state.message=data.sessionOpen?'Bàn đã mở lượt phục vụ mới. Bạn có thể chọn món.':'Bàn đã kết thúc phục vụ. Vui lòng nhờ nhân viên nếu cần hỗ trợ.';}
     if(!state.busy) {
       const previous=state.data;
       const removed=previous.products.filter(p=>state.cart.has(p.id)&&!data.products.some(n=>n.id===p.id));
@@ -124,7 +125,7 @@ async function refreshTable(strict=false) {
         }
         bindQuantityControls();
         const cart=app.querySelector('#customer-cart');
-        if(cart){const entries=[...state.cart].filter(([,q])=>q>0);cart.querySelector('.total b').textContent=money(entries.reduce((sum,[id,q])=>sum+data.products.find(p=>p.id===id).sellingPrice*q,0));const submitButton=cart.querySelector('#submit');submitButton.disabled=!data.sessionOpen||!entries.length||entries.some(([id,q])=>{const p=data.products.find(p=>p.id===id);return !p?.canOrder||q>(p.maxOrderQuantity??1000)});cart.querySelectorAll('[data-remove]').forEach(button=>{const id=Number(button.dataset.remove),p=data.products.find(p=>p.id===id);button.closest('.cart-item').querySelector('b').textContent=money(p.sellingPrice*(state.cart.get(id)||0));});}
+        if(cart){const entries=[...state.cart].filter(([,q])=>q>0);const pricing=cartComboPricing(state.cart,data.products,state.combos);state.combos=pricing.valid;updateCart();const submitButton=cart.querySelector('#submit');submitButton.disabled=!data.sessionOpen||!entries.length||entries.some(([id,q])=>{const p=data.products.find(p=>p.id===id);return !p?.canOrder||q>(p.maxOrderQuantity??1000)});cart.querySelectorAll('[data-remove]').forEach(button=>{const id=Number(button.dataset.remove),p=data.products.find(p=>p.id===id);button.closest('.cart-item').querySelector('b').textContent=money(p.sellingPrice*(state.cart.get(id)||0));});}
 
       }
     }
@@ -134,3 +135,5 @@ async function refreshTable(strict=false) {
 async function load() { if (!token) { app.innerHTML = '<main class="guest-entry"><div class="guest-entry-brand">DUSKO</div><section><span class="guest-entry-icon" aria-hidden="true">▦</span><h1>Quét mã QR tại bàn</h1><p>Mở camera điện thoại và quét mã QR được đặt trên bàn để xem thực đơn, chọn món và gửi yêu cầu.</p><ol><li>Nhân viên mở bàn khi bạn đến.</li><li>Quét QR và chọn món yêu thích.</li><li>Nhân viên xác nhận rồi chuyển món tới bếp.</li></ol><p class="guest-entry-help">Không quét được mã? Nhân viên có thể gọi món giúp bạn.</p></section></main>'; return; } try { state.data = await request(`/api/public/tables/${token}`); await updateStatus();render(); customerHelp?.loadCombos(); watchChanges(request,async()=>{if(state.busy)throw Error('busy');await refreshTable(true);await customerHelp?.loadCombos(true);},`/api/public/tables/${token}/live`); setInterval(()=>refreshTable(), 15000); } catch (error) { app.innerHTML = `<main><h1>Không mở được thực đơn</h1><p>${escape(error.message)}</p><p>Vui lòng gọi nhân viên.</p></main>`; } }
 app.addEventListener('click',event=>{const button=event.target.closest('[data-remove]');if(!button)return;const id=Number(button.dataset.remove);state.cart.delete(id);state.notes.delete(id);updateCart(id);});
 load();
+
+app.addEventListener('click',event=>{const button=event.target.closest('[data-remove-combo]');if(!button)return;const combo=state.combos.find(c=>c.key===button.dataset.removeCombo);if(!combo)return;for(const id of combo.productIds)state.cart.set(id,Math.max(0,(state.cart.get(id)||0)-combo.quantity));state.combos=state.combos.filter(c=>c!==combo);updateCart();});

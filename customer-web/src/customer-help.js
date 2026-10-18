@@ -12,14 +12,14 @@ export function createCustomerHelp({token,request,getState,addCombo,api}) {
     if(!loaded){root.textContent='Đang tìm combo phù hợp…';return;}
     const state=getState();
     const current=combos.map(c=>({...c,items:c.items.map(i=>({...i,...state.data.products.find(p=>p.id===i.id)}))})).filter(c=>c.items.every(i=>i.canOrder));
-    root.innerHTML=`<h2>Gợi ý combo cho bàn bạn</h2><p>Các món thường được gọi cùng nhau. Mỗi món 1 suất, giá bằng tổng giá món lẻ.</p>${current.length?`<div class="combo-grid">${current.map(c=>`<article class="combo-card"><div class="combo-images">${c.items.filter(i=>i.imageUrl).map(i=>`<img src="${escape(i.imageUrl.startsWith('http')?i.imageUrl:api+i.imageUrl)}" alt="${escape(i.name)}" loading="lazy">`).join('')}</div><h3>${c.items.map(i=>escape(i.name)).join(' + ')}</h3><strong>${money(c.items.reduce((s,i)=>s+i.sellingPrice,0))}</strong><button type="button" data-combo="${escape(c.id)}" ${!state.data.sessionOpen||state.busy?'disabled':''}>Thêm combo vào giỏ</button></article>`).join('')}</div>`:'<p>Chưa có combo phù hợp với các món còn sẵn. Bạn chọn món riêng trong thực đơn nhé.</p>'}<p class="combo-message" role="status"></p>`;
+    root.innerHTML=`<h2>Gợi ý combo cho bàn bạn</h2><p>Các món thường được gọi cùng nhau. Mỗi món 1 suất, giá ưu đãi khi đặt trọn combo.</p>${current.length?`<div class="combo-grid">${current.map(c=>`<article class="combo-card"><div class="combo-images">${c.items.filter(i=>i.imageUrl).map(i=>`<img src="${escape(i.imageUrl.startsWith('http')?i.imageUrl:api+i.imageUrl)}" alt="${escape(i.name)}" loading="lazy">`).join('')}</div><h3>${c.items.map(i=>escape(i.name)).join(' + ')}</h3><strong>${money(c.price)}</strong><del>${money(c.originalTotal)}</del><small>Tiết kiệm ${money(c.discountAmount)}</small><button type="button" data-combo="${escape(c.id)}" ${!state.data.sessionOpen||state.busy?'disabled':''}>Thêm combo vào giỏ</button></article>`).join('')}</div>`:'<p>Chưa có combo phù hợp với các món còn sẵn. Bạn chọn món riêng trong thực đơn nhé.</p>'}<p class="combo-message" role="status"></p>`;
     root.querySelectorAll('[data-combo]').forEach(button=>button.onclick=()=>{
       const combo=current.find(c=>c.id===button.dataset.combo);
       const state=getState();
       if(!state.data.sessionOpen||state.busy)return;
       const valid=combo.items.every(i=>{const p=state.data.products.find(p=>p.id===i.id);return p?.canOrder&&(state.cart.get(i.id)||0)+1<=Math.min(1000,p.maxOrderQuantity??1000);});
       root.querySelector('.combo-message').textContent=valid?'Đã thêm combo. Bạn kiểm tra giỏ rồi gửi yêu cầu cho nhân viên.':'Số lượng vượt mức còn sẵn. Vui lòng điều chỉnh giỏ hoặc hỏi nhân viên.';
-      if(valid)addCombo(combo.items.map(i=>i.id));
+      if(valid)addCombo(combo);
     });
   }
   const host=document.createElement('aside');host.className='restaurant-help';document.body.append(host);
