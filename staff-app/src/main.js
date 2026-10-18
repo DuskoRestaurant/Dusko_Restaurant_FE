@@ -1,3 +1,4 @@
+import {authenticatorLogin,reconfigureAuthenticator} from '../../src/mfa-login.js';
 import { passwordDialog } from '../../src/accounts.js';
 import '../../src/accounts.css';
 import {mountLogin,managementUrl} from '../../src/app-entry.js';
@@ -24,7 +25,7 @@ async function request(path,{method='GET',body,signal}={}) {
 function renderLogin(message='') {
   workspace?.destroy();workspace=null;
   mountLogin(app,{staff:true,message,submit:async(username,password)=>{
-    const result=await request('/api/auth/login',{method:'POST',body:{username,password}});
+    const result=await authenticatorLogin(request,username,password);
     if(!['ADMIN','MANAGER','CASHIER','WAITER'].includes(result.user.role))throw Error('Tài khoản này không có quyền phục vụ bàn');
     auth=result;sessionStorage.setItem('dusko-auth',JSON.stringify(auth));await startWorkspace();
   }});
@@ -38,7 +39,8 @@ async function startWorkspace() {
     if(!branches.length)throw Error('Chưa có chi nhánh để phục vụ.');
   }
   workspace?.destroy();
-  app.innerHTML=`<header class="staff-app-header"><b><span class="staff-brand-mark">D</span><span>DUSKO<small>NHÂN VIÊN</small></span></b><div><a href="${managementUrl}">Trang quản lý ↗</a><button id="password">Đổi mật khẩu</button><button id="logout">Đăng xuất</button></div></header><main><div class="staff-toolbar"><p class="staff-identity"><span class="staff-avatar">${esc((auth.user.fullName||'N').slice(0,1).toLocaleUpperCase('vi'))}</span><span><strong>${esc(auth.user.fullName)}</strong><small>${esc({ADMIN:'Quản trị viên',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ'}[auth.user.role])}</small></span></p>${branches.length?`<label class="staff-branch"><span>Chi nhánh</span><select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}</div><div id="service-workspace" class="staff-app-surface"></div></main>`;
+  app.innerHTML=`<header class="staff-app-header"><b><span class="staff-brand-mark">D</span><span>DUSKO<small>NHÂN VIÊN</small></span></b><div><a href="${managementUrl}">Trang quản lý ↗</a>${auth.user.role==='ADMIN'?'<button id="mfa-settings">Authenticator</button>':''}<button id="password">Đổi mật khẩu</button><button id="logout">Đăng xuất</button></div></header><main><div class="staff-toolbar"><p class="staff-identity"><span class="staff-avatar">${esc((auth.user.fullName||'N').slice(0,1).toLocaleUpperCase('vi'))}</span><span><strong>${esc(auth.user.fullName)}</strong><small>${esc({ADMIN:'Quản trị viên',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ'}[auth.user.role])}</small></span></p>${branches.length?`<label class="staff-branch"><span>Chi nhánh</span><select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}</div><div id="service-workspace" class="staff-app-surface"></div></main>`;
+  if(auth.user.role==='ADMIN')app.querySelector('#mfa-settings').onclick=()=>reconfigureAuthenticator(request,()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Đã đổi Authenticator. Hãy đăng nhập lại.');});
   app.querySelector('#password').onclick=()=>passwordDialog(request,()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   app.querySelector('#logout').onclick=()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin();};
   const mount=id=>{workspace?.destroy();workspace=createServiceWorkspace({root:app.querySelector('#service-workspace'),request,branchId:Number(id),role:auth.user.role,userId:auth.user.id,imageBase:api});};
