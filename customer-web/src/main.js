@@ -4,6 +4,7 @@ import './style.css';
 import '../../src/font.css';
 import '../../src/pos-theme.css';
 import { confirmDialog } from '../../src/confirm-dialog.js';
+import { readStoredJson, preparePendingOrder, tryStoreJson } from '../../src/browser-storage.js';
 
 const api = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const token = location.pathname.match(/^\/t\/([a-f0-9]{64})$/)?.[1];
@@ -11,7 +12,8 @@ const app = document.querySelector('#app');
 const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const orderHistoryKey=token?`dusko-order-history:${token}`:'';
-const state = { data: null, cart: new Map(), notes: new Map(), orders: token?JSON.parse(localStorage.getItem(orderHistoryKey)||'[]'):[], busy: false, message: '' };
+const browserStorage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
+const state = { data: null, cart: new Map(), notes: new Map(), orders: token?readStoredJson(browserStorage,orderHistoryKey,[],value=>Array.isArray(value)&&value.every(order=>order&&typeof order.id==='string')):[], busy: false, message: '' };
 async function request(path, options = {}) {
   const response = await fetch(`${api}${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
   const payload = await response.json().catch(() => ({}));
@@ -66,16 +68,18 @@ async function submit() {
   if (!items.length || !await confirmDialog({title:'Gửi yêu cầu gọi món?',message:`Gửi ${items.reduce((n, item) => n + item.quantity, 0)} món tới nhân viên của ${state.data.table.name}. Món chỉ được chuyển vào bếp sau khi nhân viên xác nhận tại bàn.`,confirmLabel:'Gửi yêu cầu'})) return;
   state.busy = true; state.message = ''; render();
   const pendingKey = `dusko-pending-${token}`;
-  let pending = JSON.parse(localStorage.getItem(pendingKey) || 'null');
-  if (!pending || pending.sessionId !== state.data.sessionId || JSON.stringify(pending.items) !== JSON.stringify(items)) { pending = { id: crypto.randomUUID(), sessionId:state.data.sessionId, items }; localStorage.setItem(pendingKey, JSON.stringify(pending)); }
-  try { const result = await request(`/api/public/tables/${token}/orders`, { method: 'POST', body: JSON.stringify(pending) }); state.orders=[...state.orders.filter(order=>order.id!==result.order.id),result.order];localStorage.setItem(orderHistoryKey,JSON.stringify(state.orders));state.cart.clear(); state.notes.clear(); localStorage.removeItem(pendingKey); state.message = result.awaitingStaffConfirmation ? 'Đã gửi yêu cầu. Nhân viên sẽ tới bàn xác nhận trước khi chuyển món xuống bếp.' : 'Lượt gọi món đã được hệ thống ghi nhận.'; }
-  catch (error) { state.message = `${error.message}. Nếu mất mạng, hãy thử lại; yêu cầu đang giữ cùng mã để tránh tạo trùng.`; }
+  let requestStarted = false;
+  try {
+    const pending = preparePendingOrder(browserStorage, pendingKey, state.data.sessionId, items);
+    requestStarted = true;
+    const result = await request(`/api/public/tables/${token}/orders`, { method: 'POST', body: JSON.stringify(pending) }); state.orders=[...state.orders.filter(order=>order.id!==result.order.id),result.order];tryStoreJson(browserStorage,orderHistoryKey,state.orders);state.cart.clear(); state.notes.clear(); try { localStorage.removeItem(pendingKey); } catch {} state.message = result.awaitingStaffConfirmation ? 'Đã gửi yêu cầu. Nhân viên sẽ tới bàn xác nhận trước khi chuyển món xuống bếp.' : 'Lượt gọi món đã được hệ thống ghi nhận.'; }
+  catch (error) { state.message = requestStarted ? `${error.message}. Nếu mất mạng, hãy thử lại; yêu cầu đang giữ cùng mã để tránh tạo trùng.` : error.message; }
   finally { state.busy = false; render(); }
 }
 async function updateStatus(strict=false) {
   if(!state.orders.length)return;
   const results=await Promise.all(state.orders.map(async order=>{try{return await request(`/api/public/tables/${token}/orders/${order.id}`);}catch(error){if(error.status===404)return null;if(strict)throw error;return order;}}));
-  state.orders=results.filter(Boolean);localStorage.setItem(orderHistoryKey,JSON.stringify(state.orders));
+  state.orders=results.filter(Boolean);tryStoreJson(browserStorage,orderHistoryKey,state.orders);
   for(const order of state.orders) {
     const element=document.querySelector(`[data-order-status="${CSS.escape(order.id)}"]`);if(!element)continue;
     if(order.status==='AWAITING_CONFIRMATION') {element.textContent='Chờ nhân viên tới bàn xác nhận. Món chưa chuyển vào bếp.';continue;}
@@ -97,7 +101,7 @@ async function refreshTable(strict=false) {
     if(state.busy){if(strict)throw Error("busy");return;}
     const changed=state.data?.sessionId!==data.sessionId;
     const catalogChanged=JSON.stringify(state.data.products.map(p=>[p.id,p.name,p.imageUrl,p.category.name]))!==JSON.stringify(data.products.map(p=>[p.id,p.name,p.imageUrl,p.category.name]));
-    if(changed&&!state.busy) {state.cart.clear();state.notes.clear();state.orders=[];localStorage.removeItem(orderHistoryKey);state.message=data.sessionOpen?'Bàn đã mở lượt phục vụ mới. Bạn có thể chọn món.':'Bàn đã kết thúc phục vụ. Vui lòng nhờ nhân viên nếu cần hỗ trợ.';}
+    if(changed&&!state.busy) {state.cart.clear();state.notes.clear();state.orders=[];try { localStorage.removeItem(orderHistoryKey); } catch {} state.message=data.sessionOpen?'Bàn đã mở lượt phục vụ mới. Bạn có thể chọn món.':'Bàn đã kết thúc phục vụ. Vui lòng nhờ nhân viên nếu cần hỗ trợ.';}
     if(!state.busy) {
       const previous=state.data;
       const removed=previous.products.filter(p=>state.cart.has(p.id)&&!data.products.some(n=>n.id===p.id));

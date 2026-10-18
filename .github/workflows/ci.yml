@@ -1,7 +1,7 @@
 name: Frontend checks
 on:
   push:
-    branches: [main, Tong]
+    branches: [main, Tong, 'work/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
