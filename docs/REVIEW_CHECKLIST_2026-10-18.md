@@ -9,6 +9,6 @@ Nhánh `work/updates-20261018`. Checklist tổng và tình trạng backup nằm 
 - [x] Nếu bản nháp lỗi/hỏng, dừng gửi và hướng dẫn nhờ nhân viên kiểm tra; tránh sinh UUID khác khi trạng thái gửi trước chưa rõ.
 - [x] Lỗi ghi lịch sử sau khi API đã nhận đơn không bị báo thành gửi thất bại.
 - [x] CI chạy khi push nhánh work, build cả ba app.
-- [ ] Kiểm tra hồi quy cuối và push nhánh work.
+- [x] Kiểm tra hồi quy cuối: 8 test FE, build ba app đạt; đã push nhánh work.
 
 Theo dõi tiếp: chưa nghiệm thu ba UI đồng thời trên thiết bị thật; ExcelJS chunk lớn nhưng đang nạp động; JS nghiệp vụ cần tách dần cùng test. Không đánh dấu những việc này hoàn tất chỉ dựa trên build.
