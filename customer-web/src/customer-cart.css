@@ -1,0 +1,23 @@
+/* Additions for the shared table basket: presence bar, in-cart stepper, warnings. */
+.presence-bar{
+  display:flex;align-items:center;gap:8px;margin:0 0 18px;padding:10px 14px;
+  background:#eaf1fb;color:#2b4d80;border:1px solid #cfdff5;border-radius:8px;font-size:15px;line-height:1.5;
+}
+.cart-stepper{
+  display:flex;align-items:center;justify-content:flex-start;gap:4px;margin:8px 0 4px;
+}
+.cart-stepper button{
+  width:42px;min-height:42px;border:1px solid #d8dce1;background:#fafbfc;color:#535962;
+  font-size:22px;line-height:1;border-radius:7px;cursor:pointer;
+}
+.cart-stepper button:hover{background:#eef1f4}
+.cart-stepper span{min-width:38px;text-align:center;font-size:17px;font-weight:600}
+.cart-warning{
+  display:block;margin:0 0 10px!important;padding:9px 11px!important;
+  background:#fdf3e3!important;color:#8a5a12!important;border-left:2px solid #e0a33c!important;border-radius:6px!important;
+}
+.cart-item .cart-remove{margin:4px 0 10px}
+@media(max-width:540px){
+  .presence-bar{font-size:14px;padding:9px 12px}
+  .cart-stepper button{width:40px;min-height:40px}
+}

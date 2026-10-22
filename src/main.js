@@ -6,6 +6,7 @@ import { mountAccounts, passwordDialog } from './accounts.js';
 import './accounts.css';
 import { mountComboApproval } from './combo-approval.js';
 import { watchChanges } from './live-updates.js';
+import { createToast } from './toast.js';
 import { mountFpPipeline } from './fp-pipeline.js';
 import { mountLogin, staffUrl } from './app-entry.js';
 import './style.css';
@@ -90,6 +91,19 @@ async function api(path, options = {}) {
   return reads.read(`${token}:${path}`, execute, volatile ? { ttl: 3000, maxAge: 15000 } : undefined);
 }
 function toast(message, bad=false) { const el=document.createElement('div'); el.className=`toast ${bad?'bad':''}`; el.textContent=message; document.body.append(el); setTimeout(()=>el.remove(),4000); }
+// Real-time notices for the console. Scoped events say exactly what changed,
+// so the console can point the manager at the right screen.
+const liveToast = createToast();
+function notifyLiveEvent(message) {
+  const name = message.tableName ? String(message.tableName) : '';
+  if (message.action === 'service.request') {
+    liveToast.warning(name ? `${name}: khách cần nhân viên hỗ trợ` : 'Khách cần nhân viên hỗ trợ', message.kind === 'BILL' ? 'Khách yêu cầu thanh toán tại bàn.' : 'Nhân viên hãy đến bàn hỗ trợ ngay.');
+    return;
+  }
+  if (message.action === 'order.created' && ['orders', 'kitchen'].includes(state.page)) {
+    liveToast.info('Có yêu cầu gọi món mới', name ? `Khách tại ${name} vừa gửi yêu cầu.` : 'Khách vừa gửi yêu cầu gọi món.');
+  }
+}
 let busyControls=[];
 function busy(value) {
   state.loading=value;
@@ -136,7 +150,7 @@ async function loadPage() {
     if(requestedPage==='forecast') { const products=await api('/api/catalog/products'); if(!stillCurrent())return; state.data.forecastProducts=products; state.data.forecast=undefined; state.forecastResultDate=null; state.aiAnalysis={}; forecast(); }
     if(requestedPage==='users'){render('<div id=accounts-root></div>');await mountAccounts(document.querySelector('#accounts-root'),api,state.branches,{userId:state.user.id,signedOut:()=>{signOut();toast('Tài khoản đã thay đổi. Vui lòng đăng nhập lại.');}});}
     if(requestedPage==='combos'){render('<div id="combo-approval"></div>');await mountComboApproval(document.querySelector('#combo-approval'),api,requestedBranch);}
-    if(requestedPage==='pipeline') { const key=`${requestedToken}:${requestedBranch}`; if(!pipelineViews.has(key))pipelineViews.set(key,{}); render('<div id="fp-root"></div>'); await mountFpPipeline(document.querySelector('#fp-root'),api,requestedBranch,pipelineViews.get(key)); }
+    if(requestedPage==='pipeline') { const key=`${requestedToken}:${requestedBranch}`; if(!pipelineViews.has(key))pipelineViews.set(key,{}); render('<div id="fp-root"></div>'); await mountFpPipeline(document.querySelector('#fp-root'),api,requestedBranch,pipelineViews.get(key),{ canApproveCombos:access(['ADMIN']), goToCombos:()=>{state.page='combos';shell();loadPage();} }); }
     if(requestedPage==='analytics') { const products=await api('/api/analytics/recipe-cost'); if(!stillCurrent())return; state.data.products=products; analytics(); }
 
 
@@ -492,11 +506,21 @@ async function start() {
       if(token!==state.token)throw Error('login');
       if(message?.revision!==undefined&&message.revision===revision)return;
       invalidateReads();
+      if(message?.type==='event')notifyLiveEvent(message);
       if(state.page==='kitchen'){if(state.loading)throw Error('busy');await refreshKitchen(true);}
       else if(state.page==='combos'){if(state.loading)throw Error('busy');await document.querySelector('#combo-approval')?.refreshLive?.();}
       else showDataNotice();
       revision=message?.revision;
-    });
+    }, '/api/live', {onEvent:async message=>{
+      if(token!==state.token)throw Error('login');
+      if(message?.revision!==undefined&&message.revision===revision)return;
+      invalidateReads();
+      notifyLiveEvent(message);
+      if(state.page==='kitchen'){if(state.loading)throw Error('busy');await refreshKitchen(true);}
+      else if(state.page==='combos'){if(state.loading)throw Error('busy');await document.querySelector('#combo-approval')?.refreshLive?.();}
+      else showDataNotice();
+      revision=message?.revision;
+    }});
   } catch(error) {
     if(seq!==startSeq||token!==state.token)return;
     if(error.status===401){signOut();return;}
