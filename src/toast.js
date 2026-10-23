@@ -69,3 +69,17 @@ export function createToast({ container } = {}) {
     dismiss: () => { [...host.children].forEach(dismiss); },
   };
 }
+
+let shared = null;
+
+/**
+ * The console runs several surfaces at once (shell actions, the service
+ * workspace, live notices). They used to each build their own stack, which put
+ * three independent notification regions on one page — inconsistent ordering
+ * and no single live region for a screen reader to follow. This hands out one
+ * instance so every surface announces through the same region.
+ */
+export function sharedToast() {
+  if (!shared) shared = createToast();
+  return shared;
+}

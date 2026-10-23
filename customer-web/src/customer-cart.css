@@ -1,23 +1,24 @@
 /* Additions for the shared table basket: presence bar, in-cart stepper, warnings. */
 .presence-bar{
   display:flex;align-items:center;gap:8px;margin:0 0 18px;padding:10px 14px;
-  background:#eaf1fb;color:#2b4d80;border:1px solid #cfdff5;border-radius:8px;font-size:15px;line-height:1.5;
+  background:var(--accent-soft);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius-control);font-size:15px;line-height:1.5;
 }
 .cart-stepper{
   display:flex;align-items:center;justify-content:flex-start;gap:4px;margin:8px 0 4px;
 }
 .cart-stepper button{
-  width:42px;min-height:42px;border:1px solid #d8dce1;background:#fafbfc;color:#535962;
-  font-size:22px;line-height:1;border-radius:7px;cursor:pointer;
+  width:48px;min-height:48px;min-width:48px;border:1px solid var(--line);background:var(--surface-brand);color:var(--primary-ink);
+  font-size:24px;line-height:1;border-radius:var(--radius-control);cursor:pointer;display:grid;place-items:center;
 }
-.cart-stepper button:hover{background:#eef1f4}
+.cart-stepper button:hover{background:var(--primary-soft)}
+.cart-stepper button:active{transform:scale(.96)}
 .cart-stepper span{min-width:38px;text-align:center;font-size:17px;font-weight:600}
 .cart-warning{
   display:block;margin:0 0 10px!important;padding:9px 11px!important;
-  background:#fdf3e3!important;color:#8a5a12!important;border-left:2px solid #e0a33c!important;border-radius:6px!important;
+  background:var(--warning-soft)!important;color:var(--warning)!important;border-left:2px solid var(--warning)!important;border-radius:var(--radius-control)!important;
 }
 .cart-item .cart-remove{margin:4px 0 10px}
 @media(max-width:540px){
   .presence-bar{font-size:14px;padding:9px 12px}
-  .cart-stepper button{width:40px;min-height:40px}
+  .cart-stepper button{width:48px;min-height:48px}
 }

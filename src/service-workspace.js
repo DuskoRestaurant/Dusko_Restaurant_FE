@@ -1,7 +1,7 @@
 import {openReceipt,showRecentReceipts} from './receipt.js';
 import { showVnpayPayment } from './vnpay-payment.js';
 import { watchChanges } from './live-updates.js';
-import { createToast } from './toast.js';
+import { sharedToast } from './toast.js';
 import './service-workspace.css';
 import { showQrPreview } from './qr-preview.js';
 import { confirmDialog } from './confirm-dialog.js';
@@ -15,7 +15,9 @@ const statusText = item => item.servedAt ? 'Đã mang ra bàn' : item.kdsStatus 
 /** Shared table workflow for the cashier desktop and the staff phone app. */
 export function createServiceWorkspace({root, request, branchId, role, userId, imageBase = '', initialData}) {
   root.classList.add('service-workspace');
-  const toast = createToast();
+  // Shares the console toast stack so the workspace and the shell announce
+  // through one live region instead of two.
+  const toast = sharedToast();
   const state = {tables:[], products:[], table:null, session:null, tab:'confirm', filter:'ALL', search:'', menuSearch:'', category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
   let disposed = false;
   let closeVnpay;

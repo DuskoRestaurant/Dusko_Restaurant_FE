@@ -1,4 +1,5 @@
 import {receiptMarkup,receiptPrintStyle} from './receipt-format.js';
+import {createSingleFlight} from './single-flight.js';
 import './receipt.css';
 export function showReceipt(receipt){
  const dialog=document.createElement('dialog');dialog.className='receipt-dialog';dialog.setAttribute('aria-label','Hóa đơn thanh toán');
@@ -11,8 +12,25 @@ export function showReceipt(receipt){
  };
  dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.append(dialog);dialog.showModal();return ()=>dialog.close();
 }
-export async function openReceipt(request,kind,id){
- try{const receipt=await request(`/api/receipts/${kind}/${encodeURIComponent(id)}`,{method:'POST',body:{}});showReceipt(receipt);return receipt;}catch(error){const dialog=document.createElement('dialog');dialog.className='receipt-history';const message=document.createElement('p');message.textContent=`Chưa tạo được hóa đơn: ${error.message}. Giao dịch đã thanh toán không bị thay đổi.`;const retry=document.createElement('button');retry.textContent='Thử lại';retry.onclick=()=>{dialog.close();openReceipt(request,kind,id);};const close=document.createElement('button');close.textContent='Đóng';close.onclick=()=>dialog.close();dialog.append(message,retry,close);dialog.addEventListener('close',()=>dialog.remove(),{once:true});document.body.append(dialog);dialog.showModal();return null;}
+// One in-flight receipt request at a time. `openReceipt` issues a mutating
+// POST, and a double click would create two receipts for one paid order.
+const openReceiptOnce = createSingleFlight();
+
+export function openReceipt(request,kind,id){
+  return openReceiptOnce(`${kind}:${id}`,async()=>{
+   try{const receipt=await request(`/api/receipts/${kind}/${encodeURIComponent(id)}`,{method:'POST',body:{}});showReceipt(receipt);return receipt;}
+   catch(error){showReceiptError(request,kind,id,error);return null;}
+  });
+}
+function showReceiptError(request,kind,id,error){
+ const dialog=document.createElement('dialog');dialog.className='receipt-history';
+ const message=document.createElement('p');message.textContent=`Chưa tạo được hóa đơn: ${error.message}. Giao dịch đã thanh toán không bị thay đổi.`;
+ const retry=document.createElement('button');retry.type='button';retry.textContent='Thử lại';
+ retry.onclick=()=>{dialog.close();openReceipt(request,kind,id);};
+ const close=document.createElement('button');close.type='button';close.textContent='Đóng';close.onclick=()=>dialog.close();
+ dialog.append(message,retry,close);
+ dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+ document.body.append(dialog);dialog.showModal();
 }
 export async function showRecentReceipts(request,branchId){
  const receipts=await request(`/api/receipts?branchId=${branchId}`);

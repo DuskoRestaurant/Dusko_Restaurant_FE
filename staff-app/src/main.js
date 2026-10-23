@@ -1,3 +1,4 @@
+import '../../src/tokens.css';
 import {authenticatorLogin,reconfigureAuthenticator} from '../../src/mfa-login.js';
 import { passwordDialog } from '../../src/accounts.js';
 import '../../src/accounts.css';

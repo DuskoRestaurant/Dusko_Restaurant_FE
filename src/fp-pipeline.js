@@ -122,7 +122,7 @@ export async function mountFpPipeline(root, api, branchId, retained = {}, option
         <p>Confidence là tỷ lệ trong lịch sử, không phải độ chính xác dự đoán khách sẽ mua. Nhãn nguồn giữ nguyên như database.</p></section>
 
       <section class="panel"><h2>5. Lịch sử bộ dữ liệu</h2><p>Giữ tối đa 5 snapshot mới nhất cho mỗi chi nhánh; snapshot cũ tự động bị dọn khi tạo bản mới.</p>
-        ${snapshots.length ? table(['Ngày bán', 'Số hóa đơn', 'Số món', 'Đã lưu lúc', ''], snapshots.map(s => [`${e(s.from)} → ${e(s.to)}`, number(s.transactionCount), number(s.columnCount), new Date(s.createdAt).toLocaleString('vi-VN'), `<button type="button" class="btn secondary fp-delete" data-dataset="${e(s.id)}" ${busy ? 'disabled' : ''}>Xóa</button>`])) : '<p>Chưa có snapshot nào.</p>'}</section></div>`;
+        ${snapshots.length ? table(['Ngày bán', 'Số hóa đơn', 'Số món', 'Đã lưu lúc', ''], snapshots.map(s => [`${e(s.from)} → ${e(s.to)}`, number(s.transactionCount), number(s.columnCount), new Date(s.createdAt).toLocaleString('vi-VN'), `<button type="button" class="btn secondary fp-delete" data-dataset="${e(s.id)}" ${busy ? 'disabled' : ''}>Xóa</button>`])) : busy ? '<p role="status">Đang tải lịch sử bộ dữ liệu…</p>' : '<p>Chưa có snapshot nào.</p>'}</section></div>`;
 
     // ---- GẮN SỰ KIỆN (phải làm sau mỗi lần vẽ lại vì innerHTML thay thế toàn bộ) ----
     // Nút "1. Đọc SQL và lưu ma trận": chọn khoảng ngày → POST /fp-pipeline/refine.

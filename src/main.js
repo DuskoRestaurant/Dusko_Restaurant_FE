@@ -1,3 +1,4 @@
+import './tokens.css';
 import {authenticatorLogin,reconfigureAuthenticator} from './mfa-login.js';
 import {forecastSummary,showAiActionResult,ingredientPlanMarkup,reviewDayMarkup} from './ai-workflow.js';
 import {openReceipt} from './receipt.js';
@@ -6,7 +7,7 @@ import { mountAccounts, passwordDialog } from './accounts.js';
 import './accounts.css';
 import { mountComboApproval } from './combo-approval.js';
 import { watchChanges } from './live-updates.js';
-import { createToast } from './toast.js';
+import { sharedToast } from './toast.js';
 import { mountFpPipeline } from './fp-pipeline.js';
 import { mountLogin, staffUrl } from './app-entry.js';
 import './style.css';
@@ -90,18 +91,48 @@ async function api(path, options = {}) {
   const volatile = /workspace\?module=(?:overview|orders|inventory|locations)&|\/orders\?|\/kds\/|\/inventory\/|\/combos\/|\/tables(?:\?|$)/.test(path);
   return reads.read(`${token}:${path}`, execute, volatile ? { ttl: 3000, maxAge: 15000 } : undefined);
 }
-function toast(message, bad=false) { const el=document.createElement('div'); el.className=`toast ${bad?'bad':''}`; el.textContent=message; document.body.append(el); setTimeout(()=>el.remove(),4000); }
+const toasts = sharedToast();
+/**
+ * Open a modal as a native <dialog>.
+ *
+ * The console's three form modals used to be a positioned <div> with
+ * role="dialog" aria-modal="true", which promised inertness the markup never
+ * delivered: Tab walked straight out into the page behind, focus was not
+ * restored on close, and Escape was hand-rolled (and missing entirely on the
+ * recipe dialog). showModal() provides the focus trap, Escape handling and focus
+ * restoration natively, matching the seven dialogs that already use it.
+ */
+function openModal(html, { className = '', label } = {}) {
+  document.querySelector('.modal-wrap')?.close();
+  const dialog = document.createElement('dialog');
+  dialog.className = `modal-wrap${className ? ` ${className}` : ''}`;
+  if (label) dialog.setAttribute('aria-label', label);
+  dialog.innerHTML = html;
+  dialog.addEventListener('close', () => dialog.remove(), { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+  return dialog;
+}
+function closeModal(dialog) { if (dialog?.open) dialog.close(); }
+// Clicking the dimmed area dismisses, matching the previous overlay behaviour.
+document.addEventListener('click', event => {
+  const dialog = event.target?.closest?.('dialog.modal-wrap');
+  if (dialog && event.target === dialog) dialog.close();
+});
+// Action feedback routes through the shared toast so it is announced by a live
+// region like every other notice. It previously built a bare `.toast` div with
+// no role, which screen readers silently ignored.
+function toast(message, bad=false) { bad ? toasts.error(message) : toasts.success(message); }
 // Real-time notices for the console. Scoped events say exactly what changed,
 // so the console can point the manager at the right screen.
-const liveToast = createToast();
 function notifyLiveEvent(message) {
   const name = message.tableName ? String(message.tableName) : '';
   if (message.action === 'service.request') {
-    liveToast.warning(name ? `${name}: khách cần nhân viên hỗ trợ` : 'Khách cần nhân viên hỗ trợ', message.kind === 'BILL' ? 'Khách yêu cầu thanh toán tại bàn.' : 'Nhân viên hãy đến bàn hỗ trợ ngay.');
+    toasts.warning(name ? `${name}: khách cần nhân viên hỗ trợ` : 'Khách cần nhân viên hỗ trợ', message.kind === 'BILL' ? 'Khách yêu cầu thanh toán tại bàn.' : 'Nhân viên hãy đến bàn hỗ trợ ngay.');
     return;
   }
   if (message.action === 'order.created' && ['orders', 'kitchen'].includes(state.page)) {
-    liveToast.info('Có yêu cầu gọi món mới', name ? `Khách tại ${name} vừa gửi yêu cầu.` : 'Khách vừa gửi yêu cầu gọi món.');
+    toasts.info('Có yêu cầu gọi món mới', name ? `Khách tại ${name} vừa gửi yêu cầu.` : 'Khách vừa gửi yêu cầu gọi món.');
   }
 }
 let busyControls=[];
@@ -223,11 +254,10 @@ function inventory() {
 function openInventoryImport() {
   const ingredients=state.data.ingredients||[];
   document.querySelector('.modal-wrap')?.remove();
-  const wrap=document.createElement('div');wrap.className='modal-wrap inventory-excel-wrap';
-  wrap.innerHTML=`<section class="modal wide inventory-excel-modal" role="dialog" aria-modal="true" aria-label="Nhập kho từ Excel"><button class="modal-close" type="button" aria-label="Đóng">×</button><h2>Nhập dữ liệu kho từ Excel</h2><p>Thao tác này cập nhật tồn trong cùng Kho hiện tại. File được kiểm tra trước; nếu có dòng sai thì không ghi dòng nào.</p><ol class="inventory-import-steps"><li><strong>Tải mẫu Excel</strong><span>Mẫu có danh sách ${ingredients.length} nguyên liệu, mã và đơn vị hiện có.</span></li><li><strong>Chọn đúng thao tác</strong><span>Nhập hàng để cộng hàng vừa giao; Đếm kho để thay bằng tổng số thực tế.</span></li><li><strong>Chọn file và xem trước</strong><span>Dòng trống được bỏ qua. Tối đa 500 dòng, file .xlsx không quá 10 MB.</span></li></ol><div class="inventory-template-actions">${btn('Tải mẫu Excel có dữ liệu kho','inventory-template','secondary')}</div><div class="excel-form"><label class="field"><span>Thao tác</span><select id="inventory-import-mode"><option value="RECEIVE">Nhập hàng vừa giao · cộng vào số đang có</option><option value="COUNT">Đếm kho · thay bằng tổng số đang có</option></select></label><label class="field"><span>Chọn file Excel (.xlsx)</span><input id="inventory-excel-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><p class="form-help">Dùng sheet “Nhap hang” hoặc “Dem kho” tương ứng. Không sửa mã nguyên liệu trong mẫu.</p></div><div id="inventory-excel-preview" aria-live="polite"></div></section>`;
-  document.body.append(wrap);
-  const close=()=>wrap.remove();wrap.querySelector('.modal-close').onclick=close;wrap.onclick=event=>{if(event.target===wrap)close();};
-  wrap.addEventListener('keydown',event=>{if(event.key==='Escape'&&!wrap.querySelector('#inventory-excel-submit:disabled'))close();});
+  const wrap=openModal(`<section class="modal wide inventory-excel-modal"><button class="modal-close" type="button" aria-label="Đóng">×</button><h2>Nhập dữ liệu kho từ Excel</h2><p>Thao tác này cập nhật tồn trong cùng Kho hiện tại. File được kiểm tra trước; nếu có dòng sai thì không ghi dòng nào.</p><ol class="inventory-import-steps"><li><strong>Tải mẫu Excel</strong><span>Mẫu có danh sách ${ingredients.length} nguyên liệu, mã và đơn vị hiện có.</span></li><li><strong>Chọn đúng thao tác</strong><span>Nhập hàng để cộng hàng vừa giao; Đếm kho để thay bằng tổng số thực tế.</span></li><li><strong>Chọn file và xem trước</strong><span>Dòng trống được bỏ qua. Tối đa 500 dòng, file .xlsx không quá 10 MB.</span></li></ol><div class="inventory-template-actions">${btn('Tải mẫu Excel có dữ liệu kho','inventory-template','secondary')}</div><div class="excel-form"><label class="field"><span>Thao tác</span><select id="inventory-import-mode"><option value="RECEIVE">Nhập hàng vừa giao · cộng vào số đang có</option><option value="COUNT">Đếm kho · thay bằng tổng số đang có</option></select></label><label class="field"><span>Chọn file Excel (.xlsx)</span><input id="inventory-excel-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><p class="form-help">Dùng sheet “Nhap hang” hoặc “Dem kho” tương ứng. Không sửa mã nguyên liệu trong mẫu.</p></div><div id="inventory-excel-preview" aria-live="polite"></div></section>`, {className:'inventory-excel-wrap', label:'Nhập kho từ Excel'});
+  const close=()=>closeModal(wrap);wrap.querySelector('.modal-close').onclick=close;
+  // Preserve the old rule: a save in flight must not be dismissed.
+  wrap.addEventListener('cancel',event=>{if(wrap.querySelector('#inventory-excel-submit:disabled'))event.preventDefault();});
 
   const modeEl=wrap.querySelector('#inventory-import-mode'),fileEl=wrap.querySelector('#inventory-excel-file'),previewEl=wrap.querySelector('#inventory-excel-preview');
   let excelToolsPromise;
@@ -344,12 +374,11 @@ function catalog() { render(title('THỰC ĐƠN','Món & nhóm món','Danh mục
 
 function formModal(heading, fields, submit, {description='',submitLabel='Lưu'}={}) {
   document.querySelector('.modal-wrap')?.remove();
-  const wrap=document.createElement('div'); wrap.className='modal-wrap';
-  wrap.innerHTML=`<div class="modal wide" role="dialog" aria-modal="true" aria-label="${e(heading)}"><button class="modal-close" type="button" aria-label="Đóng">×</button><h2>${e(heading)}</h2>${description?`<p class="form-help">${e(description)}</p>`:''}<form class="manage-form">${fields.map(f=>`<label class="${f.type==='checkbox'?'check-field':''}"><span>${e(f.label)}</span>${f.type==='checkbox'?`<input name="${f.key}" type="checkbox" ${f.value?'checked':''}>`:f.options?`<select name="${f.key}">${f.options.map(o=>`<option value="${e(o.value)}" ${String(o.value)===String(f.value)?'selected':''}>${e(o.label)}</option>`).join('')}</select>`:`<input name="${f.key}" type="${f.type||'text'}" ${f.type==='file'?'accept="image/jpeg,image/png,image/webp"':`value="${e(f.value??'')}"`} ${f.required?'required':''} ${f.min!==undefined?`min="${f.min}"`:''} ${f.step?`step="${f.step}"`:''}>`}</label>`).join('')}<p class="form-error" role="alert" hidden></p><button type="submit" class="btn">${e(submitLabel)}</button></form></div>`;
-  document.body.append(wrap);wrap.querySelector('input,select')?.focus();
-  wrap.addEventListener('keydown',event=>{if(event.key==='Escape'&&!wrap.querySelector('button[type=submit]')?.disabled)wrap.remove();});
-  wrap.querySelector('.modal-close').onclick=()=>wrap.remove(); wrap.onclick=ev=>{if(ev.target===wrap)wrap.remove()};
-  wrap.querySelector('form').onsubmit=async ev=>{ev.preventDefault(); const form=ev.currentTarget, values=Object.fromEntries(new FormData(form)); form.querySelector('button[type="submit"]').disabled=true; try { const result=await submit(values); if(result!==null) { wrap.remove(); toast('Đã lưu thay đổi.'); if(state.page==='locations') {state.branches=await api('/api/catalog/branches'); shell();} await loadPage(); } } catch(err) { const error=form.querySelector('.form-error');error.textContent=err.message;error.hidden=false;error.scrollIntoView({block:'nearest'}); } finally {form.querySelector('button[type="submit"]').disabled=false;} };
+  const wrap=openModal(`<div class="modal wide"><button class="modal-close" type="button" aria-label="Đóng">×</button><h2>${e(heading)}</h2>${description?`<p class="form-help">${e(description)}</p>`:''}<form class="manage-form">${fields.map(f=>`<label class="${f.type==='checkbox'?'check-field':''}"><span>${e(f.label)}</span>${f.type==='checkbox'?`<input name="${f.key}" type="checkbox" ${f.value?'checked':''}>`:f.options?`<select name="${f.key}">${f.options.map(o=>`<option value="${e(o.value)}" ${String(o.value)===String(f.value)?'selected':''}>${e(o.label)}</option>`).join('')}</select>`:`<input name="${f.key}" type="${f.type||'text'}" ${f.type==='file'?'accept="image/jpeg,image/png,image/webp"':`value="${e(f.value??'')}"`} ${f.required?'required':''} ${f.min!==undefined?`min="${f.min}"`:''} ${f.step?`step="${f.step}"`:''}>`}</label>`).join('')}<p class="form-error" role="alert" hidden></p><button type="submit" class="btn">${e(submitLabel)}</button></form></div>`, {label:e(heading)});
+  wrap.querySelector('.modal-close').onclick=()=>closeModal(wrap);
+  // Preserve the old rule: a save in flight must not be dismissed.
+  wrap.addEventListener('cancel',event=>{if(wrap.querySelector('button[type=submit]')?.disabled)event.preventDefault();});
+  wrap.querySelector('form').onsubmit=async ev=>{ev.preventDefault(); const form=ev.currentTarget, values=Object.fromEntries(new FormData(form)); form.querySelector('button[type="submit"]').disabled=true; try { const result=await submit(values); if(result!==null) { closeModal(wrap); toast('Đã lưu thay đổi.'); if(state.page==='locations') {state.branches=await api('/api/catalog/branches'); shell();} await loadPage(); } } catch(err) { const error=form.querySelector('.form-error');error.textContent=err.message;error.hidden=false;error.scrollIntoView({block:'nearest'}); } finally {form.querySelector('button[type="submit"]').disabled=false;} };
 }
 const f=(key,label,value='',more={})=>({key,label,value,...more});
 const textValue=(value,label)=>{const s=String(value||'').trim(); if(!s) throw new Error(`${label} không được để trống.`); return s;};
@@ -362,19 +391,18 @@ const ingredientFields=i=>[...(i?[]:[f('code','Mã nguyên liệu','',{required:
 
 async function openRecipe(product) {
   const [recipe,ingredients]=await Promise.all([api(`/api/catalog/products/${product.id}/recipe`),api('/api/inventory/ingredients')]);
-  const wrap=document.createElement('div');wrap.className='modal-wrap';const editable=access(['ADMIN']);
+  const editable=access(['ADMIN']);
   const options='<option value="">Chọn nguyên liệu</option>'+ingredients.map(i=>`<option value="${i.id}">${e(i.name)} (${e(i.unit)})</option>`).join('');
   const recipeRow=r=>`<div class="recipe-row"><label>Nguyên liệu<select class="recipe-ingredient" ${editable?'':'disabled'}>${options}</select></label><label>Lượng cho 1 suất<input class="recipe-quantity" type="number" min="0.001" step="any" placeholder="Nhập định lượng" value="${e(r?.quantity??'')}" ${editable?'':'disabled'}></label><label>Hao hụt (%)<input class="recipe-waste" type="number" min="0" max="99.9" step="any" value="${e(r?Number((r.wasteRate*100).toFixed(6)):0)}" ${editable?'':'disabled'}></label>${editable?'<button type="button" class="btn text recipe-remove">Xóa</button>':''}<small class="recipe-preview"></small></div>`;
-  wrap.innerHTML=`<div class="modal wide" role="dialog" aria-modal="true" aria-label="Định lượng món"><button class="modal-close" aria-label="Đóng">×</button><h2>Định lượng · ${e(product.name)}</h2><p class="form-help">Nhập lượng nguyên liệu cho <strong>1 suất</strong>, theo đúng đơn vị kho. Hao hụt nhập theo phần trăm, ví dụ 5 nghĩa là 5%. Món bán nguyên chai/lon cũng cần khai báo lượng hàng tương ứng.</p>${!ingredients.length?'<p>Chưa có nguyên liệu. Thêm nguyên liệu trong Kho trước khi cấu hình món.</p>':''}<div id="recipe-rows">${recipe.length?recipe.map(recipeRow).join(''):ingredients.length?recipeRow(null):''}</div><p class="form-error" role="alert" hidden></p>${editable&&ingredients.length?`${btn('Thêm nguyên liệu','recipe-add','secondary')} ${btn('Lưu định lượng','recipe-save')}`:''}</div>`;
-  document.body.append(wrap);
+  const wrap=openModal(`<div class="modal wide"><button class="modal-close" type="button" aria-label="Đóng">×</button><h2>Định lượng · ${e(product.name)}</h2><p class="form-help">Nhập lượng nguyên liệu cho <strong>1 suất</strong>, theo đúng đơn vị kho. Hao hụt nhập theo phần trăm, ví dụ 5 nghĩa là 5%. Món bán nguyên chai/lon cũng cần khai báo lượng hàng tương ứng.</p>${!ingredients.length?'<p>Chưa có nguyên liệu. Thêm nguyên liệu trong Kho trước khi cấu hình món.</p>':''}<div id="recipe-rows">${recipe.length?recipe.map(recipeRow).join(''):ingredients.length?recipeRow(null):''}</div><p class="form-error" role="alert" hidden></p>${editable&&ingredients.length?`${btn('Thêm nguyên liệu','recipe-add','secondary')} ${btn('Lưu định lượng','recipe-save')}`:''}</div>`, {label:`Định lượng ${product.name}`});
   wrap.querySelectorAll('.recipe-ingredient').forEach((select,index)=>select.value=String(recipe[index]?.ingredientId||''));
   const preview=()=>wrap.querySelectorAll('.recipe-row').forEach(row=>{const i=ingredients.find(i=>i.id===Number(row.querySelector('select').value));const q=Number(row.querySelector('.recipe-quantity').value),w=Number(row.querySelector('.recipe-waste').value);row.querySelector('.recipe-preview').textContent=i&&q>0&&w>=0&&w<100?`Kho cần ${(q/(1-w/100)).toLocaleString('vi-VN',{maximumFractionDigits:3})} ${i.unit} cho mỗi suất, đã tính hao hụt.`:'Chọn nguyên liệu và nhập định lượng thực tế.';});preview();wrap.oninput=preview;wrap.onchange=preview;
   wrap.onclick=async ev=>{
-    if(ev.target===wrap||ev.target.closest('.modal-close')){wrap.remove();return;}
+    if(ev.target===wrap||ev.target.closest('.modal-close')){closeModal(wrap);return;}
     if(ev.target.closest('.recipe-remove')){ev.target.closest('.recipe-row').remove();return;}
     if(ev.target.closest('[data-action="recipe-add"]')){wrap.querySelector('#recipe-rows').insertAdjacentHTML('beforeend',recipeRow(null));preview();return;}
     const save=ev.target.closest('[data-action="recipe-save"]');if(!save||save.disabled)return;save.disabled=true;
-    try{const items=recipeEntries([...wrap.querySelectorAll('.recipe-row')].map(row=>({ingredientId:row.querySelector('select').value,quantity:row.querySelector('.recipe-quantity').value,wasteRate:Number(row.querySelector('.recipe-waste').value)/100})));await api(`/api/catalog/products/${product.id}/recipe`,{method:'PUT',body:{items}});wrap.remove();toast('Đã lưu định lượng. Thực đơn và kho đã được cập nhật.');await loadPage();}
+    try{const items=recipeEntries([...wrap.querySelectorAll('.recipe-row')].map(row=>({ingredientId:row.querySelector('select').value,quantity:row.querySelector('.recipe-quantity').value,wasteRate:Number(row.querySelector('.recipe-waste').value)/100})));await api(`/api/catalog/products/${product.id}/recipe`,{method:'PUT',body:{items}});closeModal(wrap);toast('Đã lưu định lượng. Thực đơn và kho đã được cập nhật.');await loadPage();}
     catch(err){const error=wrap.querySelector('.form-error');error.textContent=err.message;error.hidden=false;}finally{save.disabled=false;}
   };
 }
@@ -404,7 +432,7 @@ async function onClick(ev) {
   if(action==='create-order') { if(!state.cart.length) return; const tableId=Number(document.querySelector('#table-id').value)||undefined; const order={id:crypto.randomUUID(),userId:state.user.id,branchId:state.branch,...(tableId?{tableId}:{}),items:state.cart.map(({productId,price,quantity,note})=>({productId,price,quantity,note}))}; busy(true); try { if(navigator.onLine===false) throw new TypeError('Mất kết nối'); await api('/api/orders',{method:'POST',body:order}); state.cart=[]; state.tableId=''; toast('Đã tạo đơn hàng.'); await loadPage(); } catch(err) { if(!(err instanceof ApiError) && err instanceof TypeError) { try { const queue=readQueue(localStorage); saveQueue(localStorage,[...queue,order]); state.cart=[]; state.tableId=''; toast('Đã lưu đơn trên máy. Đồng bộ khi có mạng.'); ordersPage(); } catch(storageError) { toast('Không thể lưu đơn offline: '+storageError.message,true); } } else toast(err.message,true); } finally { busy(false); } return; }
   if(action==='sync-orders') { const queue=readQueue(localStorage), pending=pendingFor(queue,state.user.id,state.branch).slice(0,100); if(!pending.length) return; const result=await perform(()=>api('/api/orders/sync-offline',{method:'POST',body:{orders:pending.map(({userId,error,...order})=>order)}})); if(result) { saveQueue(localStorage,applySyncResults(queue,result.details||[])); toast(`Đồng bộ ${result.syncedCount||0} đơn, ${result.duplicateCount||0} đơn đã tồn tại, ${result.failedCount||0} đơn lỗi.`,!!result.failedCount); loadPage(); } return; }
   if(action==='remove-pending') { if(!await confirmDialog({title:'Xóa đơn chờ đồng bộ?',message:'Đơn này sẽ bị xóa khỏi hàng đợi trên trình duyệt hiện tại.',confirmLabel:'Xóa đơn',danger:true})) return; saveQueue(localStorage,readQueue(localStorage).filter(o=>o.id!==id || o.userId!==state.user.id)); return ordersPage(); }
-  if(action==='receipt') return openReceipt(api,target.dataset.session?'session':'order',target.dataset.session||id);
+  if(action==='receipt') return perform(()=>openReceipt(api,target.dataset.session?'session':'order',target.dataset.session||id));
   if(action==='pay') { const method=document.getElementById(`pay-${id}`).value; if(method==='QR_BANKING'){const payment=await perform(()=>api(`/api/payments/vnpay/orders/${id}`,{method:'POST',body:{}}));if(payment){closeVnpayPayment?.();closeVnpayPayment=showVnpayPayment(payment,api,async()=>{invalidateReads();await loadPage();await openReceipt(api,'order',id);});}return;} if(!await confirmDialog({title:'Xác nhận thanh toán?',message:'Chỉ xác nhận khi đã nhận đủ tiền từ khách.',confirmLabel:'Đã nhận tiền'})) return; const result=await perform(()=>api(`/api/orders/${id}/pay`,{method:'POST',body:{paymentMethod:method}}),'Thanh toán thành công.'); if(result){await loadPage();await openReceipt(api,'order',id);} return; }
   if(action==='optimize') { const result=await perform(()=>api('/api/kds/batches/optimize',{method:'POST',body:{branchId:state.branch}}),'Đã gom mẻ chế biến.'); if(result) await refreshKitchen(); return; }
   if(action==='batch-cooking'||action==='batch-done') { const status=action==='batch-cooking'?'COOKING':'COMPLETED'; if(action==='batch-cooking'&&ev.target.closest('[data-stale="true"]')&&!await confirmDialog({title:'Mẻ đang chờ lâu',message:'Mẻ đã chờ trên 60 phút. Bạn đã xác minh với nhân viên và muốn tiếp tục chế biến?',confirmLabel:'Tiếp tục chế biến'})) return; if(action==='batch-done'&&!await confirmDialog({title:'Hoàn tất mẻ chế biến?',message:'Xác nhận toàn bộ món trong mẻ đã làm xong và sẵn sàng để nhân viên mang ra.',confirmLabel:'Đánh dấu hoàn tất'})) return; const result=await perform(()=>api(`/api/kds/batches/${id}/status`,{method:'PATCH',body:{status}}),status==='COOKING'?'Đã bắt đầu chế biến.':'Đã hoàn thành món.'); if(result) await refreshKitchen(); return; }
@@ -456,7 +484,7 @@ if(action==='receive-stock'||action==='adjust-stock') {
     if(result){ai.trained=result;ai.anomaly=null;ai.anomalyError='';}if(current())forecast();return;
   }
   if(action==='run-forecast') {captureAiInputs();const day=document.querySelector('#forecast-date').value,branch=state.branch,token=state.token;if(!day)return toast('Chọn ngày hợp lệ.',true);state.date=day;const result=await perform(()=>api('/api/forecast/daily',{method:'POST',body:{targetDate:day,branchId:branch}}),'Đã ước tính nhu cầu món.');if(result&&state.branch===branch&&state.token===token&&state.page==='forecast'){state.data.forecast=result;state.forecastResultDate=day;state.forecastResultBranch=branch;forecast();}return;}
-  if(action==='login') { const username=document.querySelector('#username').value.trim(), password=document.querySelector('#password').value; if(!username||!password) return toast('Nhập tài khoản và mật khẩu.',true); const result=await perform(()=>authenticatorLogin(api,username,password)); if(result){ state.token=result.token;state.user=result.user;state.branch=result.user.branchId || state.branches.find(b=>b.id===state.branch)?.id || state.branches[0]?.id || 1;localStorage.setItem('dusko_branch',state.branch);sessionStorage.setItem('dusko_token',result.token);sessionStorage.setItem('dusko_user',JSON.stringify(result.user)); document.querySelector('.modal-wrap')?.remove(); shell(); loadPage();} return; }
+  if(action==='login') { const username=document.querySelector('#username').value.trim(), password=document.querySelector('#password').value; if(!username||!password) return toast('Nhập tài khoản và mật khẩu.',true); const result=await perform(()=>authenticatorLogin(api,username,password)); if(result){ state.token=result.token;state.user=result.user;state.branch=result.user.branchId || state.branches.find(b=>b.id===state.branch)?.id || state.branches[0]?.id || 1;localStorage.setItem('dusko_branch',state.branch);sessionStorage.setItem('dusko_token',result.token);sessionStorage.setItem('dusko_user',JSON.stringify(result.user)); document.querySelector('.modal-wrap')?.close(); shell(); loadPage();} return; }
   if(action==='mfa-settings')return reconfigureAuthenticator(api,()=>{signOut();toast('Đã đổi Authenticator. Hãy đăng nhập lại.');});
   if(action==='password') return passwordDialog(api,()=>{signOut();toast('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   if(action==='logout') signOut();
