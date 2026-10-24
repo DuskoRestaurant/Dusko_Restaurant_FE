@@ -14,7 +14,7 @@
     "build:all": "vite build && vite build staff-app --config staff-app/vite.config.js && vite build customer-web --config customer-web/vite.config.js"
   },
   "devDependencies": {
-    "vite": "^6.3.5"
+    "vite": "^6.4.5"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
