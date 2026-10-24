@@ -1,7 +1,7 @@
 import './customer-help.css';
 const escape = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(n);
-export function createCustomerHelp({token,request,getState,addCombo,api}) {
+export function createCustomerHelp({token,request,getState,addCombo,api,cartLines}) {
   let combos=[], loaded=false;
   async function loadCombos(strict=false){
     try { const response=await request(`/api/public/tables/${token}/combos`);combos=response.combos;loaded=true;renderCombos(); }
@@ -17,8 +17,9 @@ export function createCustomerHelp({token,request,getState,addCombo,api}) {
       const combo=current.find(c=>c.id===button.dataset.combo);
       const state=getState();
       if(!state.data.sessionOpen||state.busy)return;
-      const valid=combo.items.every(i=>{const p=state.data.products.find(p=>p.id===i.id);return p?.canOrder&&(state.cart.get(i.id)||0)+1<=Math.min(1000,p.maxOrderQuantity??1000);});
-      root.querySelector('.combo-message').textContent=valid?'Đã thêm combo. Bạn kiểm tra giỏ rồi gửi yêu cầu cho nhân viên.':'Số lượng vượt mức còn sẵn. Vui lòng điều chỉnh giỏ hoặc hỏi nhân viên.';
+      const basket=cartLines?cartLines():new Map();
+      const valid=combo.items.every(i=>{const p=state.data.products.find(p=>p.id===i.id);return p?.canOrder&&(basket.get(i.id)||0)+1<=Math.min(1000,p.maxOrderQuantity??1000);});
+      root.querySelector('.combo-message').textContent=valid?'Đang thêm combo vào giỏ…':'Số lượng vượt mức còn sẵn. Vui lòng điều chỉnh giỏ hoặc hỏi nhân viên.';
       if(valid)addCombo(combo);
     });
   }

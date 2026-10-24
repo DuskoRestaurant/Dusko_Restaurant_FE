@@ -1,6 +1,7 @@
 import {openReceipt,showRecentReceipts} from './receipt.js';
 import { showVnpayPayment } from './vnpay-payment.js';
 import { watchChanges } from './live-updates.js';
+import { sharedToast } from './toast.js';
 import './service-workspace.css';
 import { showQrPreview } from './qr-preview.js';
 import { confirmDialog } from './confirm-dialog.js';
@@ -14,11 +15,15 @@ const statusText = item => item.servedAt ? 'Đã mang ra bàn' : item.kdsStatus 
 /** Shared table workflow for the cashier desktop and the staff phone app. */
 export function createServiceWorkspace({root, request, branchId, role, userId, imageBase = '', initialData}) {
   root.classList.add('service-workspace');
+  // Shares the console toast stack so the workspace and the shell announce
+  // through one live region instead of two.
+  const toast = sharedToast();
   const state = {tables:[], products:[], table:null, session:null, tab:'confirm', filter:'ALL', search:'', menuSearch:'', category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
   let disposed = false;
   let closeVnpay;
   let selection = 0;
   let polling = false;
+  let liveConnected = false;
   let panelSnapshot = '';
   let productsAt=initialData?.products?Date.now():0, productsPending;
   if(initialData){state.tables=initialData.tables||[];state.products=initialData.products||[];}
@@ -179,8 +184,55 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   }
   root.addEventListener('click',onClick);root.addEventListener('input',onInput);root.addEventListener('change',onInput);
   root.innerHTML='<p class="sw-empty">Đang tải bàn phục vụ…</p>';
+  /**
+   * React to a scoped real-time event.
+   *
+   * A guest pressing "call staff" or sending an order reaches the waiter as a
+   * toast right away, instead of waiting for the next poll.
+   */
+  async function handleLiveEvent(message) {
+    if (disposed) return;
+    if (state.busy || polling) return;
+    const tableName = message.tableName || state.tables.find(t => t.id === message.tableId)?.tableName || 'Bàn';
+    if (message.action === 'service.request') {
+      toast.warning(message.kind === 'BILL' ? `${tableName}: khách yêu cầu thanh toán` : `${tableName}: khách cần nhân viên hỗ trợ`, 'Vào bàn để xử lý yêu cầu.');
+      polling = true;
+      try { await refresh(); } catch { /* keep the last view until the next poll */ } finally { polling = false; }
+      return;
+    }
+    if (message.action === 'order.created') {
+      toast.info(`${tableName}: khách vừa gửi yêu cầu gọi món`, 'Kiểm tra và xác nhận để chuyển món xuống bếp.');
+      polling = true;
+      try { await refresh(); } catch { /* keep the last view until the next poll */ } finally { polling = false; }
+      return;
+    }
+    if (message.action === 'table.session.opened') {
+      toast.info(`${tableName}: vừa mở bàn phục vụ`, 'Khách có thể quét QR để gọi món.');
+      polling = true;
+      try { await refresh(); } catch { /* keep the last view until the next poll */ } finally { polling = false; }
+      return;
+    }
+    if (message.action === 'table.session.closed') {
+      toast.info(`${tableName}: vừa đóng bàn`, 'Phiên phục vụ đã kết thúc.');
+      polling = true;
+      try { await refresh(); } catch { /* keep the last view until the next poll */ } finally { polling = false; }
+      return;
+    }
+    if (message.action === 'inventory.changed') {
+      productsAt = 0;
+      polling = true;
+      try { await refresh(); } catch { /* keep the last view until the next poll */ } finally { polling = false; }
+      return;
+    }
+    if (message.action === 'order.confirmed' || message.action === 'order.rejected' || message.action === 'order.served' || message.action === 'service.resolved') {
+      polling = true;
+      try { await refresh(); } catch { /* keep the last view until the next poll */ } finally { polling = false; }
+    }
+  }
   (initialData?Promise.resolve([state.tables,state.products]):Promise.all([request(`/api/catalog/branches/${branchId}/tables`),loadProducts()])).then(([tables,products])=>{if(disposed)return;state.tables=tables;state.products=products;render();}).catch(error=>{if(disposed)return;root.innerHTML='<p data-sw-message role="status" class="sw-message sw-error"></p>'+button('Thử lại','refresh');showMessage(error.message,true);});
-  const stopLive=watchChanges(request,async()=>{if(disposed)return;if(state.busy||polling)throw Error('retry');polling=true;try{productsAt=0;await refresh();}finally{polling=false;}});
-  const interval=setInterval(async()=>{if(disposed||state.busy||polling||document.hidden)return;polling=true;try{await refresh();}catch(error){showMessage(`Không cập nhật được: ${error.message}`,true);}finally{polling=false;}},12000);
+  const stopLive=watchChanges(request,async()=>{if(disposed)return;if(state.busy||polling)throw Error('retry');polling=true;try{productsAt=0;await refresh();}finally{polling=false;}}, '/api/live', {onEvent:handleLiveEvent,onStatus:live=>{liveConnected=live;}});
+  // The socket pushes every change, so the list is only polled while the
+  // connection is down.
+  const interval=setInterval(async()=>{if(disposed||liveConnected||state.busy||polling||document.hidden)return;polling=true;try{await refresh();}catch(error){showMessage(`Không cập nhật được: ${error.message}`,true);}finally{polling=false;}},12000);
   return {destroy(){disposed=true;closeVnpay?.();stopLive();clearInterval(interval);root.removeEventListener('click',onClick);root.removeEventListener('input',onInput);root.removeEventListener('change',onInput);}};
 }

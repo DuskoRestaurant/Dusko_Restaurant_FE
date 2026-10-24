@@ -1,0 +1,49 @@
+/* Shared toast notifications for the customer menu, staff app and console.
+   Namespaced because the console already ships its own `.toast` style. */
+.dusko-toast-stack{
+  position:fixed;z-index:9999;right:18px;bottom:18px;
+  display:flex;flex-direction:column;gap:10px;
+  max-width:min(380px,calc(100vw - 32px));pointer-events:none;
+}
+.dusko-toast{
+  pointer-events:auto;display:flex;align-items:flex-start;gap:12px;
+  padding:13px 14px;border-radius:12px;
+  background:var(--inverse-surface);color:var(--inverse-ink);
+  box-shadow:0 12px 30px rgba(16,20,26,.28);
+  border-left:4px solid var(--inverse-line);
+  animation:dusko-toast-in .22s ease-out;
+  font-size:15px;line-height:1.45;
+}
+.dusko-toast--success{border-left-color:var(--success)}
+.dusko-toast--error{border-left-color:var(--danger)}
+.dusko-toast--warning{border-left-color:var(--warning)}
+.dusko-toast--info{border-left-color:var(--focus-ring)}
+.dusko-toast--actionable{cursor:pointer}
+.dusko-toast__icon{
+  flex:0 0 auto;width:22px;height:22px;margin-top:1px;
+  display:grid;place-items:center;border-radius:50%;
+  background:rgba(255,255,255,.14);font-size:13px;font-weight:700;
+}
+.dusko-toast--success .dusko-toast__icon{background:var(--success-tint)}
+.dusko-toast--error .dusko-toast__icon{background:var(--danger-tint)}
+.dusko-toast--warning .dusko-toast__icon{background:var(--warning-tint)}
+.dusko-toast--info .dusko-toast__icon{background:var(--info-tint)}
+.dusko-toast__body{flex:1 1 auto;min-width:0}
+.dusko-toast__title{display:block;font-weight:650;font-size:15px}
+.dusko-toast__message{margin:3px 0 0;font-size:14px;line-height:1.5;color:var(--inverse-muted);overflow-wrap:anywhere}
+.dusko-toast__close{
+  flex:0 0 auto;background:transparent;border:0;color:var(--inverse-muted);
+  font-size:22px;line-height:1;padding:0 2px;cursor:pointer;border-radius:4px;
+}
+.dusko-toast__close:hover{color:var(--inverse-ink)}
+.dusko-toast--leaving{animation:dusko-toast-out .2s ease-in forwards}
+@keyframes dusko-toast-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes dusko-toast-out{to{opacity:0;transform:translateY(6px) scale(.98)}}
+@media(max-width:540px){
+  .dusko-toast-stack{right:10px;left:10px;bottom:10px;max-width:none}
+  .dusko-toast{font-size:14px;padding:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .dusko-toast{animation:none}
+  .dusko-toast--leaving{animation:none}
+}

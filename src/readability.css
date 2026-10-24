@@ -1,5 +1,6 @@
-/* Shared visual system: one surface, restrained borders, clear type hierarchy. */
-:root{--surface:#fff;--canvas:#f6f7f8;--ink:#202124;--muted:#62666c;--line:#e1e4e8;--radius:12px;font-size:18px}
+/* Shared visual system: one surface, restrained borders, clear type hierarchy.
+   Colour tokens live in tokens.css; this file owns type scale and density only. */
+:root{font-size:18px}
 body{background:var(--canvas);color:var(--ink);font-size:18px;line-height:1.55}
 button,input,select,textarea{font-size:16px}button:focus-visible{outline:3px solid #777;outline-offset:3px}button{transition:background .12s}
 .sidebar{width:242px;padding:24px 14px;background:#fff;color:var(--ink);border-right:1px solid var(--line)}
@@ -67,8 +68,8 @@ table{font-size:17px;line-height:1.5}th{font-size:14px;font-weight:600;letter-sp
 .recipe-row input{width:100%;padding:11px;border:1px solid #d8dce1;border-radius:7px;font-size:16px}
 @media(max-width:700px){.recipe-row{grid-template-columns:1fr 1fr}.recipe-row label:first-child{grid-column:1/-1}.sw-service-call{align-items:flex-start;flex-wrap:wrap}}
 
-/* Shared forest, cream and warm accent palette for the restaurant console. */
-:root{--warm:#e5a13d;--blue:#4f8bd5}
+/* Shared forest, cream and warm accent palette for the restaurant console.
+   Colour tokens live in tokens.css. */
 body{background:var(--canvas);color:var(--ink)}
 .sidebar{background:var(--primary-dark);color:#fff;border-right-color:var(--primary-dark)}
 .brand-mark{background:#fff;color:var(--primary-dark)}
@@ -149,7 +150,7 @@ td strong{color:var(--ink)}
 .kds-stale-hint{border-left-color:#df9c36;background:#fff5e5;color:#75501d}
 .toast{background:var(--primary);color:#fff;border-color:var(--primary)}
 .toast.bad{background:#a9463a;border-color:#a9463a}
-.modal-wrap{background:#10281f9c}
+dialog.modal-wrap::backdrop{background:var(--overlay)}
 .modal{border:1px solid var(--line);box-shadow:0 24px 80px #10281f40}
 .modal-close{color:var(--muted)}
 .sw-service-call{border-left-color:#e5a13d;background:#fff7e9}

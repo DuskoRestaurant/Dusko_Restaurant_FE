@@ -22,9 +22,19 @@ export function passwordDialog(api, signedOut) {
 export async function mountAccounts(root, api, branches, session = {}) {
   const roles = { ADMIN: 'Quản trị viên', MANAGER: 'Quản lý', CASHIER: 'Thu ngân', WAITER: 'Phục vụ', CHEF: 'Bếp' };
   let selected;
-  const users = await api('/api/users');
+  // Render the shell and a loading state before awaiting, so the screen is never
+  // blank. A failed request used to leave the page empty with no explanation.
+  root.innerHTML = `<div class="page-head"><div><h1>Tài khoản nhân viên</h1><p>Phân quyền, gán chi nhánh và quản lý quyền đăng nhập.</p></div><button class="btn secondary" id="new-account">Thêm tài khoản</button></div><p role="status"></p><div id="accounts-body"><div class="empty"><p role="status">Đang tải danh sách tài khoản…</p></div></div><section id="account-editor" class="panel" hidden></section>`;
+  let users;
+  try { users = await api('/api/users'); }
+  catch (error) {
+    const body = root.querySelector('#accounts-body');
+    if (body) body.innerHTML = `<div class="empty"><p>Không tải được danh sách tài khoản: ${e(error.message)}</p><p><button class="btn secondary" type="button" id="accounts-retry">Thử lại</button></p></div>`;
+    root.querySelector('#accounts-retry')?.addEventListener('click', () => mountAccounts(root, api, branches, session));
+    return;
+  }
   if (!root.isConnected) return;
-  root.innerHTML = `<div class="page-head"><div><h1>Tài khoản nhân viên</h1><p>Phân quyền, gán chi nhánh và quản lý quyền đăng nhập.</p></div><button class="btn secondary" id="new-account">Thêm tài khoản</button></div><p role="status"></p><div class="table-scroll"><table><thead><tr><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Chi nhánh</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${users.map(user => `<tr><td>${e(user.username)}</td><td>${e(user.fullName)}</td><td>${e(roles[user.role])}</td><td>${e(branches.find(b => b.id === user.branchId)?.name || 'Toàn hệ thống')}</td><td>${user.isActive ? 'Hoạt động' : 'Đã khóa'}</td><td><button class="btn secondary" data-edit="${user.id}">Chỉnh sửa</button> <button class="btn secondary" data-revoke="${user.id}">Thu hồi phiên</button></td></tr>`).join('')}</tbody></table></div><section id="account-editor" class="panel" hidden></section>`;
+  root.querySelector('#accounts-body').innerHTML = `<div class="table-scroll"><table><thead><tr><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Chi nhánh</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${users.map(user => `<tr><td>${e(user.username)}</td><td>${e(user.fullName)}</td><td>${e(roles[user.role])}</td><td>${e(branches.find(b => b.id === user.branchId)?.name || 'Toàn hệ thống')}</td><td>${user.isActive ? 'Hoạt động' : 'Đã khóa'}</td><td><button class="btn secondary" data-edit="${user.id}">Chỉnh sửa</button> <button class="btn secondary" data-revoke="${user.id}">Thu hồi phiên</button></td></tr>`).join('')}</tbody></table></div>`;
   const editor = root.querySelector('#account-editor');
   function edit(user) {
     selected = user; editor.hidden = false;
