@@ -1,5 +1,5 @@
 import './tokens.css';
-import {authenticatorLogin,reconfigureAuthenticator} from './mfa-login.js';
+import {authenticatorLogin,reconfigureAuthenticator,forgetTrustedDevice} from './mfa-login.js';
 import {forecastSummary,showAiActionResult,ingredientPlanMarkup,reviewDayMarkup} from './ai-workflow.js';
 import {openReceipt} from './receipt.js';
 import { showVnpayPayment } from './vnpay-payment.js';
@@ -486,11 +486,12 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='run-forecast') {captureAiInputs();const day=document.querySelector('#forecast-date').value,branch=state.branch,token=state.token;if(!day)return toast('Chọn ngày hợp lệ.',true);state.date=day;const result=await perform(()=>api('/api/forecast/daily',{method:'POST',body:{targetDate:day,branchId:branch}}),'Đã ước tính nhu cầu món.');if(result&&state.branch===branch&&state.token===token&&state.page==='forecast'){state.data.forecast=result;state.forecastResultDate=day;state.forecastResultBranch=branch;forecast();}return;}
   if(action==='login') { const username=document.querySelector('#username').value.trim(), password=document.querySelector('#password').value; if(!username||!password) return toast('Nhập tài khoản và mật khẩu.',true); const result=await perform(()=>authenticatorLogin(api,username,password)); if(result){ state.token=result.token;state.user=result.user;state.branch=result.user.branchId || state.branches.find(b=>b.id===state.branch)?.id || state.branches[0]?.id || 1;localStorage.setItem('dusko_branch',state.branch);sessionStorage.setItem('dusko_token',result.token);sessionStorage.setItem('dusko_user',JSON.stringify(result.user)); document.querySelector('.modal-wrap')?.close(); shell(); loadPage();} return; }
   if(action==='mfa-settings')return reconfigureAuthenticator(api,()=>{signOut();toast('Đã đổi Authenticator. Hãy đăng nhập lại.');});
+  if(action==='forget-trusted-device') { if(state.user?.role==='ADMIN'){await perform(()=>forgetTrustedDevice(api,state.user.username),'Đã quên thiết bị đã lưu. Lần đăng nhập sau sẽ hỏi lại mã Authenticator.');} return; }
   if(action==='password') return passwordDialog(api,()=>{signOut();toast('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   if(action==='logout') signOut();
 }
 function signOut() { startSeq++; closeVnpayPayment?.(); stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
-function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${state.user.role==='ADMIN'?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
+function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${state.user.role==='ADMIN'?btn('Authenticator','mfa-settings','text')+btn('Quên thiết bị','forget-trusted-device','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
 function showEntry() {
   serviceWorkspace?.destroy();serviceWorkspace=null;
   mountLogin(app,{submit:async(username,password)=>{
