@@ -5,6 +5,7 @@ import '../../src/accounts.css';
 import {mountLogin,managementUrl} from '../../src/app-entry.js';
 import './style.css';
 import {createServiceWorkspace} from '../../src/service-workspace.js';
+import {staffShellsFor, kitchenHtml} from './role-picker.js';
 import '../../src/readability.css';
 import '../../src/font.css';
 import '../../src/pos-theme.css';
@@ -32,6 +33,17 @@ function renderLogin(message='') {
   }});
 }
 async function startWorkspace() {
+  // Phase 5 — role picker: single-shell users auto-redirect, multi-shell users choose.
+  try { const profile = await request('/api/auth/profile'); if (profile?.roles) { auth.user.roles = profile.roles; sessionStorage.setItem('dusko-auth', JSON.stringify(auth)); } } catch {}
+  const shells = staffShellsFor(auth.user);
+  const saved = sessionStorage.getItem('dusko-shell');
+  const shell = shells.length === 1 ? shells[0] : (shells.includes(saved) ? saved : null);
+  if (!shell) {
+    app.innerHTML = `<main><h1>Chọn vai trò làm việc</h1><p>${esc(auth.user.fullName)} — chọn giao diện phù hợp với ca làm việc.</p><button type="button" id="pick-cashier">Tiếp tục với tư cách Thu ngân</button><button type="button" id="pick-kitchen">Tiếp tục với tư cách Bếp</button></main>`;
+    app.querySelector('#pick-cashier').onclick = () => { sessionStorage.setItem('dusko-shell', 'cashier'); startWorkspace(); };
+    app.querySelector('#pick-kitchen').onclick = () => { sessionStorage.setItem('dusko-shell', 'kitchen'); startWorkspace(); };
+    return;
+  }
   let branches=[];
   const branchId=auth.user.branchId;
   if(!branchId) {
@@ -44,9 +56,40 @@ async function startWorkspace() {
   if(auth.user.role==='ADMIN')app.querySelector('#mfa-settings').onclick=()=>reconfigureAuthenticator(request,()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Đã đổi Authenticator. Hãy đăng nhập lại.');});
   app.querySelector('#password').onclick=()=>passwordDialog(request,()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   app.querySelector('#logout').onclick=()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin();};
-  const mount=id=>{workspace?.destroy();workspace=createServiceWorkspace({root:app.querySelector('#service-workspace'),request,branchId:Number(id),role:auth.user.role,userId:auth.user.id,imageBase:api});};
+  // Phase 3 — staff-assisted customer verification for a table session.
+  const verifyBar = document.createElement('div');
+  verifyBar.innerHTML = `<label>Bàn <input id="verify-table" type="number" min="1" placeholder="ID bàn"></label><label>Số điện thoại khách <input id="verify-phone" placeholder="09xx"></label><button type="button" id="verify-customer">Xác nhận khách tại bàn</button><span id="verify-result"></span>`;
+  app.querySelector('main').prepend(verifyBar);
+  verifyBar.querySelector('#verify-customer').onclick = async () => {
+    const result = verifyBar.querySelector('#verify-result');
+    try {
+      const branch = Number(app.querySelector('#staff-branch')?.value || branchId || branches[0]?.id);
+      const tableId = Number(verifyBar.querySelector('#verify-table').value);
+      await request(`/api/staff/tables/${tableId}/customer/verify-by-phone`, { method: 'POST', body: JSON.stringify({ branchId: branch, phone: verifyBar.querySelector('#verify-phone').value }) });
+      result.textContent = 'Đã xác nhận khách tại bàn. Khách sẽ thấy hạng và ưu đãi trên điện thoại.';
+    } catch (e) { result.textContent = e.message; }
+  };
+  const mount=id=>{
+    workspace?.destroy();
+    if (shell === 'kitchen') {
+      app.querySelector('#service-workspace').innerHTML = kitchenHtml();
+      loadKitchen(Number(id));
+      workspace = { destroy() {} };
+      return;
+    }
+    workspace=createServiceWorkspace({root:app.querySelector('#service-workspace'),request,branchId:Number(id),role:auth.user.role,userId:auth.user.id,imageBase:api});
+  };
   mount(branchId||branches[0].id);
   app.querySelector('#staff-branch')?.addEventListener('change',event=>mount(event.target.value));
+}
+async function loadKitchen(branchId) {
+  const holder = document.querySelector('#kitchen-batches');
+  if (!holder) return;
+  try {
+    const batches = await request(`/api/kds/batches?branchId=${branchId}`);
+    holder.innerHTML = batches.length ? batches.map(b => `<article><h3>Mẻ #${b.id} · ${esc(b.status)}</h3><ul>${(b.items || []).map(i => `<li>${esc(i.product?.name || `Món #${i.productId}`)} × ${i.quantity}${i.isGift ? ' · <b>Quà tặng</b>' : ''} · ${esc(i.kdsStatus)}</li>`).join('')}</ul><button type="button" data-batch-status="${b.id}">Cập nhật trạng thái</button></article>`).join('') : '<p>Không có món cần xử lý.</p>';
+    holder.querySelectorAll('[data-batch-status]').forEach(btn => btn.onclick = async () => { try { await request(`/api/kds/batches/${btn.dataset.batchStatus}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'COMPLETED', branchId }) }); loadKitchen(branchId); } catch (e) { alert(e.message); } });
+  } catch (e) { holder.innerHTML = `<p>Không tải được mẻ bếp: ${esc(e.message)}</p>`; }
 }
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 if(auth)request('/api/auth/profile').then(startWorkspace).catch(error=>renderLogin(error.message));else renderLogin();
