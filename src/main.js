@@ -7,6 +7,7 @@ import { mountAccounts, passwordDialog } from './accounts.js';
 import './accounts.css';
 import { mountComboApproval } from './combo-approval.js';
 import { createCustomerAdmin } from './customer-admin.js';
+import { canAccessManagement as canAccessManagementFn } from './management-access.js';
 import { watchChanges } from './live-updates.js';
 import { sharedToast } from './toast.js';
 import { mountFpPipeline } from './fp-pipeline.js';
@@ -44,7 +45,12 @@ document.addEventListener('error', event => {
 }, true);
 const state = { page: ['pipeline','combos','users'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null };
 const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'] ];
-const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'], CASHIER: ['orders'], WAITER: ['orders'], CHEF: ['kitchen','catalog'] };
+const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'] };
+// Split lock (user decision 2026-10-25): management is ADMIN/MANAGER only.
+// CASHIER/WAITER/CHEF work in staff-app; BE operational APIs stay open to
+// them (staff-app needs them), so this is a frontend-app lock, not an API lock.
+// Effective roles include UserRole extras from /api/auth/profile when present.
+const canAccessManagement = () => canAccessManagementFn(state.user);
 const allowedPages = () => pages[state.user?.role] || [];
 const defaultPage = () => allowedPages()[0] || 'overview';
 const statusLabel = { AWAITING_CONFIRMATION:'Chờ nhân viên xác nhận', PENDING:'Chờ thanh toán', PAID:'Đã thanh toán', CANCELLED:'Đã hủy', SCHEDULED:'Chờ nấu', COOKING:'Đang nấu', COMPLETED:'Hoàn thành' };
@@ -149,6 +155,11 @@ async function perform(work, success) { try { busy(true); const result=await wor
 
 function shell() {
   if(!state.token||!state.user){showEntry();return;}
+  if(!canAccessManagement()){
+    serviceWorkspace?.destroy(); serviceWorkspace=null;
+    app.innerHTML = `<main class="entry-page"><section class="entry-form-panel"><div class="entry-form-box"><h2>Tài khoản vận hành</h2><p>Xin chào ${e(state.user.fullName)} (${e(state.user.role)}). Trang quản lý chỉ dành cho Quản trị viên và Quản lý. Vui lòng làm việc trên App nhân viên.</p><p><a class="btn" href="${e(staffUrl)}">Mở App nhân viên →</a></p><p><button class="btn secondary" data-action="logout">Đăng xuất</button></p></div></section></main>`;
+    return;
+  }
   serviceWorkspace?.destroy(); serviceWorkspace=null;
   if(!allowedPages().includes(state.page)) state.page=defaultPage();
   const branchControl=state.user?.role==='ADMIN' ? `<select id="branch" aria-label="Chi nhánh">${state.branches.map(b=>`<option value="${b.id}" ${b.id===state.branch?'selected':''}>${e(b.name)}</option>`).join('')}</select>` : `<span>${e(state.user?.branchName || state.branches.find(b=>b.id===state.branch)?.name || 'Chi nhánh')}</span>`;
@@ -163,6 +174,7 @@ async function loadPage() {
   const loadSeq=++state.pageLoadSeq;
   serviceWorkspace?.destroy(); serviceWorkspace=null;
   if(!state.token || !state.user) { showEntry(); return; }
+  if(!canAccessManagement()) { shell(); return; }
   if(!allowedPages().includes(state.page)) { state.page=defaultPage(); shell(); }
   const requestedPage=state.page, requestedBranch=state.branch, requestedToken=state.token;
   const stillCurrent=()=>loadSeq===state.pageLoadSeq&&requestedPage===state.page&&requestedBranch===state.branch&&requestedToken===state.token;
@@ -486,7 +498,7 @@ if(action==='receive-stock'||action==='adjust-stock') {
     if(result){ai.trained=result;ai.anomaly=null;ai.anomalyError='';}if(current())forecast();return;
   }
   if(action==='run-forecast') {captureAiInputs();const day=document.querySelector('#forecast-date').value,branch=state.branch,token=state.token;if(!day)return toast('Chọn ngày hợp lệ.',true);state.date=day;const result=await perform(()=>api('/api/forecast/daily',{method:'POST',body:{targetDate:day,branchId:branch}}),'Đã ước tính nhu cầu món.');if(result&&state.branch===branch&&state.token===token&&state.page==='forecast'){state.data.forecast=result;state.forecastResultDate=day;state.forecastResultBranch=branch;forecast();}return;}
-  if(action==='login') { const username=document.querySelector('#username').value.trim(), password=document.querySelector('#password').value; if(!username||!password) return toast('Nhập tài khoản và mật khẩu.',true); const result=await perform(()=>authenticatorLogin(api,username,password)); if(result){ state.token=result.token;state.user=result.user;state.branch=result.user.branchId || state.branches.find(b=>b.id===state.branch)?.id || state.branches[0]?.id || 1;localStorage.setItem('dusko_branch',state.branch);sessionStorage.setItem('dusko_token',result.token);sessionStorage.setItem('dusko_user',JSON.stringify(result.user)); document.querySelector('.modal-wrap')?.close(); shell(); loadPage();} return; }
+  if(action==='login') { const username=document.querySelector('#username').value.trim(), password=document.querySelector('#password').value; if(!username||!password) return toast('Nhập tài khoản và mật khẩu.',true); const result=await perform(()=>authenticatorLogin(api,username,password)); if(result){ state.token=result.token;state.user=result.user; try { const profile=await api('/api/auth/profile'); state.user={...state.user,...profile}; } catch {} state.branch=state.user.branchId || state.branches.find(b=>b.id===state.branch)?.id || state.branches[0]?.id || 1;localStorage.setItem('dusko_branch',state.branch);sessionStorage.setItem('dusko_token',result.token);sessionStorage.setItem('dusko_user',JSON.stringify(state.user)); document.querySelector('.modal-wrap')?.close(); shell(); loadPage();} return; }
   if(action==='mfa-settings')return reconfigureAuthenticator(api,()=>{signOut();toast('Đã đổi Authenticator. Hãy đăng nhập lại.');});
   if(action==='password') return passwordDialog(api,()=>{signOut();toast('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   if(action==='logout') signOut();
