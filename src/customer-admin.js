@@ -23,6 +23,9 @@ export function createCustomerAdmin({ api, branchId, e, title, table, row, btn, 
 
   // ---- Promotions ----
   let promos = [], tiersList = [], products = [], categories = [];
+  // Retest fix: filter state must survive reload(), otherwise typing a search
+  // re-rendered the page with empty filters and lost the search.
+  let promoFilter = { search: '', type: '', isActive: '' };
   async function loadData(search = '', type = '', isActive = '') {
     const q = new URLSearchParams({ branchId });
     if (search) q.set('search', search); if (type) q.set('type', type); if (isActive !== '') q.set('isActive', isActive);
@@ -79,9 +82,9 @@ export function createCustomerAdmin({ api, branchId, e, title, table, row, btn, 
     }, { description: 'Giảm giá chỉ tính ở máy chủ khi thanh toán; trang này không tự tính tiền. Backend kiểm tra lại mọi điều kiện: loại, giá trị, ngày, giới hạn lượt dùng và hạng.' });
   }
   async function promotions() {
-    await loadData();
+    await loadData(promoFilter.search, promoFilter.type, promoFilter.isActive);
     const html = title('KHUYẾN MÃI', 'Quản lý khuyến mãi', 'Tạo, sửa, bật/tắt và xem thống kê sử dụng. Giảm giá chỉ tính ở máy chủ; trang này không tự tính tiền.', btn('Tạo khuyến mãi', 'new-promotion')) +
-      `<div class="catalog-filters"><input id="promo-search" type="search" placeholder="Tìm mã hoặc tên khuyến mãi"><select id="promo-type"><option value="">Tất cả loại</option><option value="PERCENTAGE">Giảm %</option><option value="FIXED">Giảm tiền</option><option value="ITEM_PERCENTAGE">Giảm % món</option><option value="ITEM_FIXED">Giảm tiền món</option><option value="CATEGORY_PERCENTAGE">Giảm % nhóm</option><option value="GIFT">Tặng món</option></select><select id="promo-active"><option value="">Tất cả trạng thái</option><option value="true">Đang chạy</option><option value="false">Đã tắt</option></select></div>` +
+      `<div class="catalog-filters"><input id="promo-search" type="search" placeholder="Tìm mã hoặc tên khuyến mãi" value="${e(promoFilter.search)}"><select id="promo-type"><option value="">Tất cả loại</option><option value="PERCENTAGE" ${promoFilter.type === 'PERCENTAGE' ? 'selected' : ''}>Giảm %</option><option value="FIXED" ${promoFilter.type === 'FIXED' ? 'selected' : ''}>Giảm tiền</option><option value="ITEM_PERCENTAGE" ${promoFilter.type === 'ITEM_PERCENTAGE' ? 'selected' : ''}>Giảm % món</option><option value="ITEM_FIXED" ${promoFilter.type === 'ITEM_FIXED' ? 'selected' : ''}>Giảm tiền món</option><option value="CATEGORY_PERCENTAGE" ${promoFilter.type === 'CATEGORY_PERCENTAGE' ? 'selected' : ''}>Giảm % nhóm</option><option value="GIFT" ${promoFilter.type === 'GIFT' ? 'selected' : ''}>Tặng món</option></select><select id="promo-active"><option value="">Tất cả trạng thái</option><option value="true" ${promoFilter.isActive === 'true' ? 'selected' : ''}>Đang chạy</option><option value="false" ${promoFilter.isActive === 'false' ? 'selected' : ''}>Đã tắt</option></select></div>` +
       table(['Mã', 'Tên', 'Loại', 'Giá trị', 'Giảm tối đa', 'Đơn tối thiểu', 'Hiệu lực', 'Lượt dùng / Tổng giảm', 'Trạng thái', ''], promos.map(p => row([
         e(p.code), e(p.name), typeLabel(p.type), p.type.includes('PERCENTAGE') ? `${p.value}%` : money(p.value), p.maxDiscount ? money(p.maxDiscount) : '—', money(p.minOrderAmount),
         `${date(p.startsAt)} → ${date(p.endsAt)}`, `${p.usageCount ?? 0} / ${money(p.totalDiscount ?? 0)}`, p.isActive ? 'Đang chạy' : 'Đã tắt',
@@ -90,7 +93,7 @@ export function createCustomerAdmin({ api, branchId, e, title, table, row, btn, 
     // Wire after render: the caller renders, then we attach via a microtask.
     setTimeout(() => {
       const search = document.querySelector('#promo-search'), typeSel = document.querySelector('#promo-type'), activeSel = document.querySelector('#promo-active');
-      const apply = async () => { await loadData(search.value.trim(), typeSel.value, activeSel.value); reload(); };
+      const apply = async () => { promoFilter = { search: search.value.trim(), type: typeSel.value, isActive: activeSel.value }; reload(); };
       search.oninput = () => { clearTimeout(search._t); search._t = setTimeout(apply, 400); };
       typeSel.onchange = apply; activeSel.onchange = apply;
       document.querySelectorAll('[data-action="new-promotion"]').forEach(b => b.onclick = () => promoForm(null));
