@@ -28,7 +28,7 @@ function renderLogin(message='') {
   workspace?.destroy();workspace=null;
   mountLogin(app,{staff:true,message,submit:async(username,password)=>{
     const result=await authenticatorLogin(request,username,password);
-    if(!['ADMIN','MANAGER','CASHIER','WAITER'].includes(result.user.role))throw Error('Tài khoản này không có quyền phục vụ bàn');
+    if(!['ADMIN','MANAGER','CASHIER','WAITER','CHEF'].includes(result.user.role))throw Error('Tài khoản này không có quyền phục vụ bàn');
     auth=result;sessionStorage.setItem('dusko-auth',JSON.stringify(auth));await startWorkspace();
   }});
 }
@@ -52,12 +52,14 @@ async function startWorkspace() {
     if(!branches.length)throw Error('Chưa có chi nhánh để phục vụ.');
   }
   workspace?.destroy();
-  app.innerHTML=`<header class="staff-app-header"><b><span class="staff-brand-mark">D</span><span>DUSKO<small>NHÂN VIÊN</small></span></b><div><a href="${managementUrl}">Trang quản lý ↗</a>${auth.user.role==='ADMIN'?'<button id="mfa-settings">Authenticator</button>':''}<button id="password">Đổi mật khẩu</button><button id="logout">Đăng xuất</button></div></header><main><div class="staff-toolbar"><p class="staff-identity"><span class="staff-avatar">${esc((auth.user.fullName||'N').slice(0,1).toLocaleUpperCase('vi'))}</span><span><strong>${esc(auth.user.fullName)}</strong><small>${esc({ADMIN:'Quản trị viên',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ'}[auth.user.role])}</small></span></p>${branches.length?`<label class="staff-branch"><span>Chi nhánh</span><select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}</div><div id="service-workspace" class="staff-app-surface"></div></main>`;
+  app.innerHTML=`<header class="staff-app-header"><b><span class="staff-brand-mark">D</span><span>DUSKO<small>NHÂN VIÊN</small></span></b><div>${['ADMIN','MANAGER'].includes(auth.user.role)?`<a href="${managementUrl}">Trang quản lý ↗</a>`:''}${auth.user.role==='ADMIN'?'<button id="mfa-settings">Authenticator</button>':''}<button id="password">Đổi mật khẩu</button><button id="logout">Đăng xuất</button></div></header><main><div class="staff-toolbar"><p class="staff-identity"><span class="staff-avatar">${esc((auth.user.fullName||'N').slice(0,1).toLocaleUpperCase('vi'))}</span><span><strong>${esc(auth.user.fullName)}</strong><small>${esc({ADMIN:'Quản trị viên',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ',CHEF:'Bếp'}[auth.user.role])}</small></span></p>${branches.length?`<label class="staff-branch"><span>Chi nhánh</span><select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}</div><div id="service-workspace" class="staff-app-surface"></div></main>`;
   if(auth.user.role==='ADMIN')app.querySelector('#mfa-settings').onclick=()=>reconfigureAuthenticator(request,()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Đã đổi Authenticator. Hãy đăng nhập lại.');});
   app.querySelector('#password').onclick=()=>passwordDialog(request,()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   app.querySelector('#logout').onclick=()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin();};
   // Phase 3 — staff-assisted customer verification for a table session.
+  if (shell === 'kitchen') { /* Kitchen shell: no customer verification, no cashier actions. */ }
   const verifyBar = document.createElement('div');
+  if (shell === 'kitchen') verifyBar.hidden = true;
   verifyBar.innerHTML = `<label>Bàn <input id="verify-table" type="number" min="1" placeholder="ID bàn"></label><label>Số điện thoại khách <input id="verify-phone" placeholder="09xx"></label><button type="button" id="verify-customer">Xác nhận khách tại bàn</button><span id="verify-result"></span>`;
   app.querySelector('main').prepend(verifyBar);
   verifyBar.querySelector('#verify-customer').onclick = async () => {
@@ -87,8 +89,9 @@ async function loadKitchen(branchId) {
   if (!holder) return;
   try {
     const batches = await request(`/api/kds/batches?branchId=${branchId}`);
-    holder.innerHTML = batches.length ? batches.map(b => `<article><h3>Mẻ #${b.id} · ${esc(b.status)}</h3><ul>${(b.items || []).map(i => `<li>${esc(i.product?.name || `Món #${i.productId}`)} × ${i.quantity}${i.isGift ? ' · <b>Quà tặng</b>' : ''} · ${esc(i.kdsStatus)}</li>`).join('')}</ul><button type="button" data-batch-status="${b.id}">Cập nhật trạng thái</button></article>`).join('') : '<p>Không có món cần xử lý.</p>';
-    holder.querySelectorAll('[data-batch-status]').forEach(btn => btn.onclick = async () => { try { await request(`/api/kds/batches/${btn.dataset.batchStatus}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'COMPLETED', branchId }) }); loadKitchen(branchId); } catch (e) { alert(e.message); } });
+    const nextStatus = s => s === 'SCHEDULED' ? 'COOKING' : s === 'COOKING' ? 'COMPLETED' : null;
+    holder.innerHTML = batches.length ? batches.map(b => { const next = nextStatus(b.status); return `<article><h3>Mẻ #${b.id} · ${esc(b.status)}</h3><ul>${(b.items || []).map(i => `<li>${esc(i.product?.name || `Món #${i.productId}`)} × ${i.quantity}${i.isGift ? ' · <b>Quà tặng</b>' : ''} · ${esc(i.kdsStatus)}</li>`).join('')}</ul>${next ? `<button type="button" data-batch-status="${b.id}" data-next="${next}">${next === 'COOKING' ? 'Bắt đầu nấu' : 'Hoàn thành'}</button>` : '<p>Đã hoàn thành.</p>'}</article>`; }).join('') : '<p>Không có món cần xử lý.</p>';
+    holder.querySelectorAll('[data-batch-status]').forEach(btn => btn.onclick = async () => { try { await request(`/api/kds/batches/${btn.dataset.batchStatus}/status`, { method: 'PATCH', body: JSON.stringify({ status: btn.dataset.next, branchId }) }); loadKitchen(branchId); } catch (e) { alert(e.message); } });
   } catch (e) { holder.innerHTML = `<p>Không tải được mẻ bếp: ${esc(e.message)}</p>`; }
 }
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
