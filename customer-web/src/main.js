@@ -3,6 +3,7 @@ import { cartComboPricing } from '../../src/combo-cart.js';
 import { cartLineMap, cartItemsById, cartItemCount, cartBlockingItems, cartCheckoutable, comboSelectionsFromCart, cartOrderSnapshot, nextQuantity } from '../../src/cart-view.js';
 import { watchChanges } from '../../src/live-updates.js';
 import { createCustomerHelp } from './customer-help.js';
+import { createRecognition } from './customer-recognition.js';
 import { createToast } from '../../src/toast.js';
 import './style.css';
 import './customer-cart.css';
@@ -53,6 +54,7 @@ function render() {
     <main><section class="hero"><div><small>CHI NHÁNH</small><h1>${escape(branch.name)}</h1></div><strong>${escape(table.name)}</strong></section>
     <p class="notice ${sessionOpen ? '' : 'closed'}">${sessionOpen ? 'Bàn đang phục vụ · Bạn có thể gọi thêm món' : 'Bàn chưa mở phiên phục vụ. Vui lòng gọi nhân viên để được hỗ trợ.'}</p>
     ${presenceBar()}
+    <div id="customer-recognition"></div>
     <div id="service-actions">${serviceActions()}</div>
     <p id="customer-message" class="message" role="status" ${state.message ? '' : 'hidden'}>${escape(state.message)}</p>
     ${orderListHtml()}
@@ -60,6 +62,7 @@ function render() {
     <div id="menu" class="menu">${products.map(p => `<article class="dish ${p.canOrder ? '' : 'unavailable'}" data-product="${p.id}" data-name="${escape(p.name.toLowerCase())}" data-category="${escape(p.category.name)}"><div class="photo">${p.imageUrl ? `<img src="${escape(p.imageUrl.startsWith('http') ? p.imageUrl : api + p.imageUrl)}" alt="${escape(p.name)}" loading="lazy">` : '<span>Chưa có ảnh</span>'}</div><div class="dish-body"><small>${escape(p.category.name)}</small><h3>${escape(p.name)}</h3><b>${money(p.sellingPrice)}</b>${p.canOrder ? `<div class="stepper"><button data-minus="${p.id}" aria-label="Giảm ${escape(p.name)}">−</button><span data-quantity="${p.id}">${quantityOf(p.id)}</span><button data-plus="${p.id}" aria-label="Thêm ${escape(p.name)}">+</button></div>` : `<p class="unavailable-note">${escape(p.availabilityReason || 'Tạm chưa thể đặt')}. Vui lòng hỏi nhân viên.</p>`}</div></article>`).join('')}</div>
     </section><section class="cart" id="customer-cart">${cartHtml()}</section></div></main>`;
   customerHelp?.renderCombos();
+  recognition?.render();
   bindQuantityControls();
   bindCartControls();
   const filterMenu = () => { const query = app.querySelector('#search').value.trim().toLowerCase(), category = app.querySelector('#category').value; app.querySelectorAll('.dish').forEach(dish => dish.hidden = !dish.dataset.name.includes(query) || (category !== 'ALL' && dish.dataset.category !== category)); };
@@ -344,6 +347,7 @@ async function refreshTable(strict = false) {
   finally { tableRefreshing = false; }
 }
 
+const recognition = token ? createRecognition({ token, request, onVerified: () => {} }) : null;
 const customerHelp = token ? createCustomerHelp({
   token,
   request,
