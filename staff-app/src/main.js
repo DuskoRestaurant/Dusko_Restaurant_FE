@@ -1,3 +1,4 @@
+import {mountReceiptManager} from '../../src/receipt-manager.js';
 import '../../src/tokens.css';
 import {authenticatorLogin,reconfigureAuthenticator} from '../../src/mfa-login.js';
 import { passwordDialog } from '../../src/accounts.js';
@@ -71,16 +72,40 @@ async function startWorkspace() {
       result.textContent = 'Đã xác nhận khách tại bàn. Khách sẽ thấy hạng và ưu đãi trên điện thoại.';
     } catch (e) { result.textContent = e.message; }
   };
+  let activeView='service';
+  const mayViewReceipts=['ADMIN','MANAGER','CASHIER'].includes(auth.user.role);
+  const nav=document.createElement('nav');
+  nav.className='staff-work-nav';nav.setAttribute('aria-label','Không gian làm việc');
+  if(shell!=='kitchen'&&mayViewReceipts){
+    nav.innerHTML='<button type="button" data-view="service" aria-pressed="true">Phục vụ bàn</button><button type="button" data-view="receipts" aria-pressed="false">Hóa đơn</button>';
+    app.querySelector('#service-workspace').before(nav);
+  }
+  let showView;
   const mount=id=>{
     workspace?.destroy();
+    const root=app.querySelector('#service-workspace');
     if (shell === 'kitchen') {
-      app.querySelector('#service-workspace').innerHTML = kitchenHtml();
+      root.innerHTML = kitchenHtml();
       loadKitchen(Number(id));
       workspace = { destroy() {} };
       return;
     }
-    workspace=createServiceWorkspace({root:app.querySelector('#service-workspace'),request,branchId:Number(id),role:auth.user.role,userId:auth.user.id,imageBase:api});
+    root.innerHTML='<div data-service-pane></div><div data-receipts-pane hidden></div>';
+    const servicePane=root.querySelector('[data-service-pane]'), receiptPane=root.querySelector('[data-receipts-pane]');
+    const service=createServiceWorkspace({root:servicePane,request,branchId:Number(id),role:auth.user.role,userId:auth.user.id,imageBase:api});
+    let receipts;
+    showView=()=>{
+      const viewingReceipts=activeView==='receipts';
+      verifyBar.hidden=viewingReceipts;
+      servicePane.hidden=viewingReceipts;receiptPane.hidden=!viewingReceipts;
+      nav.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.view===activeView)));
+      receipts?.destroy();receipts=null;
+      if(viewingReceipts)receipts=mountReceiptManager({root:receiptPane,request,branchId:Number(id)});
+    };
+    workspace={destroy(){service.destroy();receipts?.destroy();}};
+    showView();
   };
+  nav.onclick=event=>{const button=event.target.closest('[data-view]');if(!button||button.dataset.view===activeView)return;activeView=button.dataset.view;showView();};
   mount(branchId||branches[0].id);
   app.querySelector('#staff-branch')?.addEventListener('change',event=>mount(event.target.value));
 }

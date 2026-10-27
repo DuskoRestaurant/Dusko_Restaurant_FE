@@ -1,3 +1,4 @@
+import {mountReceiptManager} from './receipt-manager.js';
 import './tokens.css';
 import {authenticatorLogin,reconfigureAuthenticator} from './mfa-login.js';
 import {forecastSummary,showAiActionResult,ingredientPlanMarkup,reviewDayMarkup} from './ai-workflow.js';
@@ -44,8 +45,8 @@ document.addEventListener('error', event => {
   }
 }, true);
 const state = { page: ['pipeline','combos','users'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null };
-const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'] ];
-const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'] };
+const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['receipts','Hóa đơn','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'] ];
+const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','receipts','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'] };
 // Split lock (user decision 2026-10-25): management is ADMIN/MANAGER only.
 // CASHIER/WAITER/CHEF work in staff-app; BE operational APIs stay open to
 // them (staff-app needs them), so this is a frontend-app lock, not an API lock.
@@ -189,6 +190,7 @@ async function loadPage() {
       if(requestedPage==='locations')state.branches=data.branches;
       ({overview,orders:ordersPage,inventory,locations,catalog})[requestedPage]();
     }
+    if(requestedPage==='receipts') { serviceWorkspace=mountReceiptManager({root:document.querySelector('#page'),request:api,branchId:requestedBranch}); }
     if(requestedPage==='kitchen') { const batches=await api(`/api/kds/batches?branchId=${requestedBranch}`); if(!stillCurrent())return; state.data.batches=batches; kitchen(); }
 
     if(requestedPage==='forecast') { const products=await api('/api/catalog/products'); if(!stillCurrent())return; state.data.forecastProducts=products; state.data.forecast=undefined; state.forecastResultDate=null; state.aiAnalysis={}; forecast(); }
