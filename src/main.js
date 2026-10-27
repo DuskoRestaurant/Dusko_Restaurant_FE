@@ -1,3 +1,4 @@
+import {effectiveRoles,hasRole,canAdminister} from './permissions.js';
 import {mountReceiptManager} from './receipt-manager.js';
 import './tokens.css';
 import {authenticatorLogin,reconfigureAuthenticator} from './mfa-login.js';
@@ -52,7 +53,7 @@ const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','receipts
 // them (staff-app needs them), so this is a frontend-app lock, not an API lock.
 // Effective roles include UserRole extras from /api/auth/profile when present.
 const canAccessManagement = () => canAccessManagementFn(state.user);
-const allowedPages = () => pages[state.user?.role] || [];
+const allowedPages = () => [...new Set(effectiveRoles(state.user).flatMap(role=>pages[role]||[]))];
 const defaultPage = () => allowedPages()[0] || 'overview';
 const statusLabel = { AWAITING_CONFIRMATION:'Chờ nhân viên xác nhận', PENDING:'Chờ thanh toán', PAID:'Đã thanh toán', CANCELLED:'Đã hủy', SCHEDULED:'Chờ nấu', COOKING:'Đang nấu', COMPLETED:'Hoàn thành' };
 const badge = s => `<span class="badge ${String(s).toLowerCase()}">${statusLabel[s] || e(s)}</span>`;
@@ -62,7 +63,7 @@ const row = (cells) => `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
 const table = (headers, rows) => `<div class="table-scroll"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 const field = (label, html) => `<label class="field"><span>${label}</span>${html}</label>`;
 const btn = (label, action, kind='primary', extra='') => `<button class="btn ${kind}" data-action="${action}" ${extra}>${label}</button>`;
-const access = roles => !roles || !!state.user && roles.includes(state.user.role);
+const access = roles => !roles || !!state.user && hasRole(state.user,roles);
 
 function showDataNotice(text = 'Có dữ liệu mới. Cập nhật để xem thay đổi.') {
   if (!state.token || !document.querySelector('#page')) return;
@@ -154,6 +155,13 @@ function busy(value) {
 }
 async function perform(work, success) { try { busy(true); const result=await work(); if(success) toast(success); return result; } catch(err) { toast(err.message, true); return null; } finally { busy(false); } }
 
+function navigationMarkup(){
+  const groups=[['Tổng quan',['overview']],['Vận hành',['orders','receipts','kitchen','locations','catalog']],['Kho',['inventory']],['Khách hàng & ưu đãi',['customers','tiers','promotions','combos']],['Phân tích',['forecast','analytics','pipeline']],['Hệ thống',['users']]];
+  return groups.map(([label,keys])=>{
+    const items=nav.filter(([key])=>keys.includes(key)&&allowedPages().includes(key));if(!items.length)return '';
+    return `<details class="nav-group" ${keys.includes(state.page)||label==='Tổng quan'?'open':''}><summary>${label}</summary><div>${items.map(([key,title])=>`<button class="nav-item ${state.page===key?'active':''}" data-page="${key}" ${state.page===key?'aria-current="page"':''}><span class="nav-icon">${navIcon(key)}</span>${title}</button>`).join('')}</div></details>`;
+  }).join('');
+}
 function shell() {
   if(!state.token||!state.user){showEntry();return;}
   if(!canAccessManagement()){
@@ -163,8 +171,8 @@ function shell() {
   }
   serviceWorkspace?.destroy(); serviceWorkspace=null;
   if(!allowedPages().includes(state.page)) state.page=defaultPage();
-  const branchControl=state.user?.role==='ADMIN' ? `<select id="branch" aria-label="Chi nhánh">${state.branches.map(b=>`<option value="${b.id}" ${b.id===state.branch?'selected':''}>${e(b.name)}</option>`).join('')}</select>` : `<span>${e(state.user?.branchName || state.branches.find(b=>b.id===state.branch)?.name || 'Chi nhánh')}</span>`;
-  app.innerHTML = `<div class="layout ${state.user?'':'auth-layout'}"><aside class="sidebar"><div class="brand"><span class="brand-mark">D</span><div><strong>DUSKO</strong><small>RESTAURANT OS</small></div></div><div class="workspace-label">ĐIỀU HÀNH NHÀ HÀNG</div><nav>${nav.filter(([key])=>allowedPages().includes(key)).map(([key,label,icon])=>`<button class="nav-item ${state.page===key?'active':''}" data-page="${key}"><span class="nav-icon">${navIcon(key)}</span>${label}</button>`).join('')}</nav><a class="staff-entry-link" href="${e(staffUrl)}">App nhân viên ↗</a><div class="sidebar-foot"><div class="online-dot"></div><div><strong>Dusko Restaurant</strong><small>Quản lý & phục vụ</small></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumb">Hệ thống <span>/</span> ${state.user?nav.find(n=>n[0]===state.page)[1]:'Đăng nhập'}</div><div class="top-actions"><label class="branch-picker">Chi nhánh ${branchControl}</label><span class="date-pill">${new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium'}).format(new Date())}</span><span class="avatar">${e((state.user?.fullName || 'K').slice(0,1).toUpperCase())}</span></div></header><div class="content"><div id="page"></div></div></main></div>`;
+  const branchControl=canAdminister(state.user) ? `<select id="branch" aria-label="Chi nhánh">${state.branches.map(b=>`<option value="${b.id}" ${b.id===state.branch?'selected':''}>${e(b.name)}</option>`).join('')}</select>` : `<span>${e(state.user?.branchName || state.branches.find(b=>b.id===state.branch)?.name || 'Chi nhánh')}</span>`;
+  app.innerHTML = `<div class="layout ${state.user?'':'auth-layout'}"><aside class="sidebar"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><div><strong>DUSKO</strong><small>RESTAURANT OS</small></div></div><div class="workspace-label">ĐIỀU HÀNH NHÀ HÀNG</div><nav>${navigationMarkup()}</nav><a class="staff-entry-link" href="${e(staffUrl)}">App nhân viên ↗</a><div class="sidebar-foot"><div class="online-dot"></div><div><strong>Dusko Restaurant</strong><small>Quản lý & phục vụ</small></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumb">Hệ thống <span>/</span> ${state.user?nav.find(n=>n[0]===state.page)[1]:'Đăng nhập'}</div><div class="top-actions"><label class="branch-picker">Chi nhánh ${branchControl}</label><span class="date-pill">${new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium'}).format(new Date())}</span><span class="avatar">${e((state.user?.fullName || 'K').slice(0,1).toUpperCase())}</span></div></header><div class="content"><div id="page"></div></div></main></div>`;
   document.querySelector('#branch')?.addEventListener('change', ev=>{ state.branch=Number(ev.target.value); state.cart=[]; state.tableId=''; localStorage.setItem('dusko_branch',state.branch); loadPage(); });
   document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>{state.page=el.dataset.page; shell(); loadPage();}));
   loginPanel();
@@ -232,7 +240,7 @@ function ordersPage() {
   const details=document.createElement('details'); details.className='legacy-order-tools';
   details.innerHTML='<summary>Mang đi và đơn cũ</summary><p>Tạo đơn mang đi hoặc đối soát các đơn trước khi áp dụng phiên bàn.</p>';
   legacy.replaceWith(details);details.append(legacy);
-  serviceWorkspace=createServiceWorkspace({root:workspace,request:(path,options)=>api(path,{...options,cache:'no-store'}),branchId:state.branch,role:state.user.role,userId:state.user.id,imageBase:API_BASE,initialData:{tables:state.data.tables,products:state.data.products}});
+  serviceWorkspace=createServiceWorkspace({root:workspace,request:(path,options)=>api(path,{...options,cache:'no-store'}),branchId:state.branch,role:canAdminister(state.user)?'ADMIN':hasRole(state.user,['MANAGER'])?'MANAGER':state.user.role,userId:state.user.id,imageBase:API_BASE,initialData:{tables:state.data.tables,products:state.data.products}});
 }
 function legacyOrdersPage() {
  const {products,tables}=state.data; const orders=state.data.orders.filter(o=>!o.diningSessionId); const total=state.cart.reduce((s,x)=>s+x.price*x.quantity,0);
@@ -506,7 +514,7 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='logout') signOut();
 }
 function signOut() { startSeq++; closeVnpayPayment?.(); stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
-function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${state.user.role==='ADMIN'?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
+function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${canAdminister(state.user)?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
 function showEntry() {
   serviceWorkspace?.destroy();serviceWorkspace=null;
   mountLogin(app,{submit:async(username,password)=>{
@@ -576,3 +584,5 @@ async function start() {
 start();
 
 import './pos-theme.css';
+
+import './ui-foundation.css';

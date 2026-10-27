@@ -17,22 +17,14 @@ if (process.argv.length > 2) {
   process.exit(0);
 }
 
-const P = {
-  canvas:'#FBF7F2', surface:'#FFFFFF', surfaceSunken:'#F8F3EE', surfaceRaised:'#FFFCF9',
-  ink:'#3B2923', muted:'#6B5D55', line:'#E8DED5', lineStrong:'#9C8674',
-  primary:'#C05136', primaryDark:'#9F3F2D', primaryInk:'#A8402A', primarySoft:'#FBEDE5',
-  accent:'#5A6F5E', accentSoft:'#E7EEE3',
-  warning:'#8A5A12', warningFill:'#F8ECD5', danger:'#B0403C', dangerSoft:'#F7E4E1',
-  success:'#3F6B52', successSoft:'#E6F1E8',
-  hero1:'#7A3324', hero2:'#B84E33',
-  // dark theme
-  dCanvas:'#15110F', dSurface:'#1F1A17', dSurfaceSunken:'#241E1A', dSurfaceRaised:'#2A2320',
-  dInk:'#F2EAE4', dMuted:'#B9A99E', dLine:'#3A312B', dLineStrong:'#776559',
-  dPrimary:'#E8846A', dPrimaryDark:'#F0A48E', dPrimaryInk:'#F0A48E', dPrimarySoft:'#3A211A',
-  dAccent:'#9FB79A', dAccentSoft:'#232C23',
-  dWarning:'#E0AC5C', dWarningFill:'#3A2D16', dDanger:'#E8908A', dDangerSoft:'#3A1F1D',
-  dSuccess:'#7FB894', dSuccessSoft:'#1E2C22',
-};
+// Read the real palette instead of maintaining a second copy of the colours.
+const {readFileSync}=await import('node:fs');
+const blocks=[...readFileSync(new URL('../src/tokens.css',import.meta.url),'utf8').matchAll(/:root\s*\{([^}]+)\}/g)];
+const parse=block=>Object.fromEntries([...block.matchAll(/--([\w-]+):\s*(#[a-fA-F0-9]{6})/g)].map(m=>[m[1],m[2]]));
+const light=parse(blocks[0][1]),dark=parse(blocks[1][1]);
+const aliases={surfaceSunken:'surface-sunken',surfaceRaised:'surface-raised',lineStrong:'line-strong',primaryDark:'primary-dark',primaryInk:'primary-ink',primarySoft:'primary-soft',accentSoft:'accent-soft',warningFill:'warning-soft',dangerSoft:'danger-soft',successSoft:'success-soft',hero1:'brand-1',hero2:'brand-2',onPrimary:'on-primary'};
+const P={};
+for(const key of ['canvas','surface','ink','muted','line','primary','accent','warning','danger','success',...Object.keys(aliases)]){P[key]=light[aliases[key]||key];P['d'+key[0].toUpperCase()+key.slice(1)]=dark[aliases[key]||key];}
 
 const checks = [
   ['LIGHT body text',            P.muted,        P.canvas,       4.5],
@@ -70,7 +62,7 @@ const checks = [
   ['DARK  danger on dangerSoft', P.dDanger,      P.dDangerSoft,  4.5],
   ['DARK  success on successSoft',P.dSuccess,    P.dSuccessSoft, 4.5],
   ['DARK  primary on primarySoft',P.dPrimary,    P.dPrimarySoft, 4.5],
-  ['DARK  text on primary fill', '#1F1A17',      P.dPrimary,     4.5],
+  ['DARK  text on primary fill', P.dOnPrimary,   P.dPrimary,     4.5],
   ['DARK  primaryInk on primarySoft',P.dPrimaryInk,P.dPrimarySoft,4.5],
 ];
 
@@ -89,3 +81,4 @@ console.log(`${fails} failing pair(s) of ${checks.length}`);
 const ui = [['LIGHT border on surface', P.lineStrong, P.surface],['DARK border on surface', P.dLineStrong, P.dSurface]];
 console.log('\nnon-text (3:1):');
 for (const [l,fg,bg] of ui){ const r=ratio(fg,bg); console.log(' ', l.padEnd(30), r.toFixed(2), r>=3?'PASS':'** FAIL **'); }
+if(fails)process.exitCode=1;

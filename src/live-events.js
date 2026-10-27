@@ -6,6 +6,7 @@
  * the staff app and the console react consistently.
  */
 export const EVENT_TARGETS = {
+  'customer.verified': 'session',
   'cart.updated': 'cart',
   'order.created': 'orders',
   'order.confirmed': 'orders',
