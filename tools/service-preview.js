@@ -41,7 +41,7 @@ const tables = Array.from({length:12}, (_, i) => ({
   id:i + 1, tableName:`Bàn ${String(i + 1).padStart(2, '0')}`, seatingCapacity:i % 3 ? 4 : 6,
   status:i < 5 ? 'SERVING' : i === 11 ? 'RESERVED' : 'EMPTY',
   serviceRequestCount:i === 0 ? 1 : 0, unconfirmedOrderCount:i === 1 ? 2 : 0,
-  readyQuantity:i === 2 ? 3 : 0, pendingOrderCount:i < 5 ? 1 : 0,
+  readyQuantity:i === 2 ? 3 : 0, pendingOrderCount:i < 5 ? 1 : 0, checkoutReady:i === 3, billRequested:i === 4,
 }));
 const session = {
   id:'preview-session', orders:[

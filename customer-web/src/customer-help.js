@@ -12,6 +12,7 @@ export function createCustomerHelp({token,request,getState,addCombo,api,cartLine
     if(!loaded){root.textContent='Đang tìm combo phù hợp…';return;}
     const state=getState();
     const current=combos.map(c=>({...c,items:c.items.map(i=>({...i,...state.data.products.find(p=>p.id===i.id)}))})).filter(c=>c.items.every(i=>i.canOrder));
+    root.hidden=!current.length;if(!current.length){root.replaceChildren();return;}
     root.innerHTML=`<h2>Gợi ý combo cho bàn bạn</h2><p>Các món thường được gọi cùng nhau. Mỗi món 1 suất, giá ưu đãi khi đặt trọn combo.</p>${current.length?`<div class="combo-grid">${current.map(c=>`<article class="combo-card"><div class="combo-images">${c.items.filter(i=>i.imageUrl).map(i=>`<img src="${escape(i.imageUrl.startsWith('http')?i.imageUrl:api+i.imageUrl)}" alt="${escape(i.name)}" loading="lazy">`).join('')}</div><h3>${c.items.map(i=>escape(i.name)).join(' + ')}</h3><strong>${money(c.price)}</strong><del>${money(c.originalTotal)}</del><small>Tiết kiệm ${money(c.discountAmount)}</small><button type="button" data-combo="${escape(c.id)}" ${!state.data.sessionOpen||state.busy?'disabled':''}>Thêm combo vào giỏ</button></article>`).join('')}</div>`:'<p>Chưa có combo phù hợp với các món còn sẵn. Bạn chọn món riêng trong thực đơn nhé.</p>'}<p class="combo-message" role="status"></p>`;
     root.querySelectorAll('[data-combo]').forEach(button=>button.onclick=()=>{
       const combo=current.find(c=>c.id===button.dataset.combo);

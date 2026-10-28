@@ -2,8 +2,8 @@
 body{margin:0;background:var(--canvas);color:var(--ink);font:18px/1.55 var(--font-ui)}
 button,input,select{font:inherit}button{cursor:pointer}
 button:focus-visible{outline:3px solid var(--focus-ring);outline-offset:3px}
-header{background:var(--surface);color:var(--ink);padding:18px max(24px,calc((100vw - 1320px)/2));display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line)}
-header p{font-size:15px;color:var(--muted);margin:0}
+.customer-app-header{background:var(--surface);color:var(--ink);padding:18px max(24px,calc((100vw - 1320px)/2));display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line)}
+.customer-app-header p{font-size:15px;color:var(--muted);margin:0}
 .brand{font-size:21px;font-weight:750;letter-spacing:.12em}
 .brand span{font-size:11px;letter-spacing:.1em;color:var(--muted);margin-left:8px;font-weight:500}
 main{max-width:1320px;margin:auto;padding:28px 24px 40px}
@@ -66,7 +66,7 @@ main{max-width:1320px;margin:auto;padding:28px 24px 40px}
   .menu{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
 }
 @media(max-width:540px){
-  header{padding:16px 14px;gap:8px}.brand{font-size:20px}.brand span{display:none}header p{font-size:14px}
+  .customer-app-header{padding:16px 14px;gap:8px}.brand{font-size:20px}.brand span{display:none}.customer-app-header p{font-size:14px}
   main{padding:24px 14px 32px}.hero{align-items:flex-start;gap:12px}.hero h1{font-size:24px}.hero strong{font-size:18px;padding:9px 12px}
   .notice,.message{font-size:16px;margin-bottom:20px}.toolbar{gap:14px}.toolbar h2{font-size:23px}
   .menu-filters{display:grid;grid-template-columns:1fr;width:100%;gap:10px}.toolbar input,.menu-filters select{width:100%;font-size:16px}

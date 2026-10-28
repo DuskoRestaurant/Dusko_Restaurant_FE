@@ -61,17 +61,17 @@ function render() {
   cartOverlay?.destroy();
   customerMenu?.destroy();
   const { branch, table, sessionOpen, products } = state.data;
-  app.innerHTML = `<header><div class="brand">DUSKO <span>RESTAURANT</span></div><p>${escape(table.name)}</p></header>
+  app.innerHTML = `<header class="customer-app-header"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO RESTAURANT</span></div><p>${escape(table.name)}</p></header>
     <main><section class="hero"><div><small>CHI NHÁNH</small><h1>${escape(branch.name)}</h1></div></section>
-    <p class="notice ${sessionOpen ? '' : 'closed'}">${sessionOpen ? 'Bàn đang phục vụ · Bạn có thể gọi thêm món' : 'Bàn chưa mở phiên phục vụ. Vui lòng gọi nhân viên để được hỗ trợ.'}</p>
+    <p class="customer-sync" data-customer-sync role="status"></p><p class="notice ${sessionOpen ? '' : 'closed'}">${sessionOpen ? 'Bàn đang phục vụ · Bạn có thể gọi thêm món' : 'Bàn chưa mở phiên phục vụ. Vui lòng gọi nhân viên để được hỗ trợ.'}</p>
     ${presenceBar()}
-    <div id="customer-recognition"></div>
     <div id="service-actions">${serviceActions()}</div>
     <p id="customer-message" class="message" role="status" ${state.message ? '' : 'hidden'}>${escape(state.message)}</p>
     ${orderListHtml()}
-    <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart">${cartHtml()}</section></div></main>`;
+    <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart">${cartHtml()}</section></div><div id="customer-recognition"></div></main>`;
   customerHelp?.renderCombos();
   recognition?.render();
+  updateConnectionLabel();
   customerMenu=createCustomerMenu({root:app.querySelector('#customer-menu'),products,quantityOf,changeQuantity,sessionOpen,api,view:menuView,getLine:id=>cartItems().get(id)});
   bindCartControls();
   cartOverlay = createCustomerCartOverlay({root:app, startOpen:cartWasOpen, summary:() => ({
@@ -370,7 +370,7 @@ async function refreshTable(strict = false) {
   finally { tableRefreshing = false; }
 }
 
-const recognition = token ? createRecognition({ token, request, onVerified: () => {} }) : null;
+const recognition = token ? createRecognition({ token, request, getSessionId:()=>state.data?.sessionId, onVerified: () => {} }) : null;
 const customerHelp = token ? createCustomerHelp({
   token,
   request,
@@ -381,9 +381,10 @@ const customerHelp = token ? createCustomerHelp({
   comboSelections,
 }) : null;
 
+function updateConnectionLabel(){const label=document.querySelector('[data-customer-sync]');if(label)label.textContent=liveConnected?'Đang kết nối với nhà hàng':'Đang dùng cập nhật dự phòng · Nếu dữ liệu chưa đổi, hãy thử lại hoặc gọi nhân viên';}
 async function load() {
   if (!token) {
-    app.innerHTML = '<main class="guest-entry"><div class="guest-entry-brand">DUSKO</div><section><span class="guest-entry-icon" aria-hidden="true">▦</span><h1>Quét mã QR tại bàn</h1><p>Mở camera điện thoại và quét mã QR được đặt trên bàn để xem thực đơn, chọn món và gửi yêu cầu.</p><ol><li>Nhân viên mở bàn khi bạn đến.</li><li>Quét QR và chọn món yêu thích.</li><li>Nhân viên xác nhận rồi chuyển món tới bếp.</li></ol><p class="guest-entry-help">Không quét được mã? Nhân viên có thể gọi món giúp bạn.</p></section></main>';
+    app.innerHTML = '<main class="guest-entry"><div class="guest-entry-brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"> DUSKO</div><section><span class="guest-entry-icon" aria-hidden="true">▦</span><h1>Quét mã QR tại bàn</h1><p>Mở camera điện thoại và quét mã QR được đặt trên bàn để xem thực đơn, chọn món và gửi yêu cầu.</p><ol><li>Nhân viên mở bàn khi bạn đến.</li><li>Quét QR và chọn món yêu thích.</li><li>Nhân viên xác nhận rồi chuyển món tới bếp.</li></ol><p class="guest-entry-help">Không quét được mã? Nhân viên có thể gọi món giúp bạn.</p></section></main>';
     return;
   }
   try {
@@ -397,6 +398,7 @@ async function load() {
     state.orders = orders;
     state.presence = data.presence || 0;
     render();
+    recognition?.pollVerified();
     customerHelp?.loadCombos();
     watchChanges(request, async () => { if (state.busy) throw Error('busy'); await refreshTable(true); await refreshCart(); await refreshOrders(); },
       `/api/public/tables/${token}/live`,
@@ -404,9 +406,9 @@ async function load() {
         onEvent: handleLiveEvent,
         // The socket pushes every change, so the menu is only polled while the
         // connection is down. A table of guests would otherwise hammer the API.
-        onStatus: live => { liveConnected = live; if (live) { refreshTable(); refreshCart(); refreshOrders(); } },
+        onStatus: live => { liveConnected = live; updateConnectionLabel(); if (live) { refreshTable(); refreshCart(); refreshOrders(); } },
       });
-    setInterval(() => { if (!liveConnected) refreshTable(); }, 15000);
+    setInterval(() => { if (!liveConnected) { refreshTable(); refreshCart(); refreshOrders(); } }, 15000);
   } catch (error) {
     app.innerHTML = `<main><h1>Không mở được thực đơn</h1><p>${escape(error.message)}</p><p>Vui lòng gọi nhân viên.</p></main>`;
   }
@@ -420,6 +422,7 @@ async function load() {
  */
 async function handleLiveEvent(message) {
   switch (message.action) {
+    case 'customer.verified': await recognition?.pollVerified(); break;
     case 'cart.updated':
       await refreshCart();
       break;
@@ -467,3 +470,5 @@ app.addEventListener('click', event => {
 });
 
 load();
+
+import '../../src/ui-foundation.css';

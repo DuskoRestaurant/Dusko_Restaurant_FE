@@ -10,7 +10,7 @@ const tables=[
 ];
 test('quick filters count requests and ready quantities, including missing optional counters',()=>{
   const counts=Object.fromEntries(serviceTableFilters(tables).map(f=>[f.id,f.count]));
-  assert.deepEqual(counts,{ALL:5,SERVING:2,CONFIRM:2,READY:3,CALL:1,EMPTY:2,RESERVED:1});
+  assert.deepEqual(counts,{ALL:5,PAY:0,SERVING:2,CONFIRM:2,READY:3,CALL:1,EMPTY:2,RESERVED:1});
   assert.ok(serviceTableFilters([]).every(f=>f.count===0));
 });
 test('each quick filter selects the relevant tables without losing simultaneous requests',()=>{
@@ -22,4 +22,10 @@ test('urgent tables stay first; ordinary tables use natural numeric order withou
   assert.deepEqual(tables.map(t=>t.id),[10,2,3,4,5]);
   assert.deepEqual(filterServiceTables(tables,{search:'  BÀN 2  ',filter:'EMPTY'}).map(t=>t.id),[2]);
   assert.deepEqual(filterServiceTables(tables,{search:'Không tồn tại'}),[]);
+});
+
+test('cashier filter keeps payment-ready tables and prioritizes bill requests',()=>{
+  const input=[...tables,{id:6,tableName:'Bàn 6',status:'SERVING',checkoutReady:true},{id:7,tableName:'Bàn 7',status:'SERVING',billRequested:true}];
+  assert.deepEqual(filterServiceTables(input,{filter:'PAY'}).map(t=>t.id),[6,7]);
+  assert.deepEqual(filterServiceTables(input,{prioritizePayment:true}).slice(0,2).map(t=>t.id),[6,7]);
 });

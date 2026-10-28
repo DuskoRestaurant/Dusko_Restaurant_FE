@@ -19,29 +19,29 @@
   color-scheme: light;
 
   /* --- Surfaces ---------------------------------------------------------- */
-  --canvas:         #FBF7F2;  /* app background, warm cream                  */
+  --canvas:         #F5F7F8;  /* app background, light neutral                  */
   --surface:        #FFFFFF;  /* cards, panels, dialogs                      */
-  --surface-sunken: #F8F3EE;  /* table headers, inset wells                   */
-  --surface-raised: #FFFCF9;  /* emphasis panels                             */
-  --surface-brand:  #FFF8F4;  /* tinted brand surface (steppers, draft cards) */
+  --surface-sunken: #EEF2F4;  /* table headers, inset wells                   */
+  --surface-raised: #FAFCFD;  /* emphasis panels                             */
+  --surface-brand:  #F4ECD6;  /* tinted brand surface (steppers, draft cards) */
 
   /* --- Text -------------------------------------------------------------- */
-  --ink:            #3B2923;  /* headings and primary text                    */
-  --muted:          #6B5D55;  /* secondary text, labels, captions            */
+  --ink:            #142D3D;  /* headings and primary text                    */
+  --muted:          #536775;  /* secondary text, labels, captions            */
   --on-primary:     #FFFFFF;  /* text placed on a --primary fill             */
   --on-brand:       #FFFFFF;  /* text placed on a --brand fill               */
 
   /* --- Lines ------------------------------------------------------------- */
-  --line:           #E8DED5;  /* subtle divider                              */
-  --line-strong:    #9C8674;  /* essential control boundary (3:1)            */
+  --line:           #D9E1E5;  /* subtle divider                              */
+  --line-strong:    #7B8F9B;  /* essential control boundary (3:1)            */
 
   /* --- Brand ------------------------------------------------------------- */
-  --primary:        #C05136;  /* terracotta fill, buttons                    */
-  --primary-dark:   #9F3F2D;  /* hover / pressed fill                        */
-  --primary-ink:    #A8402A;  /* brand-coloured TEXT and links               */
-  --primary-soft:   #FBEDE5;  /* low-emphasis brand tint                     */
-  --accent:         #5A6F5E;  /* sage, secondary brand + success-leaning     */
-  --accent-soft:    #E7EEE3;
+  --primary:        #123246;  /* navy fill, buttons                    */
+  --primary-dark:   #0B2030;  /* hover / pressed fill                        */
+  --primary-ink:    #123246;  /* brand-coloured TEXT and links               */
+  --primary-soft:   #E8EFF3;  /* low-emphasis brand tint                     */
+  --accent:         #785D19;  /* gold accent     */
+  --accent-soft:    #F4ECD6;
 
   /* --- Status ------------------------------------------------------------ */
   --success:        #3F6B52;
@@ -52,14 +52,14 @@
   --danger-soft:    #F7E4E1;
 
   /* --- Brand hero (login split panel) ------------------------------------ */
-  --brand-1:        #7A3324;
-  --brand-2:        #B84E33;
+  --brand-1:        #091C2A;
+  --brand-2:        #15394F;
 
   /* --- Interactive state ------------------------------------------------- */
-  --focus-ring:     #A8402A;
+  --focus-ring:     #123246;
   --overlay:        rgba(21, 17, 15, .48);
-  --shadow-card:    0 8px 24px rgba(59,41,35,.08);
-  --shadow-raised:  0 20px 70px rgba(59,41,35,.10);
+  --shadow-card:    0 8px 24px rgba(9,28,42,.08);
+  --shadow-raised:  0 20px 70px rgba(9,28,42,.10);
 
   /* --- Inverse surfaces (toasts, tooltips) -------------------------------- */
   --inverse-surface: #1F2328;
@@ -118,26 +118,26 @@
   :root {
     color-scheme: dark;
 
-    --canvas:         #15110F;
-    --surface:        #1F1A17;
-    --surface-sunken: #241E1A;
-    --surface-raised: #2A2320;
-    --surface-brand:  #2E211B;
+    --canvas:         #09151F;
+    --surface:        #102332;
+    --surface-sunken: #132A3A;
+    --surface-raised: #183244;
+    --surface-brand:  #2A291E;
 
-    --ink:            #F2EAE4;
-    --muted:          #B9A99E;
-    --on-primary:     #1F1A17;
-    --on-brand:       #F2EAE4;
+    --ink:            #EDF3F6;
+    --muted:          #B0C2CE;
+    --on-primary:     #102332;
+    --on-brand:       #EDF3F6;
 
-    --line:           #3A312B;
-    --line-strong:    #776559;
+    --line:           #304857;
+    --line-strong:    #748B9A;
 
-    --primary:        #E8846A;
-    --primary-dark:   #F0A48E;
-    --primary-ink:    #F0A48E;
-    --primary-soft:   #3A211A;
-    --accent:         #9FB79A;
-    --accent-soft:    #232C23;
+    --primary:        #E7C56A;
+    --primary-dark:   #F4D890;
+    --primary-ink:    #F4D890;
+    --primary-soft:   #2A291E;
+    --accent:         #E7C56A;
+    --accent-soft:    #2A291E;
 
     --success:        #7FB894;
     --success-soft:   #1E2C22;
@@ -146,16 +146,16 @@
     --danger:         #E8908A;
     --danger-soft:    #3A1F1D;
 
-    --brand-1:        #4A1F15;
-    --brand-2:        #8C3A26;
+    --brand-1:        #091C2A;
+    --brand-2:        #15394F;
 
-    --focus-ring:     #F0A48E;
+    --focus-ring:     #F4D890;
     --overlay:        rgba(0, 0, 0, .62);
     --shadow-card:    0 8px 24px rgba(0,0,0,.42);
     --shadow-raised:  0 20px 70px rgba(0,0,0,.55);
 
-    --inverse-surface: #F2EAE4;
-    --inverse-ink:     #1F1A17;
+    --inverse-surface: #EDF3F6;
+    --inverse-ink:     #102332;
     --inverse-muted:   #5A4E46;
     --inverse-line:    #8A7C72;
     --backdrop:        rgba(0, 0, 0, .68);

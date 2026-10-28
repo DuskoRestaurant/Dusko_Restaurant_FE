@@ -3,7 +3,10 @@ import {createSingleFlight} from './single-flight.js';
 import './receipt.css';
 export function showReceipt(receipt){
  const dialog=document.createElement('dialog');dialog.className='receipt-dialog';dialog.setAttribute('aria-label','Hóa đơn thanh toán');
- dialog.innerHTML=`<div class="receipt-actions"><button type="button" data-print>In hóa đơn</button><button type="button" data-close>Đóng</button></div><style>${receiptPrintStyle.slice(receiptPrintStyle.indexOf('.receipt-paper'),receiptPrintStyle.indexOf('@page'))}</style>${receiptMarkup(receipt)}`;
+ dialog.innerHTML='<div class="receipt-actions"><button type="button" data-print>In hóa đơn</button><button type="button" data-close>Đóng</button></div><div class="receipt-preview"></div>';
+ // Isolate the receipt from application header/table styles in every shell.
+ const preview=dialog.querySelector('.receipt-preview').attachShadow({mode:'open'});
+ preview.innerHTML=`<style>${receiptPrintStyle}:host{display:block;min-width:0;color:#111;font-family:Arial,sans-serif}.receipt-paper{width:100%;max-width:380px;padding:16px;background:#fff;font-size:12px;overflow-wrap:anywhere}.receipt-paper table{table-layout:fixed;font-size:11px}.receipt-paper th:first-child,.receipt-paper td:first-child{width:36%}.receipt-paper th:nth-child(2){width:10%}.receipt-paper th:nth-child(3),.receipt-paper th:nth-child(4){width:27%}.receipt-paper td{overflow-wrap:anywhere}.receipt-totals b{text-align:right}</style>${receiptMarkup(receipt)}`;
  dialog.querySelector('[data-close]').onclick=()=>dialog.close();
  dialog.querySelector('[data-print]').onclick=()=>{
   const frame=document.createElement('iframe');frame.title='In hóa đơn';frame.style.cssText='position:fixed;width:1px;height:1px;left:-10000px;border:0';

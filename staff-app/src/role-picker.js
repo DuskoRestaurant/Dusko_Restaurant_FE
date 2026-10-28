@@ -1,16 +1,10 @@
-// Phase 5 — Staff role split.
-// Cashier shell = service workspace (orders, confirm, pay, receipts).
-// Kitchen shell = KDS batches only (accept/start/finish, gift badge).
-// Effective roles come from /api/auth/profile (primary + UserRole rows).
-// CHEF maps to Kitchen; CASHIER/WAITER to Cashier; MANAGER/ADMIN get the picker.
+import {canUseStaffWorkspace} from '../../src/permissions.js';
+export const shellLabels={kitchen:'Bếp',cashier:'Thu ngân',service:'Phục vụ'};
+export const shellDescriptions={
+  kitchen:'Nhận mẻ nấu, cập nhật món đang làm và đã hoàn thành.',
+  cashier:'Thanh toán cho khách, xem và in hóa đơn.',
+  service:'Mở bàn, nhận yêu cầu gọi món và mang món cho khách.',
+};
 export function staffShellsFor(user) {
-  const roles = user.roles || [user.role];
-  const cashier = roles.some(r => ['CASHIER', 'WAITER', 'MANAGER', 'ADMIN'].includes(r));
-  const kitchen = roles.some(r => ['CHEF', 'MANAGER', 'ADMIN'].includes(r));
-  if (cashier && !kitchen) return ['cashier'];
-  if (kitchen && !cashier) return ['kitchen'];
-  return ['cashier', 'kitchen'];
-}
-export function kitchenHtml() {
-  return `<section class="kitchen-shell"><h2>Màn hình bếp</h2><p class="sw-help">Chỉ hiển thị mẻ bếp. Món quà tặng có nhãn “Quà tặng” và được nấu/phục vụ như món thường.</p><div id="kitchen-batches"></div></section>`;
+  return canUseStaffWorkspace(user) ? ['kitchen','cashier','service'] : [];
 }

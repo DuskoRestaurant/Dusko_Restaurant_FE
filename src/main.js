@@ -1,6 +1,10 @@
+import {businessExcelDate} from './business-time.js';
+import {algorithmGuideMarkup,forecastEvidenceMarkup,ruleEvidenceMarkup} from './ai-explanations.js';
+import {effectiveRoles,hasRole,canAdminister} from './permissions.js';
+import {mountReceiptManager} from './receipt-manager.js';
 import './tokens.css';
 import {authenticatorLogin,reconfigureAuthenticator} from './mfa-login.js';
-import {forecastSummary,showAiActionResult,ingredientPlanMarkup,reviewDayMarkup} from './ai-workflow.js';
+import {forecastSummary,showAiActionResult,ingredientPlanMarkup} from './ai-workflow.js';
 import {openReceipt} from './receipt.js';
 import { showVnpayPayment } from './vnpay-payment.js';
 import { mountAccounts, passwordDialog } from './accounts.js';
@@ -44,14 +48,14 @@ document.addEventListener('error', event => {
   }
 }, true);
 const state = { page: ['pipeline','combos','users'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null };
-const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'] ];
-const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'] };
+const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['receipts','Hóa đơn','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'] ];
+const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','receipts','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'] };
 // Split lock (user decision 2026-10-25): management is ADMIN/MANAGER only.
 // CASHIER/WAITER/CHEF work in staff-app; BE operational APIs stay open to
 // them (staff-app needs them), so this is a frontend-app lock, not an API lock.
 // Effective roles include UserRole extras from /api/auth/profile when present.
 const canAccessManagement = () => canAccessManagementFn(state.user);
-const allowedPages = () => pages[state.user?.role] || [];
+const allowedPages = () => [...new Set(effectiveRoles(state.user).flatMap(role=>pages[role]||[]))];
 const defaultPage = () => allowedPages()[0] || 'overview';
 const statusLabel = { AWAITING_CONFIRMATION:'Chờ nhân viên xác nhận', PENDING:'Chờ thanh toán', PAID:'Đã thanh toán', CANCELLED:'Đã hủy', SCHEDULED:'Chờ nấu', COOKING:'Đang nấu', COMPLETED:'Hoàn thành' };
 const badge = s => `<span class="badge ${String(s).toLowerCase()}">${statusLabel[s] || e(s)}</span>`;
@@ -61,7 +65,7 @@ const row = (cells) => `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
 const table = (headers, rows) => `<div class="table-scroll"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 const field = (label, html) => `<label class="field"><span>${label}</span>${html}</label>`;
 const btn = (label, action, kind='primary', extra='') => `<button class="btn ${kind}" data-action="${action}" ${extra}>${label}</button>`;
-const access = roles => !roles || !!state.user && roles.includes(state.user.role);
+const access = roles => !roles || !!state.user && hasRole(state.user,roles);
 
 function showDataNotice(text = 'Có dữ liệu mới. Cập nhật để xem thay đổi.') {
   if (!state.token || !document.querySelector('#page')) return;
@@ -153,6 +157,13 @@ function busy(value) {
 }
 async function perform(work, success) { try { busy(true); const result=await work(); if(success) toast(success); return result; } catch(err) { toast(err.message, true); return null; } finally { busy(false); } }
 
+function navigationMarkup(){
+  const groups=[['Tổng quan',['overview']],['Vận hành',['orders','receipts','kitchen','locations','catalog']],['Kho',['inventory']],['Khách hàng & ưu đãi',['customers','tiers','promotions','combos']],['Phân tích',['forecast','analytics','pipeline']],['Hệ thống',['users']]];
+  return groups.map(([label,keys])=>{
+    const items=nav.filter(([key])=>keys.includes(key)&&allowedPages().includes(key));if(!items.length)return '';
+    return `<details class="nav-group" ${keys.includes(state.page)||label==='Tổng quan'?'open':''}><summary>${label}</summary><div>${items.map(([key,title])=>`<button class="nav-item ${state.page===key?'active':''}" data-page="${key}" ${state.page===key?'aria-current="page"':''}><span class="nav-icon">${navIcon(key)}</span>${title}</button>`).join('')}</div></details>`;
+  }).join('');
+}
 function shell() {
   if(!state.token||!state.user){showEntry();return;}
   if(!canAccessManagement()){
@@ -162,8 +173,8 @@ function shell() {
   }
   serviceWorkspace?.destroy(); serviceWorkspace=null;
   if(!allowedPages().includes(state.page)) state.page=defaultPage();
-  const branchControl=state.user?.role==='ADMIN' ? `<select id="branch" aria-label="Chi nhánh">${state.branches.map(b=>`<option value="${b.id}" ${b.id===state.branch?'selected':''}>${e(b.name)}</option>`).join('')}</select>` : `<span>${e(state.user?.branchName || state.branches.find(b=>b.id===state.branch)?.name || 'Chi nhánh')}</span>`;
-  app.innerHTML = `<div class="layout ${state.user?'':'auth-layout'}"><aside class="sidebar"><div class="brand"><span class="brand-mark">D</span><div><strong>DUSKO</strong><small>RESTAURANT OS</small></div></div><div class="workspace-label">ĐIỀU HÀNH NHÀ HÀNG</div><nav>${nav.filter(([key])=>allowedPages().includes(key)).map(([key,label,icon])=>`<button class="nav-item ${state.page===key?'active':''}" data-page="${key}"><span class="nav-icon">${navIcon(key)}</span>${label}</button>`).join('')}</nav><a class="staff-entry-link" href="${e(staffUrl)}">App nhân viên ↗</a><div class="sidebar-foot"><div class="online-dot"></div><div><strong>Dusko Restaurant</strong><small>Quản lý & phục vụ</small></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumb">Hệ thống <span>/</span> ${state.user?nav.find(n=>n[0]===state.page)[1]:'Đăng nhập'}</div><div class="top-actions"><label class="branch-picker">Chi nhánh ${branchControl}</label><span class="date-pill">${new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium'}).format(new Date())}</span><span class="avatar">${e((state.user?.fullName || 'K').slice(0,1).toUpperCase())}</span></div></header><div class="content"><div id="page"></div></div></main></div>`;
+  const branchControl=canAdminister(state.user) ? `<select id="branch" aria-label="Chi nhánh">${state.branches.map(b=>`<option value="${b.id}" ${b.id===state.branch?'selected':''}>${e(b.name)}</option>`).join('')}</select>` : `<span>${e(state.user?.branchName || state.branches.find(b=>b.id===state.branch)?.name || 'Chi nhánh')}</span>`;
+  app.innerHTML = `<div class="layout ${state.user?'':'auth-layout'}"><aside class="sidebar"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><div><strong>DUSKO</strong><small>RESTAURANT OS</small></div></div><div class="workspace-label">ĐIỀU HÀNH NHÀ HÀNG</div><nav>${navigationMarkup()}</nav><a class="staff-entry-link" href="${e(staffUrl)}">App nhân viên ↗</a><div class="sidebar-foot"><div class="online-dot"></div><div><strong>Dusko Restaurant</strong><small>Quản lý & phục vụ</small></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumb">Hệ thống <span>/</span> ${state.user?nav.find(n=>n[0]===state.page)[1]:'Đăng nhập'}</div><div class="top-actions"><label class="branch-picker">Chi nhánh ${branchControl}</label><span class="date-pill">${new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium'}).format(new Date())}</span><span class="avatar">${e((state.user?.fullName || 'K').slice(0,1).toUpperCase())}</span></div></header><div class="content"><div id="page"></div></div></main></div>`;
   document.querySelector('#branch')?.addEventListener('change', ev=>{ state.branch=Number(ev.target.value); state.cart=[]; state.tableId=''; localStorage.setItem('dusko_branch',state.branch); loadPage(); });
   document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>{state.page=el.dataset.page; shell(); loadPage();}));
   loginPanel();
@@ -189,6 +200,7 @@ async function loadPage() {
       if(requestedPage==='locations')state.branches=data.branches;
       ({overview,orders:ordersPage,inventory,locations,catalog})[requestedPage]();
     }
+    if(requestedPage==='receipts') { serviceWorkspace=mountReceiptManager({root:document.querySelector('#page'),request:api,branchId:requestedBranch}); }
     if(requestedPage==='kitchen') { const batches=await api(`/api/kds/batches?branchId=${requestedBranch}`); if(!stillCurrent())return; state.data.batches=batches; kitchen(); }
 
     if(requestedPage==='forecast') { const products=await api('/api/catalog/products'); if(!stillCurrent())return; state.data.forecastProducts=products; state.data.forecast=undefined; state.forecastResultDate=null; state.aiAnalysis={}; forecast(); }
@@ -215,8 +227,8 @@ async function workspaceRead(path,page,branch) {
 function overview() {
   const {dashboard:d,orders,batches}=state.data;
   render(title('TRUNG TÂM ĐIỀU HÀNH','Tổng quan vận hành','Theo dõi các chỉ số quan trọng trong ngày.',btn('Làm mới','reload','secondary'))+
-  `<div class="metric-grid"><div class="metric"><span>DOANH THU HÔM NAY</span><strong>${money(d.todayRevenue)}</strong><small>Từ ${number(d.totalOrdersCount)} đơn đã thanh toán</small><i>↗</i></div><div class="metric"><span>ĐƠN CHỜ THANH TOÁN</span><strong>${orders.filter(o=>o.status==='PENDING').length}</strong><small>Cần xử lý tại quầy</small><i>▤</i></div><div class="metric"><span>MẺ BẾP ĐANG HOẠT ĐỘNG</span><strong>${batches.length}</strong><small>Chờ nấu và đang nấu</small><i>◈</i></div><div class="metric warn"><span>NGUYÊN LIỆU SẮP HẾT</span><strong>${d.lowStockCount}</strong><small>Cần kiểm tra tồn kho</small><i>!</i></div></div>`+
-  `<div class="two-col"><section class="panel"><div class="panel-head"><div><h2>Đơn hàng gần đây</h2><p>Hoạt động tại chi nhánh ${state.branch}</p></div>${btn('Xem tất cả →','goto-orders','text')}</div>${orders.length?table(['Mã đơn','Thời gian','Giá trị','Trạng thái'],orders.slice(0,5).map(o=>row([`<span class="order-ref" title="${e(o.orderCode)}">${e(String(o.orderCode).length>18?String(o.orderCode).slice(0,12)+"…":o.orderCode)}</span>`,dateTime(o.createdAt),money(o.finalAmount),badge(o.status)]))):empty('Chưa có đơn hàng','Đơn mới sẽ xuất hiện tại đây.')}</section><section class="panel"><div class="panel-head"><div><h2>Cần chú ý</h2><p>Tồn kho và bất thường vận hành</p></div></div>${d.lowStockItems?.length?d.lowStockItems.slice(0,5).map(i=>`<div class="notice"><span class="notice-icon">!</span><div><strong>${e(i.name)}</strong><small>Còn ${number(i.availableStock??i.currentStock)} ${e(i.unit)} khả dụng · mức tối thiểu ${number(i.minStock)}</small></div></div>`).join(''):empty('Kho đang ổn định','Không có nguyên liệu dưới ngưỡng tối thiểu.')}${d.anomaliesTodayCount?`<div class="notice"><span class="notice-icon">!</span><div><strong>${d.anomaliesTodayCount} cảnh báo bất thường hôm nay</strong><small>Kiểm tra trong mục Dự báo AI</small></div></div>`:''}</section></div>`);
+  `<div class="metric-grid"><div class="metric"><span>DOANH THU ĐƠN TẠO HÔM NAY</span><strong>${money(d.todayRevenue)}</strong><small>${number(d.totalOrdersCount)} đơn đã thanh toán · ngày tạo đơn UTC+7</small><i>↗</i></div><div class="metric"><span>ĐƠN CHỜ THANH TOÁN</span><strong>${orders.filter(o=>o.status==='PENDING').length}</strong><small>Cần xử lý tại quầy</small><i>▤</i></div><div class="metric"><span>MẺ BẾP ĐANG HOẠT ĐỘNG</span><strong>${batches.length}</strong><small>Chờ nấu và đang nấu</small><i>◈</i></div><div class="metric warn"><span>NGUYÊN LIỆU SẮP HẾT</span><strong>${d.lowStockCount}</strong><small>Cần kiểm tra tồn kho</small><i>!</i></div></div>`+
+  `<div class="two-col"><section class="panel"><div class="panel-head"><div><h2>Đơn hàng gần đây</h2><p>Hoạt động tại chi nhánh ${state.branch}</p></div>${btn('Xem tất cả →','goto-orders','text')}</div>${orders.length?table(['Mã đơn','Thời gian','Giá trị','Trạng thái'],orders.slice(0,5).map(o=>row([`<span class="order-ref" title="${e(o.orderCode)}">${e(String(o.orderCode).length>18?String(o.orderCode).slice(0,12)+"…":o.orderCode)}</span>`,dateTime(o.createdAt),money(o.finalAmount),badge(o.status)]))):empty('Chưa có đơn hàng','Đơn mới sẽ xuất hiện tại đây.')}</section><section class="panel"><div class="panel-head"><div><h2>Cần chú ý</h2><p>Nguyên liệu cần bổ sung</p></div></div>${d.lowStockItems?.length?d.lowStockItems.slice(0,5).map(i=>`<div class="notice"><span class="notice-icon">!</span><div><strong>${e(i.name)}</strong><small>Còn ${number(i.availableStock??i.currentStock)} ${e(i.unit)} khả dụng · mức tối thiểu ${number(i.minStock)}</small></div></div>`).join(''):empty('Kho đang ổn định','Không có nguyên liệu dưới ngưỡng tối thiểu.')}</section></div>`);
 }
 function ordersPage() {
   serviceWorkspace?.destroy();
@@ -231,7 +243,7 @@ function ordersPage() {
   const details=document.createElement('details'); details.className='legacy-order-tools';
   details.innerHTML='<summary>Mang đi và đơn cũ</summary><p>Tạo đơn mang đi hoặc đối soát các đơn trước khi áp dụng phiên bàn.</p>';
   legacy.replaceWith(details);details.append(legacy);
-  serviceWorkspace=createServiceWorkspace({root:workspace,request:(path,options)=>api(path,{...options,cache:'no-store'}),branchId:state.branch,role:state.user.role,userId:state.user.id,imageBase:API_BASE,initialData:{tables:state.data.tables,products:state.data.products}});
+  serviceWorkspace=createServiceWorkspace({root:workspace,request:(path,options)=>api(path,{...options,cache:'no-store'}),branchId:state.branch,role:canAdminister(state.user)?'ADMIN':hasRole(state.user,['MANAGER'])?'MANAGER':state.user.role,userId:state.user.id,imageBase:API_BASE,initialData:{tables:state.data.tables,products:state.data.products}});
 }
 function legacyOrdersPage() {
  const {products,tables}=state.data; const orders=state.data.orders.filter(o=>!o.diningSessionId); const total=state.cart.reduce((s,x)=>s+x.price*x.quantity,0);
@@ -314,14 +326,14 @@ function openInventoryImport() {
 }
 function aiDay(offset=0) { return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Bangkok'}).format(new Date(Date.now()+offset*86400000)); }
 function aiPanels() {
-  const ai=state.aiAnalysis||{}, baskets=ai.baskets, anomaly=ai.anomaly;
+  const ai=state.aiAnalysis||{}, baskets=ai.baskets;
   const source=(real,synthetic)=>`${number(real)} đơn thật · ${number(synthetic)} đơn mô phỏng`;
-  return `<section id="ai-combos" class="panel ai-section"><header class="ai-section-head"><span class="ai-step">2</span><div><h2>Chọn món để bán kèm và tạo combo</h2><p>Dùng lịch sử gọi món để chọn nhóm món khách thường mua cùng nhau, rồi đặt giá ưu đãi trước khi bán.</p></div></header><div class="forecast-toolbar">${field('Từ ngày',`<input id="basket-from" type="date" value="${ai.from||aiDay(-60)}">`)}${field('Đến ngày',`<input id="basket-to" type="date" value="${ai.to||aiDay(-1)}">`)}${btn('Tìm nhóm món phù hợp','analyze-baskets')}</div><div class="ai-output" aria-live="polite">${ai.basketError?`<p class="error-panel">${e(ai.basketError)}</p>`:baskets?`<p class="ai-source">${number(baskets.transactions)} hóa đơn · ${source(baskets.realOrders,baskets.syntheticOrders)}<br>Khoảng phân tích: ${e(baskets.from)} → ${e(baskets.to)}</p>${baskets.rules.length?`<div class="ai-rule-list">${baskets.rules.map(rule=>`<article class="ai-rule"><div><strong>${rule.antecedents.map(e).join(' + ')}</strong><span class="ai-rule-arrow">→ Gợi ý thêm</span><strong>${rule.consequents.map(e).join(' + ')}</strong></div><p>${number(rule.confidence*100)}% hóa đơn có nhóm món đầu cũng có món gợi ý.</p><details><summary>Căn cứ gợi ý</summary><p>Xuất hiện trong ${number(rule.support*100)}% hóa đơn; mức kết hợp cao gấp ${number(rule.lift)} lần so với mua độc lập.</p></details></article>`).join('')}</div><div class="ai-decision"><strong>Bước tiếp theo: chọn giá combo để bán</strong><p>Tạo bộ dữ liệu từ đúng khoảng ngày đang phân tích. Sau đó quản trị viên chọn giá ưu đãi và duyệt combo; khách chỉ thấy combo đã được duyệt.</p>${btn(access(['ADMIN'])?'Chuẩn bị combo để duyệt giá':'Chuẩn bị dữ liệu đề xuất combo','ai-prepare-combos')}</div>`:'<p>Chưa có nhóm món đạt ngưỡng trong khoảng ngày này.</p>'}<details class="ai-method"><summary>Cách tìm nhóm món</summary><p>FP-Growth, support ≥ 5%, confidence ≥ 30%, lift ≥ 1,2. Hiển thị tối đa 6 cặp món. Gợi ý chưa tự tạo hoặc công bố combo.</p></details>`:'<p class="ai-idle">Chọn khoảng ngày có hóa đơn đã thanh toán. Kết quả giúp chọn món bán kèm; giá ưu đãi được quyết định ở bước duyệt combo.</p>'}</div></section>
-  <section id="ai-review" class="panel ai-section"><header class="ai-section-head"><span class="ai-step">3</span><div><h2>Rà soát ngày có biến động bán hàng</h2><p>Tìm ngày cần kiểm tra lại hóa đơn và giảm giá, để quản lý giải thích biến động doanh thu hoặc số đơn.</p></div></header><div class="forecast-toolbar">${field('Ngày đã hoàn tất',`<input id="ai-anomaly-date" type="date" max="${aiDay(-1)}" value="${ai.anomalyDate||aiDay(-1)}">`)}${btn('Kiểm tra ngày bán','check-ai-day')}</div><div class="ai-output" aria-live="polite">${ai.anomalyError?`<p class="error-panel">${e(ai.anomalyError)}</p><p class="ai-idle">Bạn vẫn có thể đối chiếu hóa đơn của ngày đã chọn. Khi đủ dữ liệu, quản trị viên có thể cập nhật mô hình để hỗ trợ kiểm tra biến động.</p>${btn('Xem hóa đơn ngày đã chọn','ai-review-day','secondary')}`:anomaly?`<div class="ai-verdict ${anomaly.isAnomaly?'is-warning':''}"><strong>${anomaly.isAnomaly?'Ngày bán cần kiểm tra':'Chưa phát hiện bất thường'}</strong><p>Ngày ${e(ai.checkedDate)} · ${number(anomaly.observedOrders)} đơn đã thanh toán.</p><p>${anomaly.isAnomaly?'Đối chiếu hóa đơn, giảm giá và sự kiện trong ngày để giải thích biến động.':'Mức sai lệch không vượt ngưỡng của mô hình hiện tại.'}</p></div><div class="ai-next-actions">${btn('Đối chiếu hóa đơn ngày này','ai-review-day')}</div><p class="ai-source">${source(anomaly.realOrders,anomaly.syntheticOrders)}</p><details class="ai-method"><summary>Thông tin mô hình</summary><p>Autoencoder · Sai số ${Number(anomaly.mseLoss).toFixed(6)} · Ngưỡng ${Number(anomaly.threshold).toFixed(6)}. Cảnh báo không phải kết luận sai phạm.</p></details>`:'<p class="ai-idle">Chọn ngày đã kết thúc. Nếu có cảnh báo, mở danh sách hóa đơn của chính ngày đó để đối chiếu.</p>'}</div>${access(['ADMIN'])?`<details class="ai-model-settings"><summary>Quản trị mô hình và điều kiện dữ liệu</summary><div class="ai-model-update"><div><strong>Cập nhật mô hình kiểm tra biến động</strong><p>Học lại khi có thêm lịch sử bán hàng; cần ít nhất 30 ngày có đơn đã thanh toán. Dữ liệu học hiện gồm cả đơn thật và đơn mô phỏng trong database.</p>${ai.trained?`<p>Huấn luyện: ${number(ai.trained.trainingDays)} ngày · Chọn ngưỡng: ${number(ai.trained.calibrationDays)} ngày · Kiểm tra độc lập: ${number(ai.trained.testDays)} ngày.</p>`:''}</div>${btn('Cập nhật mô hình','update-ai-model','secondary')}</div></details>`:''}</section>`;
+  return `<section id="ai-combos" class="panel ai-section"><header class="ai-section-head"><span class="ai-step">2</span><div><h2>Chọn món để bán kèm và tạo combo</h2><p>Dùng lịch sử gọi món để chọn nhóm món khách thường mua cùng nhau, rồi đặt giá ưu đãi trước khi bán.</p></div></header><div class="forecast-toolbar">${field('Từ ngày',`<input id="basket-from" type="date" value="${ai.from||aiDay(-60)}">`)}${field('Đến ngày',`<input id="basket-to" type="date" value="${ai.to||aiDay(-1)}">`)}${btn('Tìm nhóm món phù hợp','analyze-baskets')}</div><div class="ai-output" aria-live="polite">${ai.basketError?`<p class="error-panel">${e(ai.basketError)}</p>`:baskets?`<p class="ai-source">${number(baskets.transactions)} hóa đơn · ${source(baskets.realOrders,baskets.syntheticOrders)}<br>Khoảng phân tích: ${e(baskets.from)} → ${e(baskets.to)}</p>${baskets.rules.length?`<div class="ai-rule-list">${baskets.rules.map(rule=>`<article class="ai-rule"><div><strong>${rule.antecedents.map(e).join(' + ')}</strong><span class="ai-rule-arrow">→ Gợi ý thêm</span><strong>${rule.consequents.map(e).join(' + ')}</strong></div><p>${number(rule.confidence*100)}% hóa đơn có nhóm món đầu cũng có món gợi ý.</p><details><summary>Căn cứ gợi ý</summary>${ruleEvidenceMarkup(rule)}</details></article>`).join('')}</div><div class="ai-decision"><strong>Bước tiếp theo: chọn giá combo để bán</strong><p>Tạo bộ dữ liệu từ đúng khoảng ngày đang phân tích. Sau đó quản trị viên chọn giá ưu đãi và duyệt combo; khách chỉ thấy combo đã được duyệt.</p>${btn(access(['ADMIN'])?'Chuẩn bị combo để duyệt giá':'Chuẩn bị dữ liệu đề xuất combo','ai-prepare-combos')}</div>`:'<p>Chưa có nhóm món đạt ngưỡng trong khoảng ngày này.</p>'}<details class="ai-method"><summary>Cách tìm nhóm món</summary><p>FP-Growth, support ≥ ${number(baskets.thresholds.support*100)}%, confidence ≥ ${number(baskets.thresholds.confidence*100)}%, lift ≥ ${number(baskets.thresholds.lift)}. Ngày tạo đơn (UTC+7) dùng để lọc, không chia theo giờ hoặc mùa. Hiển thị tối đa 6 cặp món. Gợi ý chưa tự tạo hoặc công bố combo.</p></details>`:'<p class="ai-idle">Chọn khoảng ngày có hóa đơn đã thanh toán. Kết quả giúp chọn món bán kèm; giá ưu đãi được quyết định ở bước duyệt combo.</p>'}</div></section>
+  `;
 }
 function captureAiInputs() {
   state.aiAnalysis ||= {};
-  for(const [id,key] of [['basket-from','from'],['basket-to','to'],['ai-anomaly-date','anomalyDate']]) {
+  for(const [id,key] of [['basket-from','from'],['basket-to','to']]) {
     const element=document.getElementById(id); if(element) state.aiAnalysis[key]=element.value;
   }
   const date=document.getElementById('forecast-date');if(date)state.date=date.value;
@@ -336,10 +348,10 @@ function forecast() {
   const content=dishes.length
     ? `<div class="forecast-result-heading"><div><h2>Nhu cầu dự kiến để lên kế hoạch</h2><p>Dự kiến cho ${e(dateLabel)}</p></div><span>${dishes.length} món</span></div><div class="forecast-results">${dishes.map(r=>{
         const product=r.product||products.find(p=>p.id===r.productId)||{name:`Món ${r.productId}`};
-        return `<article class="forecast-dish">${productPhoto(product)}<div class="forecast-dish-name"><strong>${e(product.name)}</strong><span>${r.modelType==='LSTM'?'Theo mô hình đã học':'Theo trung bình lịch sử'}</span></div><div class="forecast-quantity"><b>${number(r.predictedQuantity)}</b><span>suất</span></div></article>`;
+        return `<article class="forecast-dish">${productPhoto(product)}<div class="forecast-dish-name"><strong>${e(product.name)}</strong><span>${r.modelType==='LSTM'?'Theo mô hình đã học':'Theo trung bình lịch sử'}</span></div><div class="forecast-quantity"><b>${number(r.predictedQuantity)}</b><span>suất</span></div>${forecastEvidenceMarkup(r)}</article>`;
       }).join('')}</div><div class="ai-summary"><span><b>${number(summary.portions)}</b> suất dự kiến / ${summary.dishes} món</span><span>${summary.learned} món dùng mô hình · ${summary.historical} món dùng lịch sử</span></div><div class="ai-decision"><strong>Bước tiếp theo: tính nguyên liệu cần mua</strong><p>Dùng định lượng món và tồn kho để lập dự trù cho ${e(dateLabel)}. Sau đó xem xét tại Kho hiện tại; bước này chưa nhập hàng vào kho.</p>${btn('Lập dự trù nguyên liệu','ai-plan')}</div><p class="forecast-help">Kiểm tra thêm đặt bàn, sự kiện và khả năng phục vụ trước khi chốt lượng chuẩn bị. Món chưa có lịch sử không nằm trong kết quả này.</p>`
     : `<div class="forecast-placeholder"><h2>${results?'Chưa đủ dữ liệu bán hàng':'Bạn cần chuẩn bị cho ngày nào?'}</h2><p>${results?'Không có lịch sử bán hàng phù hợp để tính dự báo cho ngày đã chọn.':'Chọn ngày cần phục vụ để ước tính số suất, sau đó tính nguyên liệu cần mua cho ngày đó.'}</p></div>`;
-  render(title('HỖ TRỢ QUẢN LÝ NHÀ HÀNG','Lập kế hoạch từ dữ liệu bán hàng','Chọn việc cần làm, xem căn cứ và chuyển kết quả thành bước xử lý cụ thể.')+`<nav class="ai-purpose-nav" aria-label="Công việc cần thực hiện"><a href="#ai-prepare"><b>1. Chuẩn bị cho ngày tới</b><span>Ước tính món → dự trù nguyên liệu</span></a><a href="#ai-combos"><b>2. Xây dựng combo bán hàng</b><span>Tìm nhóm món → duyệt giá ưu đãi</span></a><a href="#ai-review"><b>3. Kiểm tra hoạt động đã bán</b><span>Phát hiện biến động → đối chiếu hóa đơn</span></a></nav><p class="ai-data-notice">Phạm vi: chi nhánh đang chọn, hóa đơn đã thanh toán. Dữ liệu hiện gồm cả đơn thật và đơn mô phỏng; cần kiểm tra nguồn trước khi quyết định.</p>`+
+  render(title('HỖ TRỢ QUẢN LÝ NHÀ HÀNG','Lập kế hoạch từ dữ liệu bán hàng','Chọn việc cần làm, xem căn cứ và chuyển kết quả thành bước xử lý cụ thể.')+`<nav class="ai-purpose-nav" aria-label="Công việc cần thực hiện"><a href="#ai-prepare"><b>1. Chuẩn bị cho ngày tới</b><span>Ước tính món → dự trù nguyên liệu</span></a><a href="#ai-combos"><b>2. Xây dựng combo bán hàng</b><span>Tìm nhóm món → duyệt giá ưu đãi</span></a></nav>${algorithmGuideMarkup()}<p class="ai-data-notice">Phạm vi: chi nhánh đang chọn, hóa đơn đã thanh toán. Dữ liệu hiện gồm cả đơn thật và đơn mô phỏng; cần kiểm tra nguồn trước khi quyết định.</p>`+
     `<section id="ai-prepare" class="panel forecast-controls"><header class="ai-section-head"><span class="ai-step">1</span><div><h2>Chuẩn bị món và nguyên liệu cho ngày tới</h2><p>Ước tính nhu cầu từng món để bếp chuẩn bị đủ và kho có căn cứ dự trù mua hàng.</p></div></header><div class="forecast-toolbar">${field('Ngày cần chuẩn bị',`<input type="date" id="forecast-date" value="${state.date}">`)}${btn('Ước tính nhu cầu món','run-forecast')}</div></section><section class="panel forecast-main" aria-live="polite">${content}</section>`+aiPanels());
 }
 
@@ -367,16 +379,17 @@ async function exportRevenue() {
     ['Số đơn giả lập',report.synthetic.orderCount],['Giá trị giả lập (không phải doanh thu thật)',report.synthetic.netRevenue],
     ['Tổng đơn',report.orderCount],['Tổng trước giảm giá',report.grossRevenue],
     ['Tổng giảm giá',report.discountTotal],['Tổng cộng gồm giả lập',report.netRevenue],
+    ['Mốc ngày','Ngày tạo đơn theo UTC+7; chỉ tính đơn đã thanh toán. Không phải báo cáo theo giờ thu tiền.'],
   ]);
   summary.getColumn(1).width=42; summary.getColumn(2).width=62; summary.getRow(1).font={bold:true,size:14};
   for(const rowNum of [7,9,11,12,13]) summary.getCell(`B${rowNum}`).numFmt='#,##0 [$₫-vi-VN]';
   const detail=workbook.addWorksheet('Chi tiết đơn');
   detail.columns=[
-    {header:'STT',key:'no',width:8},{header:'Mã đơn',key:'code',width:24},{header:'Nguồn dữ liệu',key:'origin',width:19},{header:'Thời gian tạo đơn',key:'createdAt',width:23},
+    {header:'STT',key:'no',width:8},{header:'Mã đơn',key:'code',width:24},{header:'Nguồn dữ liệu',key:'origin',width:19},{header:'Thời gian tạo đơn (UTC+7)',key:'createdAt',width:23},
     {header:'Phương thức',key:'payment',width:20},{header:'Trước giảm giá',key:'gross',width:20},
     {header:'Giảm giá',key:'discount',width:18},{header:'Doanh thu thuần',key:'net',width:20},{header:'Món trong đơn',key:'items',width:56},
   ];
-  for(const [index,order] of report.orders.entries()) detail.addRow({no:index+1,code:order.orderCode,origin:order.dataOrigin==='SYNTHETIC'?'Giả lập':'Thật',createdAt:new Date(order.createdAt),payment:({CASH:'Tiền mặt',QR_BANKING:'Chuyển khoản',POS_CARD:'Thẻ'}[order.paymentMethod]||'—'),gross:order.totalAmount,discount:order.discountAmount,net:order.finalAmount,items:order.items.map(item=>`${item.product.name} × ${item.quantity}`).join(', ')});
+  for(const [index,order] of report.orders.entries()) detail.addRow({no:index+1,code:order.orderCode,origin:order.dataOrigin==='SYNTHETIC'?'Giả lập':'Thật',createdAt:businessExcelDate(order.createdAt),payment:({CASH:'Tiền mặt',QR_BANKING:'Chuyển khoản',POS_CARD:'Thẻ'}[order.paymentMethod]||'—'),gross:order.totalAmount,discount:order.discountAmount,net:order.finalAmount,items:order.items.map(item=>`${item.product.name} × ${item.quantity}`).join(', ')});
   detail.getRow(1).font={bold:true}; detail.getRow(1).alignment={vertical:'middle',wrapText:true}; detail.views=[{state:'frozen',ySplit:1}]; detail.autoFilter={from:'A1',to:'I1'};
   detail.getColumn('createdAt').numFmt='dd/mm/yyyy hh:mm'; for(const col of ['gross','discount','net']) detail.getColumn(col).numFmt='#,##0 [$₫-vi-VN]';
   const buffer=await workbook.xlsx.writeBuffer(), blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), url=URL.createObjectURL(blob), link=document.createElement('a');
@@ -465,7 +478,9 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='ai-plan') {
     const selected=document.querySelector('#forecast-date').value,day=state.forecastResultDate,branch=state.branch;
     if(!day||selected!==day||state.forecastResultBranch!==branch)return toast('Ngày hoặc chi nhánh đã đổi. Hãy ước tính lại nhu cầu trước khi lập dự trù.',true);
-    const plan=await perform(()=>api('/api/inventory/plan',{method:'POST',body:{targetDate:day,branchId:branch}}));
+    const forecastRunId=state.data.forecast?.[0]?.runId;
+    if(!forecastRunId||state.data.forecast.some(row=>row.runId!==forecastRunId))return toast('Hãy chạy lại dự báo để lập dự trù từ đúng kết quả đang xem.',true);
+    const plan=await perform(()=>api('/api/inventory/plan',{method:'POST',body:{targetDate:day,branchId:branch,forecastRunId}}));
     if(plan&&state.branch===branch)showAiActionResult('Dự trù nguyên liệu cho '+day,'Dựa vào dự báo món, định lượng và số tồn khả dụng. Kiểm tra trước khi duyệt mua hàng.',ingredientPlanMarkup(plan),()=>{state.date=day;state.page='inventory';shell();loadPage();},'Mở kho để xem và duyệt');return;
   }
   if(action==='ai-prepare-combos') {
@@ -474,29 +489,12 @@ if(action==='receive-stock'||action==='adjust-stock') {
     const result=await perform(()=>api('/api/fp-pipeline/refine?page=1',{method:'POST',body:{branchId:branch,from:baskets.from,to:baskets.to}}));
     if(result&&state.branch===branch){pipelineViews.clear();state.page=access(['ADMIN'])?'combos':'pipeline';shell();await loadPage();toast(access(['ADMIN'])?'Nhập giá ưu đãi rồi duyệt combo muốn bán.':'Bộ dữ liệu đã lưu. Chuyển quản trị viên duyệt giá trước khi bán.');}return;
   }
-  if(action==='ai-review-day') {
-    const day=state.aiAnalysis?.anomaly?state.aiAnalysis.checkedDate:document.querySelector('#ai-anomaly-date')?.value,branch=state.branch;if(!day||day>aiDay(-1))return toast('Chọn một ngày đã hoàn tất để đối chiếu.',true);
-    const report=await perform(()=>api('/api/analytics/revenue-report?branchId='+branch+'&from='+day+'&to='+day,{cache:'no-store'}));
-    if(report&&state.branch===branch)showAiActionResult('Đối chiếu ngày '+day,'Kiểm tra hóa đơn, giảm giá và các sự kiện kinh doanh trong ngày.',reviewDayMarkup(report));return;
-  }
   if(action==='plan') { state.date=document.querySelector('#plan-date').value; if(!state.date) return toast('Chọn ngày hợp lệ.',true); const result=await perform(()=>api('/api/inventory/plan',{method:'POST',body:{targetDate:state.date,branchId:state.branch}}),'Đã lập kế hoạch nguyên liệu.'); if(result) await loadPage(); return; }
   if(action==='approve') { const result=await perform(()=>api(`/api/inventory/plan/${id}/approve`,{method:'POST'}),'Đã duyệt kế hoạch.'); if(result) await loadPage(); return; }
-  if(['analyze-baskets','check-ai-day','update-ai-model'].includes(action)) {
+  if(action==='analyze-baskets') {
     captureAiInputs();const ai=state.aiAnalysis, branch=state.branch;
-    const current=()=>state.page==='forecast'&&state.branch===branch&&state.aiAnalysis===ai;
-    if(action==='analyze-baskets') {
-      ai.basketError='';const result=await perform(async()=>{try{return await api('/api/forecast/baskets',{method:'POST',body:{branchId:branch,from:ai.from,to:ai.to}});}catch(error){ai.basketError=error.message;throw error;}});
-      if(result)ai.baskets=result;if(current())forecast();return;
-    }
-    if(action==='check-ai-day') {
-      if(!ai.anomalyDate||ai.anomalyDate>aiDay(-1))return toast('Chọn một ngày đã hoàn tất.',true);
-      ai.anomalyError='';ai.anomaly=null;
-      const date=ai.anomalyDate;
-      const result=await perform(async()=>{try{return await api('/api/forecast/detect-anomaly',{method:'POST',body:{branchId:branch,date}});}catch(error){ai.anomalyError=error.message;throw error;}});
-      if(result){ai.anomaly=result;ai.checkedDate=date;}if(current())forecast();return;
-    }
-    const result=await perform(()=>api('/api/forecast/train-anomaly',{method:'POST',body:{branchId:branch,epochs:50}}),'Đã cập nhật mô hình Autoencoder.');
-    if(result){ai.trained=result;ai.anomaly=null;ai.anomalyError='';}if(current())forecast();return;
+    ai.basketError='';const result=await perform(async()=>{try{return await api('/api/forecast/baskets',{method:'POST',body:{branchId:branch,from:ai.from,to:ai.to}});}catch(error){ai.basketError=error.message;throw error;}});
+    if(result)ai.baskets=result;if(state.page==='forecast'&&state.branch===branch&&state.aiAnalysis===ai)forecast();return;
   }
   if(action==='run-forecast') {captureAiInputs();const day=document.querySelector('#forecast-date').value,branch=state.branch,token=state.token;if(!day)return toast('Chọn ngày hợp lệ.',true);state.date=day;const result=await perform(()=>api('/api/forecast/daily',{method:'POST',body:{targetDate:day,branchId:branch}}),'Đã ước tính nhu cầu món.');if(result&&state.branch===branch&&state.token===token&&state.page==='forecast'){state.data.forecast=result;state.forecastResultDate=day;state.forecastResultBranch=branch;forecast();}return;}
   if(action==='login') { const username=document.querySelector('#username').value.trim(), password=document.querySelector('#password').value; if(!username||!password) return toast('Nhập tài khoản và mật khẩu.',true); const result=await perform(()=>authenticatorLogin(api,username,password)); if(result){ state.token=result.token;state.user=result.user; try { const profile=await api('/api/auth/profile'); state.user={...state.user,...profile}; } catch {} state.branch=state.user.branchId || state.branches.find(b=>b.id===state.branch)?.id || state.branches[0]?.id || 1;localStorage.setItem('dusko_branch',state.branch);sessionStorage.setItem('dusko_token',result.token);sessionStorage.setItem('dusko_user',JSON.stringify(state.user)); document.querySelector('.modal-wrap')?.close(); shell(); loadPage();} return; }
@@ -505,7 +503,7 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='logout') signOut();
 }
 function signOut() { startSeq++; closeVnpayPayment?.(); stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
-function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${state.user.role==='ADMIN'?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
+function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${canAdminister(state.user)?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
 function showEntry() {
   serviceWorkspace?.destroy();serviceWorkspace=null;
   mountLogin(app,{submit:async(username,password)=>{
@@ -575,3 +573,5 @@ async function start() {
 start();
 
 import './pos-theme.css';
+
+import './ui-foundation.css';
