@@ -153,3 +153,28 @@ body:has(.customer-layout) .cart .guest-cart-heading h2{font-size:18px}
 @media(max-width:540px){.guest-table-tools{gap:8px}.guest-history-button{margin-left:0}.guest-cart-heading h2 span{display:block!important;margin-left:0!important}}
 
 .guest-service-state{width:12px;display:inline-flex;justify-content:center;flex:none}
+
+/* Menu combos share the same category and card system as individual dishes. */
+.guest-menu-combo .guest-dish-price del{font-size:12px;color:var(--muted)}
+.guest-menu-combo .guest-dish-title h4{font-size:15px}
+.guest-cart-items{display:grid;gap:12px;padding:2px 2px 12px}
+body:has(.customer-layout) .guest-cart-items .cart-item{padding:12px;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--surface-sunken)}
+.guest-cart-photo{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none;background:var(--surface)}
+.guest-cart-photo-empty{display:grid;place-items:center;color:var(--muted);font-size:22px}
+.guest-cart-item-heading{gap:10px;margin-bottom:8px}
+.guest-cart-item-heading>strong,.guest-cart-item-heading>div{flex:1;min-width:0}
+.guest-cart-item-heading>div>strong{display:block;font-size:14px;line-height:1.4;margin-top:4px;overflow-wrap:anywhere}
+.guest-cart-combo .guest-cart-item-heading{align-items:flex-start}
+.guest-cart-combo .guest-combo-contents{font-size:12px!important;line-height:1.5;margin:4px 0 10px!important;color:var(--muted)}
+.guest-combo-notes summary{font-size:13px;cursor:pointer;min-height:36px;display:flex;align-items:center;color:var(--primary-ink)}
+.guest-combo-notes summary::before{content:'＋';margin-right:6px}.guest-combo-notes[open] summary::before{content:'−'}
+.guest-combo-notes small{font-size:12px;color:var(--muted)}.guest-combo-notes label{display:block;font-size:12px;margin:8px 0}.guest-combo-notes input{margin-top:4px}
+.guest-detail-gallery{background:var(--surface-sunken)}
+.guest-gallery-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.guest-gallery-track::-webkit-scrollbar{display:none}
+.guest-gallery-track .guest-detail-photo{width:100%;flex:0 0 100%;height:clamp(96px,19dvh,152px);object-fit:contain;scroll-snap-align:center;scroll-snap-stop:always}
+.guest-gallery-navigation{display:flex;align-items:center;justify-content:center;gap:16px;font-size:12px;color:var(--muted)}
+.guest-gallery-navigation button{width:44px;height:44px;min-height:44px;border:0;background:transparent;color:var(--ink);font-size:24px}.guest-gallery-navigation button:disabled{opacity:.3}
+.guest-detail-body form{gap:8px}.guest-detail-stepper{margin:0 0 4px;gap:0;width:max-content;border:1px solid var(--line);border-radius:var(--radius-control);overflow:hidden}
+.guest-detail-stepper button{width:44px;min-width:44px;min-height:44px;height:44px;border:0;border-radius:0;font-size:22px}
+.guest-detail-stepper output{min-width:44px;font-size:16px}.guest-detail-body textarea{min-height:70px;padding:10px}

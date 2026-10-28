@@ -12,7 +12,7 @@ import './customer-cart-overlay.css';
 import { createCustomerCartOverlay } from './customer-cart-overlay.js';
 import {createCustomerMenu} from './customer-menu.js';
 import {customerBasketPricing} from './customer-basket-pricing.js';
-import {customerCartLines} from './customer-cart-lines.js';
+import {customerCartLines,customerCartGroups} from './customer-cart-lines.js';
 import {customerOrderHistory} from './customer-order-history.js';
 import './customer-menu.css';
 import {customerServiceActions} from './customer-service-actions.js';
@@ -74,11 +74,10 @@ function render() {
     ${presenceBar()}
     <div class="guest-table-tools"><div id="service-actions">${serviceActions()}</div><button type="button" data-open-history class="guest-history-button">▤ <span>Lịch sử gọi món</span></button></div>
     <p id="customer-message" class="message" role="status" ${state.message ? '' : 'hidden'}>${escape(state.message)}</p>
-    <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart">${cartHtml()}</section></div><div id="customer-recognition"></div></div><section id="customer-history-view" hidden><div class="guest-history-header"><button type="button" data-close-history>← Thực đơn</button><h1 tabindex="-1">Lịch sử gọi món</h1><p>Các lượt gọi trong phiên phục vụ hiện tại</p></div><div id="customer-order-history">${orderListHtml()}</div></section></main>`;
-  customerHelp?.renderCombos();
+    <div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart">${cartHtml()}</section></div><div id="customer-recognition"></div></div><section id="customer-history-view" hidden><div class="guest-history-header"><button type="button" data-close-history>← Thực đơn</button><h1 tabindex="-1">Lịch sử gọi món</h1><p>Các lượt gọi trong phiên phục vụ hiện tại</p></div><div id="customer-order-history">${orderListHtml()}</div></section></main>`;
   recognition?.render();
   updateConnectionLabel();
-  customerMenu=createCustomerMenu({root:app.querySelector('#customer-menu'),products,quantityOf,changeQuantity,sessionOpen,api,view:menuView,getLine:id=>cartItems().get(id)});
+  customerMenu=createCustomerMenu({root:app.querySelector('#customer-menu'),products,quantityOf,changeQuantity,sessionOpen,api,view:menuView,getLine:id=>cartItems().get(id),combos:customerHelp?.getCombos()||[],addCombo,getComboQuantity:key=>comboSelections().find(c=>c.key===key)?.quantity||0});
   bindCartControls();
   cartOverlay = createCustomerCartOverlay({root:app, startOpen:cartWasOpen, summary:() => ({
     count:cartItemCount(state.cart?.items || []),
@@ -130,7 +129,7 @@ function cartHtml() {
   const blocking = cartBlockingItems(entries);
   const busy = state.busy || state.cartPending > 0;
   const canSend = !state.cartIntent && cartCheckoutable(entries, { sessionOpen, busy });
-  return `<div class="guest-cart-heading"><h2 id="customer-cart-title">Giỏ món <span>${cartItemCount(entries)} món${state.presence > 1 ? ' · dùng chung' : ''}</span></h2>${entries.length ? `<button type="button" data-clear-cart class="guest-cart-clear" ${busy?'disabled':''}>Xóa tất cả</button>` : ''}</div><div class="guest-cart-scroll">${entries.length ? customerCartLines(entries,{productById,busy}) : '<p>Chọn món từ thực đơn phía trên.</p>'}${pricing.valid.length ? `<div class="combo-cart-summary"><p>Giá món lẻ: ${money(pricing.retail)}</p>${pricing.valid.map(combo => `<p>Combo ${combo.productIds.map(id => escape(productById(id)?.name)).join(' + ')} × ${combo.quantity} · ${money(combo.price * combo.quantity)} <button type="button" data-remove-combo="${escape(combo.key)}">Bỏ combo</button></p>`).join('')}<p>Ưu đãi combo: −${money(pricing.discount)}</p></div>` : ''}</div><div class="guest-cart-footer">${state.cartIntent==='clear'?'<div class="guest-cart-confirm" role="group" aria-labelledby="guest-clear-title"><strong id="guest-clear-title">Xóa tất cả món của bàn?</strong><p>Mọi khách tại bàn đều thấy thay đổi này.</p><div><button type="button" data-cancel-clear>Giữ lại</button><button type="button" data-confirm-clear>Xóa tất cả</button></div></div>':''}<div class="total">Tạm tính <b>${money(total)}</b></div><button id="submit" class="primary" ${canSend ? '' : 'disabled'}>${state.busy ? 'Đang gửi…' : busy ? 'Đang cập nhật…' : 'Gửi yêu cầu cho nhân viên'}</button>${blocking.length ? '<small class="cart-warning">Giỏ có món thiếu nguyên liệu hoặc vượt số suất còn lại. Hãy điều chỉnh trước khi gửi.</small>' : ''}<small>Thanh toán tại quầy hoặc qua nhân viên. Giá được kiểm tra lại khi gửi.</small></div>`;
+  return `<div class="guest-cart-heading"><h2 id="customer-cart-title">Giỏ món <span>${cartItemCount(entries)} món${state.presence > 1 ? ' · dùng chung' : ''}</span></h2>${entries.length ? `<button type="button" data-clear-cart class="guest-cart-clear" ${busy?'disabled':''}>Xóa tất cả</button>` : ''}</div><div class="guest-cart-scroll">${entries.length ? customerCartLines(entries,{productById,busy,combos:pricing.valid,api}) : '<p>Chọn món từ thực đơn phía trên.</p>'}</div><div class="guest-cart-footer">${state.cartIntent==='clear'?'<div class="guest-cart-confirm" role="group" aria-labelledby="guest-clear-title"><strong id="guest-clear-title">Xóa tất cả món của bàn?</strong><p>Mọi khách tại bàn đều thấy thay đổi này.</p><div><button type="button" data-cancel-clear>Giữ lại</button><button type="button" data-confirm-clear>Xóa tất cả</button></div></div>':''}<div class="total">Tạm tính <b>${money(total)}</b></div><button id="submit" class="primary" ${canSend ? '' : 'disabled'}>${state.busy ? 'Đang gửi…' : busy ? 'Đang cập nhật…' : 'Gửi yêu cầu cho nhân viên'}</button>${blocking.length ? '<small class="cart-warning">Giỏ có món thiếu nguyên liệu hoặc vượt số suất còn lại. Hãy điều chỉnh trước khi gửi.</small>' : ''}<small>Thanh toán tại quầy hoặc qua nhân viên. Giá được kiểm tra lại khi gửi.</small></div>`;
 }
 
 /** Replace only the cart panel so the menu keeps its scroll and search state. */
@@ -163,6 +162,11 @@ function bindCartControls() {
   app.querySelectorAll('[data-note]').forEach(input => {
     input.onchange = () => saveNote(Number(input.dataset.note), input.value.trim());
     input.onblur = () => saveNote(Number(input.dataset.note), input.value.trim());
+  });
+  app.querySelectorAll('[data-combo-minus],[data-combo-plus],[data-combo-remove]').forEach(button=>button.onclick=()=>{
+    const key=button.dataset.comboMinus||button.dataset.comboPlus||button.dataset.comboRemove;
+    const combo=comboSelections().find(c=>c.key===key);
+    changeCombo(key,button.hasAttribute('data-combo-remove')?-1000:button.hasAttribute('data-combo-minus')?-1:1,combo?.price);
   });
   const clear = app.querySelector('[data-clear-cart]');
   if (clear) clear.onclick = () => {state.cartIntent='clear';renderCart();app.querySelector('[data-cancel-clear]')?.focus({preventScroll:true});};
@@ -216,6 +220,9 @@ async function saveNote(productId, note) {
 }
 
 async function removeLine(productId) {
+  const loose=customerCartGroups(state.cart?.items||[],customerBasketPricing(state.cart).valid).items.find(item=>item.productId===productId);
+  if(!loose)return;
+  if((cartItems().get(productId)?.quantity||0)>loose.quantity)return changeQuantity(productId,-loose.quantity);
   state.cartPending++;
   renderCart();
   try {
@@ -245,33 +252,21 @@ async function clearCart() {
   }
 }
 
-/** Add an approved combo: every dish goes into the basket, then the bundle is recorded. */
-async function addCombo(combo) {
-  const selections = comboSelections();
-  const existing = selections.find(selection => selection.key === combo.id);
-  const next = existing
-    ? selections.map(selection => selection.key === combo.id ? { ...selection, quantity: selection.quantity + 1 } : selection)
-    : [...selections, { key: combo.id, quantity: 1, price: combo.price }];
-  try {
-    for (const item of combo.items) {
-      state.cart = await request(`/api/public/tables/${token}/cart/items`, { method: 'POST', body: JSON.stringify({ productId: item.id, quantity: 1 }) });
-    }
-    state.cart = await request(`/api/public/tables/${token}/cart/combos`, { method: 'PUT', body: JSON.stringify({ combos: next }) });
-    toast.success('Đã thêm combo', `${combo.items.map(item => item.name).join(' + ')}. Kiểm tra giỏ rồi gửi yêu cầu cho nhân viên.`);
-  } catch (error) {
-    toast.error('Không thêm được combo', error.message);
-    await refreshCart();
-  }
+/** One request changes bundle metadata and component quantities in one transaction. */
+function changeCombo(key,delta,price){
+  if(state.busy)return Promise.resolve(false);
+  if(delta>0&&!String(key).split('-').map(Number).every(id=>{const p=productById(id);return p?.canOrder&&quantityOf(id)+delta<=Math.min(1000,p.maxOrderQuantity??1000);})){toast.warning('Chưa thể thêm combo','Một số món đã hết hoặc vượt số suất còn lại.');return Promise.resolve(false);}
+  state.cartPending++;renderCart();
+  quantityQueue=quantityQueue.then(async()=>{try{
+    state.cart=await request(`/api/public/tables/${token}/cart/combos/change`,{method:'POST',body:JSON.stringify({key,delta,price})});
+    if(delta>0)cartOverlay?.added('combo');
+    return true;
+  }catch(error){toast.error('Không cập nhật được combo',error.message);await refreshCart();return false;}
+  finally{state.cartPending--;renderCart();}});
+  return quantityQueue;
 }
-
-async function removeCombo(key) {
-  const next = comboSelections().filter(selection => selection.key !== key);
-  try {
-    state.cart = await request(`/api/public/tables/${token}/cart/combos`, { method: 'PUT', body: JSON.stringify({ combos: next }) });
-  } catch (error) {
-    toast.error('Không bỏ được combo', error.message);
-  }
-}
+function addCombo(combo){return combo?changeCombo(combo.id,1,combo.price):false;}
+function removeCombo(key){return changeCombo(key,-1000);}
 
 async function checkout() {
   if (state.busy || state.cartPending>0 || state.cartIntent || !state.data?.sessionOpen) return;
@@ -375,6 +370,7 @@ const customerHelp = token ? createCustomerHelp({
   addCombo,
   cartLines,
   comboSelections,
+  onCombosChanged:combos=>customerMenu?.setCombos(combos),
 }) : null;
 
 function updateConnectionLabel(){const label=document.querySelector('[data-customer-sync]');if(label)label.textContent=liveConnected?'Đã kết nối':'Đang kết nối lại…';}

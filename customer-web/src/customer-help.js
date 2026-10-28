@@ -1,29 +1,16 @@
 import './customer-help.css';
-const escape = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money = n => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(n);
-export function createCustomerHelp({token,request,getState,addCombo,api,cartLines}) {
+export function createCustomerHelp({token,request,getState,addCombo,api,cartLines,onCombosChanged=()=>{}}) {
   let combos=[], loaded=false;
   async function loadCombos(strict=false){
     try { const response=await request(`/api/public/tables/${token}/combos`);combos=response.combos;loaded=true;renderCombos(); }
     catch(error) { if(strict)throw error;const root=document.querySelector('#customer-combos');if(root)root.textContent='Gợi ý combo tạm chưa sẵn sàng. Bạn vẫn có thể chọn món trong thực đơn.'; }
   }
-  function renderCombos(){
-    const root=document.querySelector('#customer-combos');if(!root)return;
-    if(!loaded){root.textContent='Đang tìm combo phù hợp…';return;}
+  function getCombos(){
     const state=getState();
-    const current=combos.map(c=>({...c,items:c.items.map(i=>({...i,...state.data.products.find(p=>p.id===i.id)}))})).filter(c=>c.items.every(i=>i.canOrder));
-    root.hidden=!current.length;if(!current.length){root.replaceChildren();return;}
-    root.innerHTML=`<h2>Gợi ý combo cho bàn bạn</h2><p>Các món thường được gọi cùng nhau. Mỗi món 1 suất, giá ưu đãi khi đặt trọn combo.</p>${current.length?`<div class="combo-grid">${current.map(c=>`<article class="combo-card"><div class="combo-images">${c.items.filter(i=>i.imageUrl).map(i=>`<img src="${escape(i.imageUrl.startsWith('http')?i.imageUrl:api+i.imageUrl)}" alt="${escape(i.name)}" loading="lazy">`).join('')}</div><h3>${c.items.map(i=>escape(i.name)).join(' + ')}</h3><strong>${money(c.price)}</strong><del>${money(c.originalTotal)}</del><small>Tiết kiệm ${money(c.discountAmount)}</small><button type="button" data-combo="${escape(c.id)}" ${!state.data.sessionOpen||state.busy?'disabled':''}>Thêm combo vào giỏ</button></article>`).join('')}</div>`:'<p>Chưa có combo phù hợp với các món còn sẵn. Bạn chọn món riêng trong thực đơn nhé.</p>'}<p class="combo-message" role="status"></p>`;
-    root.querySelectorAll('[data-combo]').forEach(button=>button.onclick=()=>{
-      const combo=current.find(c=>c.id===button.dataset.combo);
-      const state=getState();
-      if(!state.data.sessionOpen||state.busy)return;
-      const basket=cartLines?cartLines():new Map();
-      const valid=combo.items.every(i=>{const p=state.data.products.find(p=>p.id===i.id);return p?.canOrder&&(basket.get(i.id)||0)+1<=Math.min(1000,p.maxOrderQuantity??1000);});
-      root.querySelector('.combo-message').textContent=valid?'Đang thêm combo vào giỏ…':'Số lượng vượt mức còn sẵn. Vui lòng điều chỉnh giỏ hoặc hỏi nhân viên.';
-      if(valid)addCombo(combo);
-    });
+    if(!loaded||!state.data)return [];
+    return combos.map(c=>({...c,items:c.items.map(i=>({...i,...state.data.products.find(p=>p.id===i.id)}))})).filter(c=>c.items.every(i=>i.canOrder));
   }
+  function renderCombos(){onCombosChanged(getCombos());}
   const host=document.createElement('aside');host.className='restaurant-help';document.body.append(host);
   host.innerHTML=`<button class="help-toggle" aria-expanded="false" aria-controls="restaurant-chat" aria-label="Hỏi nhà hàng" title="Hỏi nhà hàng"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-7a8 8 0 1 1 18-3Z" stroke-linejoin="round"/><path d="M7 10h8M7 14h5" stroke-linecap="round"/></svg></button><section id="restaurant-chat" hidden><div class="help-heading"><h2>Trợ lý nhà hàng</h2><button class="help-close" aria-label="Đóng chat">×</button></div><p class="help-disclosure">Hỗ trợ bởi Gemini. Câu hỏi, thực đơn và tên nguyên liệu được gửi tới Google để trả lời. Không gửi thông tin cá nhân.</p><div class="help-messages" role="log" aria-live="polite"><p class="answer">Bạn đang phân vân chọn món? Tôi có thể giải thích nguyên liệu của món, gợi ý theo số người, ngân sách, combo đã duyệt hoặc hướng dẫn yêu cầu phục vụ. Hãy ghi đầy đủ nhu cầu trong mỗi câu hỏi nhé.</p></div><div class="help-suggestions" aria-label="Câu hỏi gợi ý"></div><form><label for="restaurant-question">Bạn cần hỗ trợ gì?</label><textarea id="restaurant-question" maxlength="1000" required rows="2" placeholder="Ví dụ: 2 người, ngân sách 400.000đ, nên gọi món nào?"></textarea><button type="submit">Gửi câu hỏi</button></form></section>`;
   const panel=host.querySelector('section'), toggle=host.querySelector('.help-toggle'), log=host.querySelector('.help-messages');
@@ -41,5 +28,5 @@ export function createCustomerHelp({token,request,getState,addCombo,api,cartLine
     catch(error){append(error.message,'answer');}
     finally{button.disabled=false;button.textContent='Gửi câu hỏi';}
   };
-  return {loadCombos,renderCombos};
+  return {loadCombos,renderCombos,getCombos};
 }

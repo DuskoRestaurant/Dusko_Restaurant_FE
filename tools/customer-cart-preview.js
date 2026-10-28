@@ -16,7 +16,7 @@ if (new URLSearchParams(location.search).get('theme') === 'light') {
 import '../customer-web/src/customer-menu.css';
 import {createCustomerMenu} from '../customer-web/src/customer-menu.js';
 import {customerBasketPricing} from '../customer-web/src/customer-basket-pricing.js';
-import {customerCartLines} from '../customer-web/src/customer-cart-lines.js';
+import {customerCartLines,customerCartGroups} from '../customer-web/src/customer-cart-lines.js';
 import {createCustomerViews} from '../customer-web/src/customer-views.js';
 import {customerServiceActions} from '../customer-web/src/customer-service-actions.js';
 import {createToast} from '../src/toast.js';
@@ -35,8 +35,12 @@ const base = [
   ['Đồ uống','Bia Tiger',25000,'bia-tiger'],
 ];
 const products=base.flatMap(([category,name,sellingPrice,image],group)=>Array.from({length:13},(_,i)=>({id:group*100+i+1,name:i===0?name:`${name} ${i+1}`,sellingPrice,imageUrl:`/dishes/${image}.webp`,category:{name:category},canOrder:i!==12,availabilityReason:'Tạm hết',maxOrderQuantity:30,tags:group===0&&i<2||group===1&&i===0?['BEST_SELLER']:group===2?['VEGETARIAN']:group===3?['SPICY']:[],description:''})));
+// Two existing rice photos are fixture-only gallery data. Production keeps its own images.
+products.find(p=>p.id===101).imageUrls=['/dishes/com-chien.webp','/dishes/seafood-fried-rice.webp'];
+const fixtureCombo={id:'1-101',price:115000,originalTotal:138000,discountAmount:23000,items:[products[0],products.find(p=>p.id===101)]};
+const selectedCombos=new Map();
 const quantities=new Map(new URLSearchParams(location.search).has('stress')?products.slice(0,10).map(p=>[p.id,1]):new URLSearchParams(location.search).has('review')?[[1,2],[601,1]]:[]), notes=new Map();
-const basket=()=>({items:[...quantities].map(([id,quantity])=>({...products.find(p=>p.id===id),productId:id,quantity,note:notes.get(id)||''})),combos:[]});
+const basket=()=>({items:[...quantities].map(([id,quantity])=>({...products.find(p=>p.id===id),productId:id,quantity,note:notes.get(id)||''})),combos:[...selectedCombos].map(([key,quantity])=>({key,quantity,price:fixtureCombo.price}))});
 app.innerHTML='<header class="customer-app-header"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO RESTAURANT</span></div><p>Bàn 02</p></header><main><section class="hero"><h1>Chi nhánh Quận 1</h1></section><p class="notice">BẢN XEM THỬ · 91 món giả lập · Không gửi đơn</p><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart"></section></div></main><aside class="restaurant-help"><button class="help-toggle" type="button" aria-label="Hỏi nhà hàng" title="Hỏi nhà hàng"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-7a8 8 0 1 1 18-3Z" stroke-linejoin="round"/><path d="M7 10h8M7 14h5" stroke-linecap="round"/></svg></button></aside>';
 const fixtureOrders=[{id:'preview',createdAt:'2026-10-29T12:30:00Z',status:'PENDING',source:'CUSTOMER_QR',finalAmount:212000,items:[{product:{name:'Gỏi cuốn'},quantity:2,servedAt:'2026-10-29T12:35:00Z'},{product:{name:'Cơm chiên hải sản'},quantity:1,kdsStatus:'COOKING'},{product:{name:'Bia Tiger'},quantity:1,kdsStatus:'DONE'}]}];
 const main=app.querySelector('main'),menuView=document.createElement('div');menuView.id='customer-menu-view';menuView.append(...main.childNodes);main.append(menuView);
@@ -49,7 +53,7 @@ let menu, overlay;
 let clearIntent=false;
 function renderCart() {
   const entries=basket().items;
-  cart.innerHTML=`<div class="guest-cart-heading"><h2 id="customer-cart-title">Giỏ món <span>${entries.reduce((s,i)=>s+i.quantity,0)} món</span></h2>${entries.length?'<button type="button" data-clear-cart class="guest-cart-clear">Xóa tất cả</button>':''}</div><div class="guest-cart-scroll">${entries.length?customerCartLines(entries,{productById:id=>products.find(p=>p.id===id)}):'<p>Giỏ chưa có món.</p>'}</div><div class="guest-cart-footer">${clearIntent?'<div class="guest-cart-confirm"><strong>Xóa tất cả món của bàn?</strong><div><button type="button" data-cancel-clear>Giữ lại</button><button type="button" data-confirm-clear>Xóa tất cả</button></div></div>':''}<div class="total">Tạm tính <b>${money(customerBasketPricing(basket()).total)}</b></div><button class="primary" data-demo-submit ${!clearIntent&&cartCheckoutable(entries,{sessionOpen:true,busy:false})?'': 'disabled'}>Gửi yêu cầu cho nhân viên</button><small>Bản xem thử chỉ mô phỏng, không gửi đơn thật.</small><p data-demo-status role="status"></p></div>`;
+  cart.innerHTML=`<div class="guest-cart-heading"><h2 id="customer-cart-title">Giỏ món <span>${entries.reduce((s,i)=>s+i.quantity,0)} món</span></h2>${entries.length?'<button type="button" data-clear-cart class="guest-cart-clear">Xóa tất cả</button>':''}</div><div class="guest-cart-scroll">${entries.length?customerCartLines(entries,{productById:id=>products.find(p=>p.id===id),combos:customerBasketPricing(basket()).valid}):'<p>Giỏ chưa có món.</p>'}</div><div class="guest-cart-footer">${clearIntent?'<div class="guest-cart-confirm"><strong>Xóa tất cả món của bàn?</strong><div><button type="button" data-cancel-clear>Giữ lại</button><button type="button" data-confirm-clear>Xóa tất cả</button></div></div>':''}<div class="total">Tạm tính <b>${money(customerBasketPricing(basket()).total)}</b></div><button class="primary" data-demo-submit ${!clearIntent&&cartCheckoutable(entries,{sessionOpen:true,busy:false})?'': 'disabled'}>Gửi yêu cầu cho nhân viên</button><small>Bản xem thử chỉ mô phỏng, không gửi đơn thật.</small><p data-demo-status role="status"></p></div>`;
 }
 function changeQuantity(id,delta,source,note) {
   if(note)notes.set(id,note);
@@ -58,18 +62,27 @@ function changeQuantity(id,delta,source,note) {
   renderCart();menu?.update();overlay?.update();
   if(delta>0) overlay?.added(products.find(p=>p.id===id).name,source);
 }
+function changeCombo(delta){
+  const applied=delta>0?delta:-Math.min(-delta,selectedCombos.get(fixtureCombo.id)||0);
+  for(const item of fixtureCombo.items){const quantity=(quantities.get(item.id)||0)+applied;if(quantity>0)quantities.set(item.id,quantity);else quantities.delete(item.id);}
+  const quantity=(selectedCombos.get(fixtureCombo.id)||0)+applied;if(quantity>0)selectedCombos.set(fixtureCombo.id,quantity);else selectedCombos.delete(fixtureCombo.id);
+  renderCart();menu?.update();overlay?.update();if(delta>0)overlay?.added('combo');
+}
 renderCart();
-menu=createCustomerMenu({root:app.querySelector('#customer-menu'),products,quantityOf:id=>quantities.get(id)||0,changeQuantity,sessionOpen:true,getLine:id=>basket().items.find(item=>item.productId===id)});
+menu=createCustomerMenu({root:app.querySelector('#customer-menu'),products,quantityOf:id=>quantities.get(id)||0,changeQuantity,sessionOpen:true,getLine:id=>basket().items.find(item=>item.productId===id),combos:[fixtureCombo],addCombo:()=>changeCombo(1),getComboQuantity:key=>selectedCombos.get(key)||0});
 overlay=createCustomerCartOverlay({root:app,summary:()=>({count:[...quantities.values()].reduce((s,q)=>s+q,0),total:money(customerBasketPricing(basket()).total),busy:false})});
 cart.addEventListener('click',event=>{
   if(event.target.closest('[data-demo-submit]')){cart.querySelector('[data-demo-status]').textContent='Đã mô phỏng gửi yêu cầu. Không có đơn thật được tạo.';return;}
   const remove=event.target.closest('[data-remove]');
   const minus=event.target.closest('[data-cart-minus]'),plus=event.target.closest('[data-cart-plus]');
-  if(remove) changeQuantity(Number(remove.dataset.remove),-(quantities.get(Number(remove.dataset.remove))||0));
+  if(remove) changeQuantity(Number(remove.dataset.remove),-(customerCartGroups(basket().items,customerBasketPricing(basket()).valid).items.find(i=>i.productId===Number(remove.dataset.remove))?.quantity||0));
+  if(event.target.closest('[data-combo-plus]'))changeCombo(1);
+  if(event.target.closest('[data-combo-minus]'))changeCombo(-1);
+  if(event.target.closest('[data-combo-remove]'))changeCombo(-1000);
   if(minus||plus) changeQuantity(Number((minus||plus).dataset[minus?'cartMinus':'cartPlus']),minus?-1:1);
   if(event.target.closest('[data-clear-cart]')){clearIntent=true;renderCart();}
   if(event.target.closest('[data-cancel-clear]')){clearIntent=false;renderCart();}
-  if(event.target.closest('[data-confirm-clear]')){clearIntent=false;quantities.clear();renderCart();menu.update();overlay.update();}
+  if(event.target.closest('[data-confirm-clear]')){clearIntent=false;quantities.clear();selectedCombos.clear();renderCart();menu.update();overlay.update();}
 });
 createCustomerViews({root:app,beforeNavigate:()=>{overlay.close();menu.closeDetails();}});
 cart.addEventListener('input',event=>{if(event.target.hasAttribute('data-note')) notes.set(Number(event.target.dataset.note),event.target.value);});
