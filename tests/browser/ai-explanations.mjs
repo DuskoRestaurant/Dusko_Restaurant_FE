@@ -10,9 +10,9 @@ const server=await createServer({server:{host:'127.0.0.1',port:0}});await server
 const browser=await chromium.launch({channel:'msedge',headless:true});
 const output=path.join(tmpdir(),'dusko-ai-evidence');await mkdir(output,{recursive:true});
 const source={from:'2026-09-28',to:'2026-10-27',orderCount:3,realOrders:2,syntheticOrders:1,totalQuantity:60,observedDays:2,baselineQuantity:30,daily:[{date:'2026-10-26',quantity:30},{date:'2026-10-27',quantity:30}],historicalHours:[{hour:12,quantity:60}]};
-const baseline={productId:1,product:{id:1,name:'Cơm gà'},predictedQuantity:30,modelType:'BASELINE_MA',explanation:{source,model:null,fallbackReason:'Chưa có mô hình LSTM đã huấn luyện'}};
+const baseline={runId:'12345678-1234-4123-8123-123456789abc',productId:1,product:{id:1,name:'Cơm gà'},predictedQuantity:30,modelType:'BASELINE_MA',explanation:{source,model:null,fallbackReason:'Chưa có mô hình LSTM đã huấn luyện'}};
 const rule={antecedents:['Cơm'],consequents:['Canh'],support:.5,confidence:1,lift:4/3,evidence:{total:4,together:2,antecedent:2,consequent:3}};
-let mode='baseline',checks=0;const requests=[];
+let mode='baseline',stalePlan=false,checks=0;const requests=[];
 try{
  const context=await browser.newContext({serviceWorkers:'block'}),user={id:1,role:'ADMIN',fullName:'Quản lý kiểm thử',branchId:1};
  await context.addInitScript(user=>{sessionStorage.setItem('dusko_token','test');sessionStorage.setItem('dusko_user',JSON.stringify(user));},user);
@@ -24,7 +24,7 @@ try{
    if(mode==='error'){await route.fulfill({status:500,json:{error:'Lỗi dữ liệu kiểm thử'}});return;}
    data=mode==='empty'?[]:[mode==='baseline'?baseline:{...baseline,modelType:'LSTM',predictedQuantity:31,explanation:{source,model:{modelVersion:'v-test',trainedAt:'2026-10-28T01:00:00Z',trainingSamples:10,rawOutput:30.65,inputWindow:Array.from({length:14},(_,i)=>({date:`2026-10-${14+i}`,features:{lag_1d:30,lag_7d:28,lag_14d:25,rolling_avg_7d:29,rolling_std_7d:2.5,is_weekend:0,day_of_week:1,month:10}}))}}}];
   }else if(u.pathname==='/api/forecast/baskets')data={branchId:1,from:'2026-09-28',to:'2026-10-27',transactions:4,realOrders:3,syntheticOrders:1,thresholds:{support:.01,confidence:.2,lift:1},rules:[rule]};
-  else if(u.pathname==='/api/inventory/plan')data=[{ingredient:{name:'Gạo',unit:'kg'},grossDemand:7.5,currentStock:5,safetyStock:2,suggestedOrderQty:4.5,explanation:{sources:[{productName:'Cơm gà',portions:30,recipeQuantity:.2,wasteRate:.2,demand:7.5}]}}];
+  else if(u.pathname==='/api/inventory/plan'){if(stalePlan){await route.fulfill({status:409,json:{error:'Dự báo đã thay đổi. Hãy chạy lại để xem kết quả mới trước khi lập dự trù.'}});return;}assert.equal(route.request().postDataJSON().forecastRunId,baseline.runId);data=[{ingredient:{name:'Gạo',unit:'kg'},grossDemand:7.5,currentStock:5,safetyStock:2,suggestedOrderQty:4.5,explanation:{sources:[{productName:'Cơm gà',portions:30,recipeQuantity:.2,wasteRate:.2,demand:7.5}]}}];}
   else{await route.fulfill({status:503,json:{error:'Disabled in browser test'}});return;}
   await route.fulfill({json:{success:true,data}});
  });
@@ -44,6 +44,7 @@ try{
   await page.screenshot({path:path.join(output,`mrp-${colorScheme}-${width}.png`)});checks++;
  }
  await page.locator('.ai-action-dialog [data-close]').first().click();
+ stalePlan=true;await page.locator('[data-action=ai-plan]').click();await page.getByText('Dự báo đã thay đổi. Hãy chạy lại để xem kết quả mới trước khi lập dự trù.',{exact:true}).waitFor();assert.equal(await page.locator('.ai-action-dialog').count(),0);stalePlan=false;checks++;
  mode='lstm';await page.locator('[data-action=run-forecast]').click();await page.getByText('Vì sao ra 31 suất?',{exact:true}).click();await page.getByText(/đầu ra thô 30,65/).waitFor();assert.equal(await page.locator('.forecast-dish .ai-evidence table').first().locator('tbody tr').count(),14);checks++;
  for(const colorScheme of ['light','dark'])for(const width of [390,1440]){
   await page.emulateMedia({colorScheme});await page.setViewportSize({width,height:1000});

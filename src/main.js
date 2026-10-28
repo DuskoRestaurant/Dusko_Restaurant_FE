@@ -1,3 +1,4 @@
+import {businessExcelDate} from './business-time.js';
 import {algorithmGuideMarkup,forecastEvidenceMarkup,ruleEvidenceMarkup} from './ai-explanations.js';
 import {effectiveRoles,hasRole,canAdminister} from './permissions.js';
 import {mountReceiptManager} from './receipt-manager.js';
@@ -226,7 +227,7 @@ async function workspaceRead(path,page,branch) {
 function overview() {
   const {dashboard:d,orders,batches}=state.data;
   render(title('TRUNG TÂM ĐIỀU HÀNH','Tổng quan vận hành','Theo dõi các chỉ số quan trọng trong ngày.',btn('Làm mới','reload','secondary'))+
-  `<div class="metric-grid"><div class="metric"><span>DOANH THU HÔM NAY</span><strong>${money(d.todayRevenue)}</strong><small>Từ ${number(d.totalOrdersCount)} đơn đã thanh toán</small><i>↗</i></div><div class="metric"><span>ĐƠN CHỜ THANH TOÁN</span><strong>${orders.filter(o=>o.status==='PENDING').length}</strong><small>Cần xử lý tại quầy</small><i>▤</i></div><div class="metric"><span>MẺ BẾP ĐANG HOẠT ĐỘNG</span><strong>${batches.length}</strong><small>Chờ nấu và đang nấu</small><i>◈</i></div><div class="metric warn"><span>NGUYÊN LIỆU SẮP HẾT</span><strong>${d.lowStockCount}</strong><small>Cần kiểm tra tồn kho</small><i>!</i></div></div>`+
+  `<div class="metric-grid"><div class="metric"><span>DOANH THU ĐƠN TẠO HÔM NAY</span><strong>${money(d.todayRevenue)}</strong><small>${number(d.totalOrdersCount)} đơn đã thanh toán · ngày tạo đơn UTC+7</small><i>↗</i></div><div class="metric"><span>ĐƠN CHỜ THANH TOÁN</span><strong>${orders.filter(o=>o.status==='PENDING').length}</strong><small>Cần xử lý tại quầy</small><i>▤</i></div><div class="metric"><span>MẺ BẾP ĐANG HOẠT ĐỘNG</span><strong>${batches.length}</strong><small>Chờ nấu và đang nấu</small><i>◈</i></div><div class="metric warn"><span>NGUYÊN LIỆU SẮP HẾT</span><strong>${d.lowStockCount}</strong><small>Cần kiểm tra tồn kho</small><i>!</i></div></div>`+
   `<div class="two-col"><section class="panel"><div class="panel-head"><div><h2>Đơn hàng gần đây</h2><p>Hoạt động tại chi nhánh ${state.branch}</p></div>${btn('Xem tất cả →','goto-orders','text')}</div>${orders.length?table(['Mã đơn','Thời gian','Giá trị','Trạng thái'],orders.slice(0,5).map(o=>row([`<span class="order-ref" title="${e(o.orderCode)}">${e(String(o.orderCode).length>18?String(o.orderCode).slice(0,12)+"…":o.orderCode)}</span>`,dateTime(o.createdAt),money(o.finalAmount),badge(o.status)]))):empty('Chưa có đơn hàng','Đơn mới sẽ xuất hiện tại đây.')}</section><section class="panel"><div class="panel-head"><div><h2>Cần chú ý</h2><p>Nguyên liệu cần bổ sung</p></div></div>${d.lowStockItems?.length?d.lowStockItems.slice(0,5).map(i=>`<div class="notice"><span class="notice-icon">!</span><div><strong>${e(i.name)}</strong><small>Còn ${number(i.availableStock??i.currentStock)} ${e(i.unit)} khả dụng · mức tối thiểu ${number(i.minStock)}</small></div></div>`).join(''):empty('Kho đang ổn định','Không có nguyên liệu dưới ngưỡng tối thiểu.')}</section></div>`);
 }
 function ordersPage() {
@@ -377,16 +378,17 @@ async function exportRevenue() {
     ['Số đơn giả lập',report.synthetic.orderCount],['Giá trị giả lập (không phải doanh thu thật)',report.synthetic.netRevenue],
     ['Tổng đơn',report.orderCount],['Tổng trước giảm giá',report.grossRevenue],
     ['Tổng giảm giá',report.discountTotal],['Tổng cộng gồm giả lập',report.netRevenue],
+    ['Mốc ngày','Ngày tạo đơn theo UTC+7; chỉ tính đơn đã thanh toán. Không phải báo cáo theo giờ thu tiền.'],
   ]);
   summary.getColumn(1).width=42; summary.getColumn(2).width=62; summary.getRow(1).font={bold:true,size:14};
   for(const rowNum of [7,9,11,12,13]) summary.getCell(`B${rowNum}`).numFmt='#,##0 [$₫-vi-VN]';
   const detail=workbook.addWorksheet('Chi tiết đơn');
   detail.columns=[
-    {header:'STT',key:'no',width:8},{header:'Mã đơn',key:'code',width:24},{header:'Nguồn dữ liệu',key:'origin',width:19},{header:'Thời gian tạo đơn',key:'createdAt',width:23},
+    {header:'STT',key:'no',width:8},{header:'Mã đơn',key:'code',width:24},{header:'Nguồn dữ liệu',key:'origin',width:19},{header:'Thời gian tạo đơn (UTC+7)',key:'createdAt',width:23},
     {header:'Phương thức',key:'payment',width:20},{header:'Trước giảm giá',key:'gross',width:20},
     {header:'Giảm giá',key:'discount',width:18},{header:'Doanh thu thuần',key:'net',width:20},{header:'Món trong đơn',key:'items',width:56},
   ];
-  for(const [index,order] of report.orders.entries()) detail.addRow({no:index+1,code:order.orderCode,origin:order.dataOrigin==='SYNTHETIC'?'Giả lập':'Thật',createdAt:new Date(order.createdAt),payment:({CASH:'Tiền mặt',QR_BANKING:'Chuyển khoản',POS_CARD:'Thẻ'}[order.paymentMethod]||'—'),gross:order.totalAmount,discount:order.discountAmount,net:order.finalAmount,items:order.items.map(item=>`${item.product.name} × ${item.quantity}`).join(', ')});
+  for(const [index,order] of report.orders.entries()) detail.addRow({no:index+1,code:order.orderCode,origin:order.dataOrigin==='SYNTHETIC'?'Giả lập':'Thật',createdAt:businessExcelDate(order.createdAt),payment:({CASH:'Tiền mặt',QR_BANKING:'Chuyển khoản',POS_CARD:'Thẻ'}[order.paymentMethod]||'—'),gross:order.totalAmount,discount:order.discountAmount,net:order.finalAmount,items:order.items.map(item=>`${item.product.name} × ${item.quantity}`).join(', ')});
   detail.getRow(1).font={bold:true}; detail.getRow(1).alignment={vertical:'middle',wrapText:true}; detail.views=[{state:'frozen',ySplit:1}]; detail.autoFilter={from:'A1',to:'I1'};
   detail.getColumn('createdAt').numFmt='dd/mm/yyyy hh:mm'; for(const col of ['gross','discount','net']) detail.getColumn(col).numFmt='#,##0 [$₫-vi-VN]';
   const buffer=await workbook.xlsx.writeBuffer(), blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), url=URL.createObjectURL(blob), link=document.createElement('a');
@@ -475,7 +477,9 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='ai-plan') {
     const selected=document.querySelector('#forecast-date').value,day=state.forecastResultDate,branch=state.branch;
     if(!day||selected!==day||state.forecastResultBranch!==branch)return toast('Ngày hoặc chi nhánh đã đổi. Hãy ước tính lại nhu cầu trước khi lập dự trù.',true);
-    const plan=await perform(()=>api('/api/inventory/plan',{method:'POST',body:{targetDate:day,branchId:branch}}));
+    const forecastRunId=state.data.forecast?.[0]?.runId;
+    if(!forecastRunId||state.data.forecast.some(row=>row.runId!==forecastRunId))return toast('Hãy chạy lại dự báo để lập dự trù từ đúng kết quả đang xem.',true);
+    const plan=await perform(()=>api('/api/inventory/plan',{method:'POST',body:{targetDate:day,branchId:branch,forecastRunId}}));
     if(plan&&state.branch===branch)showAiActionResult('Dự trù nguyên liệu cho '+day,'Dựa vào dự báo món, định lượng và số tồn khả dụng. Kiểm tra trước khi duyệt mua hàng.',ingredientPlanMarkup(plan),()=>{state.date=day;state.page='inventory';shell();loadPage();},'Mở kho để xem và duyệt');return;
   }
   if(action==='ai-prepare-combos') {
