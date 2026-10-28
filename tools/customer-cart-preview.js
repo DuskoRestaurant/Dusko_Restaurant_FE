@@ -16,6 +16,8 @@ if (new URLSearchParams(location.search).get('theme') === 'light') {
 import '../customer-web/src/customer-menu.css';
 import {createCustomerMenu} from '../customer-web/src/customer-menu.js';
 import {customerBasketPricing} from '../customer-web/src/customer-basket-pricing.js';
+import {customerCartLines} from '../customer-web/src/customer-cart-lines.js';
+import {customerOrderHistory} from '../customer-web/src/customer-order-history.js';
 import {cartCheckoutable} from '../src/cart-view.js';
 const app = document.querySelector('#app');
 const money = n => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(n);
@@ -27,16 +29,18 @@ const base = [
   ['Lẩu','Lẩu Thái hải sản',289000,'lau-thai'],
   ['Ăn nhẹ','Khoai tây chiên',39000,'khoai-tay-chien'],
   ['Tráng miệng','Dưa hấu',29000,'dua-hau'],
+  ['Đồ uống','Bia Tiger',25000,'bia-tiger'],
 ];
 const products=base.flatMap(([category,name,sellingPrice,image],group)=>Array.from({length:13},(_,i)=>({id:group*100+i+1,name:i===0?name:`${name} ${i+1}`,sellingPrice,imageUrl:`/dishes/${image}.webp`,category:{name:category},canOrder:i!==12,availabilityReason:'Tạm hết',maxOrderQuantity:30,tags:group===0&&i<2||group===1&&i===0?['BEST_SELLER']:group===2?['VEGETARIAN']:group===3?['SPICY']:[],description:''})));
-const quantities=new Map(), notes=new Map();
+const quantities=new Map(new URLSearchParams(location.search).has('review')?[[1,2],[601,1]]:[]), notes=new Map();
 const basket=()=>({items:[...quantities].map(([id,quantity])=>({...products.find(p=>p.id===id),productId:id,quantity,note:notes.get(id)||''})),combos:[]});
-app.innerHTML='<header class="customer-app-header"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO RESTAURANT</span></div><p>Bàn 02</p></header><main><section class="hero"><h1>Chi nhánh Quận 1</h1></section><p class="notice">BẢN XEM THỬ · 78 món giả lập · Không gửi đơn</p><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart"></section></div></main><aside class="restaurant-help"><button class="help-toggle" type="button" aria-label="Hỏi nhà hàng" title="Hỏi nhà hàng"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-7a8 8 0 1 1 18-3Z" stroke-linejoin="round"/><path d="M7 10h8M7 14h5" stroke-linecap="round"/></svg></button></aside>';
+app.innerHTML='<header class="customer-app-header"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO RESTAURANT</span></div><p>Bàn 02</p></header><main><section class="hero"><h1>Chi nhánh Quận 1</h1></section><p class="notice">BẢN XEM THỬ · 91 món giả lập · Không gửi đơn</p><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart"></section></div></main><aside class="restaurant-help"><button class="help-toggle" type="button" aria-label="Hỏi nhà hàng" title="Hỏi nhà hàng"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-7a8 8 0 1 1 18-3Z" stroke-linejoin="round"/><path d="M7 10h8M7 14h5" stroke-linecap="round"/></svg></button></aside>';
+if(new URLSearchParams(location.search).has('review'))app.querySelector('.customer-layout').insertAdjacentHTML('beforebegin',customerOrderHistory([{id:'preview',createdAt:'2026-10-29T12:30:00Z',status:'PENDING',source:'CUSTOMER_QR',finalAmount:212000,items:[{product:{name:'Gỏi cuốn'},quantity:2,servedAt:'2026-10-29T12:35:00Z'},{product:{name:'Cơm chiên hải sản'},quantity:1,kdsStatus:'COOKING'},{product:{name:'Bia Tiger'},quantity:1,kdsStatus:'DONE'}]}],{open:true}));
 const cart=app.querySelector('#customer-cart');
 let menu, overlay;
 function renderCart() {
   const entries=basket().items;
-  cart.innerHTML=`<h2>Giỏ món <span>${entries.reduce((s,i)=>s+i.quantity,0)} món</span></h2>${entries.map(item=>`<div class="cart-item"><p>${escape(item.name)} × ${item.quantity}<b>${money(item.sellingPrice*item.quantity)}</b></p><div class="cart-stepper"><button type="button" data-cart-delta="-1" data-id="${item.id}" aria-label="Giảm ${escape(item.name)}">−</button><span>${item.quantity}</span><button type="button" data-cart-delta="1" data-id="${item.id}" aria-label="Tăng ${escape(item.name)}">+</button></div><input data-note="${item.id}" aria-label="Ghi chú ${escape(item.name)}" value="${escape(notes.get(item.id)||'')}" placeholder="Ghi chú: ít cay, không hành…"></div>`).join('') || '<p>Giỏ chưa có món. Chọn món bạn thích trong thực đơn nhé.</p>'}<div class="total">Tạm tính <b>${money(customerBasketPricing(basket()).total)}</b></div><button class="primary" data-demo-submit ${cartCheckoutable(entries,{sessionOpen:true,busy:false})?'': 'disabled'}>Gửi yêu cầu cho nhân viên</button><small>Bản xem thử chỉ mô phỏng, không gửi đơn thật.</small><p data-demo-status role="status"></p>`;
+  cart.innerHTML=`<div class="guest-cart-heading"><h2>Giỏ món <span>${entries.reduce((s,i)=>s+i.quantity,0)} món</span></h2>${entries.length?'<button type="button" data-clear-cart class="guest-cart-clear">Xóa tất cả</button>':''}</div>${entries.length?customerCartLines(entries,{productById:id=>products.find(p=>p.id===id)}):'<p>Giỏ chưa có món.</p>'}<div class="total">Tạm tính <b>${money(customerBasketPricing(basket()).total)}</b></div><button class="primary" data-demo-submit ${cartCheckoutable(entries,{sessionOpen:true,busy:false})?'': 'disabled'}>Gửi yêu cầu cho nhân viên</button><small>Bản xem thử chỉ mô phỏng, không gửi đơn thật.</small><p data-demo-status role="status"></p>`;
 }
 function changeQuantity(id,delta,source,note) {
   if(note)notes.set(id,note);
@@ -50,8 +54,11 @@ menu=createCustomerMenu({root:app.querySelector('#customer-menu'),products,quant
 overlay=createCustomerCartOverlay({root:app,summary:()=>({count:[...quantities.values()].reduce((s,q)=>s+q,0),total:money(customerBasketPricing(basket()).total),busy:false})});
 cart.addEventListener('click',event=>{
   if(event.target.closest('[data-demo-submit]')){cart.querySelector('[data-demo-status]').textContent='Đã mô phỏng gửi yêu cầu. Không có đơn thật được tạo.';return;}
-  const button=event.target.closest('[data-cart-delta]');
-  if(button) changeQuantity(Number(button.dataset.id),Number(button.dataset.cartDelta),button);
+  const remove=event.target.closest('[data-remove]');
+  const minus=event.target.closest('[data-cart-minus]'),plus=event.target.closest('[data-cart-plus]');
+  if(remove) changeQuantity(Number(remove.dataset.remove),-(quantities.get(Number(remove.dataset.remove))||0));
+  if(minus||plus) changeQuantity(Number((minus||plus).dataset[minus?'cartMinus':'cartPlus']),minus?-1:1);
+  if(event.target.closest('[data-clear-cart]')){quantities.clear();renderCart();menu.update();overlay.update();}
 });
 cart.addEventListener('input',event=>{if(event.target.hasAttribute('data-note')) notes.set(Number(event.target.dataset.note),event.target.value);});
 

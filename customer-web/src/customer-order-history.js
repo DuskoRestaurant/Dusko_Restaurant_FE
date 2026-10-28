@@ -1,13 +1,15 @@
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=value=>new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(value);
-function statusText(order){
-  if(order.status==='AWAITING_CONFIRMATION')return 'Chờ nhân viên xác nhận';
-  if(order.status==='CANCELLED')return `Đã từ chối: ${order.note||'Vui lòng hỏi nhân viên'}`;
-  const label=item=>item.servedAt?'Đã mang ra bàn':item.kdsStatus==='DONE'?'Sẵn sàng phục vụ':item.kdsStatus==='COOKING'?'Đang chế biến':'Đang chờ chế biến';
-  return `${order.status==='PAID'?'Đã thanh toán':'Đã nhận yêu cầu'}${order.items?.length?' · '+order.items.map(item=>`${item.product.name} × ${item.quantity}: ${label(item)}`).join('; '):''}`;
+export function customerItemStatus(order,item){
+  if(order.status==='CANCELLED')return ['cancelled','Đã từ chối'];
+  if(order.status==='AWAITING_CONFIRMATION')return ['waiting','Chờ xác nhận'];
+  if(item.servedAt)return ['served','Đã lên bàn'];
+  if(item.kdsStatus==='DONE')return ['ready','Sẵn sàng'];
+  if(item.kdsStatus==='COOKING')return ['cooking','Đang chế biến'];
+  return ['waiting','Chờ chế biến'];
 }
 export function customerOrderHistory(orders,{open=false}={}){
   if(!orders.length)return '';
   const pending=orders.filter(order=>order.status==='AWAITING_CONFIRMATION').length;
-  return `<details class="receipt guest-order-history" ${open?'open':''}><summary><strong>Món đã gọi</strong><span>${orders.length} lượt${pending?` · ${pending} chờ xác nhận`:''}</span></summary><div class="guest-order-list">${orders.map(order=>`<article class="tracked-order"><p>Lượt gọi lúc <b>${new Date(order.createdAt).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</b>${order.source==='CUSTOMER_QR'?'':' · nhân viên gọi'}</p>${Number.isFinite(order.finalAmount)?`<p>Thành tiền: <b>${money(order.finalAmount)}</b>${order.discountAmount?` · Đã giảm ${money(order.discountAmount)}`:''}</p>`:''}<p class="tracked-status" data-order-status="${escape(order.id)}">${escape(statusText(order))}</p></article>`).join('')}</div></details>`;
+  return `<details class="receipt guest-order-history" ${open?'open':''}><summary><strong>Món đã gọi</strong><span>${orders.length} lượt${pending?` · ${pending} chờ xác nhận`:''}</span></summary><div class="guest-order-list">${orders.map(order=>`<article class="tracked-order"><div class="guest-order-heading"><strong>Lượt ${new Date(order.createdAt).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</strong><span>${order.status==='PAID'?'Đã thanh toán':order.status==='CANCELLED'?'Đã từ chối':order.status==='AWAITING_CONFIRMATION'?'Chờ xác nhận':'Đã nhận yêu cầu'}</span></div>${order.source==='CUSTOMER_QR'?'':'<small>Nhân viên gọi món</small>'}<ul class="guest-order-items">${(order.items||[]).map(item=>{const [tone,label]=customerItemStatus(order,item);return `<li><div><strong>${escape(item.product?.name||'Món ăn')}</strong><span class="guest-order-quantity">× ${escape(item.quantity)}</span></div><span class="guest-order-status guest-order-status-${tone}">${label}</span></li>`;}).join('')}</ul>${order.status==='CANCELLED'?`<p class="guest-order-reason">${escape(order.note||'Vui lòng hỏi nhân viên để được hỗ trợ.')}</p>`:''}${Number.isFinite(order.finalAmount)?`<div class="guest-order-total"><span>Thành tiền${order.discountAmount?` <small>· Đã giảm ${money(order.discountAmount)}</small>`:''}</span><strong>${money(order.finalAmount)}</strong></div>`:''}</article>`).join('')}</div></details>`;
 }
