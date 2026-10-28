@@ -3,18 +3,15 @@ import assert from 'node:assert/strict';
 import {staffShellsFor} from '../staff-app/src/role-picker.js';
 import {canTakePayment,canManage,effectiveRoles} from '../src/permissions.js';
 import {jsonRequest} from '../src/json-request.js';
-test('each operational role has its own workspace and unknown roles have none',()=>{
- assert.deepEqual(staffShellsFor({role:'WAITER'}),['service']);
- assert.deepEqual(staffShellsFor({role:'CASHIER'}),['cashier']);
- assert.deepEqual(staffShellsFor({role:'CHEF'}),['kitchen']);
+test('all employees can choose all three workspaces without receiving management access',()=>{
+ for(const role of ['WAITER','CASHIER','CHEF','MANAGER','ADMIN']){
+  assert.deepEqual(staffShellsFor({role}),['kitchen','cashier','service']);
+  assert.equal(canTakePayment({role}),true);
+ }
  assert.deepEqual(staffShellsFor({role:'UNKNOWN'}),[]);
-});
-test('primary and extra roles are combined without granting payment to a waiter',()=>{
- assert.deepEqual(staffShellsFor({role:'WAITER',roles:['CHEF']}),['service','kitchen']);
- assert.deepEqual(staffShellsFor({role:'ADMIN'}),['service','cashier','kitchen']);
- assert.deepEqual(staffShellsFor({role:'MANAGER'}),['service','cashier','kitchen']);
- assert.equal(canTakePayment({role:'WAITER'}),false);
- assert.equal(canTakePayment({role:'WAITER',roles:['CASHIER']}),true);
+ assert.equal(canTakePayment({role:'UNKNOWN'}),false);
+ for(const role of ['WAITER','CASHIER','CHEF'])assert.equal(canManage({role}),false);
+ assert.deepEqual(staffShellsFor({role:'UNKNOWN',roles:['CHEF']}),['kitchen','cashier','service']);
  assert.equal(canManage({role:'CASHIER',roles:['MANAGER']}),true);
  assert.deepEqual(effectiveRoles({role:'WAITER',roles:['WAITER','CHEF']}),['WAITER','CHEF']);
 });

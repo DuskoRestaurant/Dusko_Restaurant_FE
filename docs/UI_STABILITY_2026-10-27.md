@@ -2,10 +2,10 @@
 
 ## Không gian theo công việc
 
-- Phục vụ: bàn, yêu cầu cần xác nhận, món cần mang ra, khách cần hỗ trợ. Không có quyền thanh toán hoặc xem lịch sử hóa đơn.
+- Phục vụ: bàn, yêu cầu cần xác nhận, món cần mang ra, khách cần hỗ trợ. Thao tác thanh toán và lịch sử hóa đơn nằm trong khu vực Thu ngân.
 - Thu ngân: ưu tiên bàn khách gọi tính tiền hoặc đã phục vụ đủ món; có các tab Hóa đơn và Khách hàng.
 - Bếp: mẻ chờ làm, đang làm và mẻ vừa hoàn thành. Danh sách hoàn thành chỉ lưu tối đa 30 mẻ được hoàn thành trên màn hình đang mở, không phải lịch sử bếp lâu dài.
-- Tài khoản nhiều vai trò được chọn công việc; quản lý/quản trị có thể đổi công việc và mở trang quản lý. Backend vẫn kiểm tra quyền và chi nhánh.
+- Cập nhật 28/10: mọi tài khoản nhân viên (phục vụ, thu ngân, bếp), quản lý và quản trị đều thấy ba khung Bếp / Thu ngân / Phục vụ sau khi đăng nhập hoặc tải lại trang, và đều được vào cả ba. Có nút Đổi khu vực trong từng màn hình. Vai trò gốc của tài khoản không đổi; API nghiệp vụ nhân viên dùng chung quyền, vẫn giới hạn chi nhánh. Chỉ quản lý/quản trị được vào trang quản lý.
 
 ## Thao tác và dữ liệu
 
@@ -23,6 +23,7 @@ npm test
 npm run build:all
 node tools/contrast.js
 node tests/browser/receipt-management.mjs
+node tests/browser/staff-picker.mjs
 ```
 
 Hai script browser cần Playwright và Microsoft Edge. Có thể đặt `NODE_PATH` đến một thư mục `node_modules` đã cài Playwright.

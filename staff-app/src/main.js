@@ -10,7 +10,7 @@ import '../../src/accounts.css';
 import {mountLogin,managementUrl} from '../../src/app-entry.js';
 import './style.css';
 import {createServiceWorkspace} from '../../src/service-workspace.js';
-import {staffShellsFor, shellLabels} from './role-picker.js';
+import {staffShellsFor, shellLabels, shellDescriptions} from './role-picker.js';
 import '../../src/readability.css';
 import '../../src/font.css';
 import '../../src/pos-theme.css';
@@ -30,22 +30,29 @@ function renderLogin(message='') {
   workspace?.destroy();workspace=null;
   mountLogin(app,{staff:true,message,submit:async(username,password)=>{
     const result=await authenticatorLogin(request,username,password);
-    if(!staffShellsFor(result.user).length)throw Error('Tài khoản này không có quyền phục vụ bàn');
+    if(!staffShellsFor(result.user).length)throw Error('Tài khoản này không có quyền truy cập web nhân viên');
     auth=result;sessionStorage.setItem('dusko-auth',JSON.stringify(auth));await startWorkspace();
   }});
 }
-async function startWorkspace() {
+async function startWorkspace(selectedShell=null) {
   workspace?.destroy();workspace=null;
   const profile=await request('/api/auth/profile');
   if(!auth)return;
   auth.user={...auth.user,...profile};sessionStorage.setItem('dusko-auth',JSON.stringify(auth));
   const shells=staffShellsFor(auth.user);
   if(!shells.length)throw Error('Tài khoản chưa có vai trò làm việc. Liên hệ quản lý.');
-  const saved=sessionStorage.getItem('dusko-shell');
-  const shell=shells.length===1?shells[0]:(shells.includes(saved)?saved:null);
+  const shell=shells.includes(selectedShell)?selectedShell:null;
   if(!shell){
-    app.innerHTML=`<main class="role-picker"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><h1>Chọn công việc trong ca</h1><p>${esc(auth.user.fullName)} · Bạn có thể đổi công việc sau khi vào màn hình.</p><div>${shells.map(id=>`<button type="button" data-shell="${id}">${shellLabels[id]}</button>`).join('')}</div><p role="status" data-picker-error></p></main>`;
-    app.querySelectorAll('[data-shell]').forEach(button=>button.onclick=async()=>{sessionStorage.setItem('dusko-shell',button.dataset.shell);try{await startWorkspace();}catch(error){app.querySelector('[data-picker-error]')?.replaceChildren(document.createTextNode(error.message));}});
+    app.innerHTML=`<main class="role-picker"><div class="role-picker-header"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><button type="button" data-picker-logout>Đăng xuất</button></div><h1>Chọn khu vực làm việc</h1><p>Xin chào ${esc(auth.user.fullName)}. Chọn công việc bạn muốn thực hiện trong ca.</p><div class="role-picker-grid">${shells.map((id,index)=>`<button type="button" class="role-card" data-shell="${id}"><span class="role-card-number" aria-hidden="true">0${index+1}</span><strong>${shellLabels[id]}</strong><span>${shellDescriptions[id]}</span><span class="role-card-enter">Vào khu vực →</span></button>`).join('')}</div><p class="role-picker-note">Bạn có thể đổi khu vực bất cứ lúc nào. Các thao tác được ghi nhận bằng tài khoản của bạn.</p><p role="status" data-picker-error></p></main>`;
+    app.querySelector('[data-picker-logout]').onclick=()=>{auth=null;sessionStorage.removeItem('dusko-auth');sessionStorage.removeItem('dusko-shell');renderLogin();};
+    let selecting=false;
+    app.querySelectorAll('[data-shell]').forEach(button=>button.onclick=async()=>{
+      if(selecting)return;selecting=true;
+      app.querySelectorAll('[data-shell]').forEach(card=>card.disabled=true);
+      try{await startWorkspace(button.dataset.shell);}
+      catch(error){app.querySelector('[data-picker-error]')?.replaceChildren(document.createTextNode(error.message));}
+      finally{selecting=false;app.querySelectorAll('[data-shell]').forEach(card=>card.disabled=false);}
+    });
     return;
   }
   let branches=[];
@@ -56,7 +63,7 @@ async function startWorkspace() {
     if(!branches.length)throw Error('Chưa có chi nhánh để phục vụ.');
   }
   workspace?.destroy();
-  app.innerHTML=`<header class="staff-app-header"><b><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO<small>${esc(shellLabels[shell])}</small></span></b><div>${canManage(auth.user)?`<a href="${managementUrl}">Trang quản lý ↗</a>`:''}${canAdminister(auth.user)?'<button id="mfa-settings">Authenticator</button>':''}${shells.length>1?'<button id="switch-role">Đổi công việc</button>':''}<button id="password">Đổi mật khẩu</button><button id="logout">Đăng xuất</button></div></header><main class="staff-main"><div class="staff-toolbar"><p class="staff-identity"><span class="staff-avatar">${esc((auth.user.fullName||'N').slice(0,1).toLocaleUpperCase('vi'))}</span><span><strong>${esc(auth.user.fullName)}</strong><small>${esc({ADMIN:'Quản trị viên',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ',CHEF:'Bếp'}[auth.user.role])}</small></span></p>${branches.length?`<label class="staff-branch"><span>Chi nhánh</span><select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}</div><div id="service-workspace" class="staff-app-surface"></div></main>`;
+  app.innerHTML=`<header class="staff-app-header"><b><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO<small>${esc(shellLabels[shell])}</small></span></b><div>${canManage(auth.user)?`<a href="${managementUrl}">Trang quản lý ↗</a>`:''}${canAdminister(auth.user)?'<button id="mfa-settings">Authenticator</button>':''}<button id="switch-role">Đổi khu vực</button><button id="password">Đổi mật khẩu</button><button id="logout">Đăng xuất</button></div></header><main class="staff-main"><div class="staff-toolbar"><p class="staff-identity"><span class="staff-avatar">${esc((auth.user.fullName||'N').slice(0,1).toLocaleUpperCase('vi'))}</span><span><strong>${esc(auth.user.fullName)}</strong><small>${esc({ADMIN:'Quản trị viên',MANAGER:'Quản lý',CASHIER:'Thu ngân',WAITER:'Nhân viên phục vụ',CHEF:'Bếp'}[auth.user.role])}</small></span></p>${branches.length?`<label class="staff-branch"><span>Chi nhánh</span><select id="staff-branch">${branches.map(branch=>`<option value="${branch.id}">${esc(branch.name)}</option>`).join('')}</select></label>`:''}</div><div id="service-workspace" class="staff-app-surface"></div></main>`;
   if(canAdminister(auth.user))app.querySelector('#mfa-settings').onclick=()=>reconfigureAuthenticator(request,()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Đã đổi Authenticator. Hãy đăng nhập lại.');});
   app.querySelector('#password').onclick=()=>passwordDialog(request,()=>{auth=null;sessionStorage.removeItem('dusko-auth');renderLogin('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   app.querySelector('#switch-role')?.addEventListener('click',()=>{sessionStorage.removeItem('dusko-shell');startWorkspace().catch(error=>renderLogin(error.message));});

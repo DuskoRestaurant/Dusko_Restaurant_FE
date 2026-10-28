@@ -14,3 +14,9 @@ body:has(.customer-layout) .customer-app-header p,body:has(.customer-layout) .cu
 body:has(.customer-layout) .cart h2 span{color:inherit}
 .service-workspace .sw-photo>span{color:var(--muted)}
 :where(input,textarea)::placeholder{color:var(--muted);opacity:1}
+
+/* Staff landing: each employee chooses a workspace after sign-in or reload. */
+.role-picker{max-width:1080px;margin:6vh auto;padding:32px}.role-picker .role-picker-header{display:flex;align-items:center;justify-content:space-between;flex-direction:row}.role-picker-header button{flex:none;min-height:44px;padding:10px 16px;background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}.role-picker h1{font-size:clamp(26px,4vw,36px);margin:28px 0 10px}.role-picker>p{color:var(--muted)}.role-picker .role-picker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:28px 0}.role-picker .role-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:14px;padding:24px;min-height:250px;background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}.role-picker .role-card:hover:not(:disabled){background:var(--primary-soft);border-color:var(--primary)}.role-card:disabled{opacity:.6;cursor:wait}.role-card strong{font-size:25px}.role-card>span{font-size:15px;line-height:1.6}.role-card .role-card-number{color:var(--accent);font-weight:700;font-size:18px}.role-card .role-card-enter{margin-top:auto;color:var(--primary-ink);font-weight:700}.role-picker-note{font-size:14px}.role-picker [data-picker-error]{color:var(--danger)}
+@media(max-width:700px){.role-picker{margin:16px 12px;padding:20px}.role-picker .role-picker-grid{grid-template-columns:1fr;gap:12px;margin:22px 0}.role-picker .role-card{min-height:0;padding:20px;gap:10px}.role-card .role-card-number{display:none}}
+
+body:has(.role-picker){display:flow-root;min-height:100dvh}

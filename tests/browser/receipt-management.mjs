@@ -34,7 +34,7 @@ try {
    await route.fulfill({json:{success:true,data}});
   });
   const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  await page.goto(url);await page.locator('.sw-tables').waitFor();
+  await page.goto(url);await page.locator(`[data-shell="${role==='WAITER'?'service':'cashier'}"]`).click();await page.locator('.sw-tables').waitFor();
   if(role==='WAITER'){assert.equal(await page.locator('[data-view="receipts"]').count(),0);checks++;await context.close();continue;}
   await page.locator('[data-sw-input="table-search"]').fill('Bàn');
   await page.locator('[data-view="receipts"]').click();await page.locator('.rm-row').waitFor();

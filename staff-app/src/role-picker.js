@@ -1,9 +1,10 @@
-import {hasRole} from '../../src/permissions.js';
-export const shellLabels={service:'Phục vụ bàn',cashier:'Thu ngân',kitchen:'Nhà bếp'};
+import {canUseStaffWorkspace} from '../../src/permissions.js';
+export const shellLabels={kitchen:'Bếp',cashier:'Thu ngân',service:'Phục vụ'};
+export const shellDescriptions={
+  kitchen:'Nhận mẻ nấu, cập nhật món đang làm và đã hoàn thành.',
+  cashier:'Thanh toán cho khách, xem và in hóa đơn.',
+  service:'Mở bàn, nhận yêu cầu gọi món và mang món cho khách.',
+};
 export function staffShellsFor(user) {
-  return [
-    ['service',['WAITER','MANAGER','ADMIN']],
-    ['cashier',['CASHIER','MANAGER','ADMIN']],
-    ['kitchen',['CHEF','MANAGER','ADMIN']],
-  ].filter(([,roles])=>hasRole(user,roles)).map(([shell])=>shell);
+  return canUseStaffWorkspace(user) ? ['kitchen','cashier','service'] : [];
 }
