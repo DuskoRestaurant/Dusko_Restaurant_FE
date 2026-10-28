@@ -12,6 +12,7 @@ import './customer-cart-overlay.css';
 import { createCustomerCartOverlay } from './customer-cart-overlay.js';
 import {createCustomerMenu} from './customer-menu.js';
 import {customerBasketPricing} from './customer-basket-pricing.js';
+import {customerOrderHistory} from './customer-order-history.js';
 import './customer-menu.css';
 import { confirmDialog } from '../../src/confirm-dialog.js';
 import { readStoredJson, preparePendingOrder, tryStoreJson } from '../../src/browser-storage.js';
@@ -36,6 +37,7 @@ const state = {
   presence: 0,
   cartPending: 0,
   lastServiceRequestAt: 0,
+  ordersExpanded: false,
 };
 
 async function request(path, options = {}) {
@@ -63,11 +65,11 @@ function render() {
   const { branch, table, sessionOpen, products } = state.data;
   app.innerHTML = `<header class="customer-app-header"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO RESTAURANT</span></div><p>${escape(table.name)}</p></header>
     <main><section class="hero"><div><small>CHI NHÁNH</small><h1>${escape(branch.name)}</h1></div></section>
-    <p class="customer-sync" data-customer-sync role="status"></p><p class="notice ${sessionOpen ? '' : 'closed'}">${sessionOpen ? 'Bàn đang phục vụ · Bạn có thể gọi thêm món' : 'Bàn chưa mở phiên phục vụ. Vui lòng gọi nhân viên để được hỗ trợ.'}</p>
+    <p class="customer-sync" data-customer-sync role="status"></p>${sessionOpen?'': '<p class="notice closed">Bàn chưa mở phục vụ. Vui lòng gọi nhân viên.</p>'}
     ${presenceBar()}
     <div id="service-actions">${serviceActions()}</div>
     <p id="customer-message" class="message" role="status" ${state.message ? '' : 'hidden'}>${escape(state.message)}</p>
-    ${orderListHtml()}
+    <div id="customer-order-history">${orderListHtml()}</div>
     <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart">${cartHtml()}</section></div><div id="customer-recognition"></div></main>`;
   customerHelp?.renderCombos();
   recognition?.render();
@@ -86,26 +88,16 @@ function render() {
 /** Shows how many guests currently share this table basket. */
 function presenceBar() {
   if (!state.presence || state.presence < 2) return '';
-  return `<p class="presence-bar">Có ${state.presence} khách đang dùng chung giỏ món của bàn này. Mọi thay đổi đều được đồng bộ tức thì.</p>`;
+  return `<p class="presence-bar" title="Các khách tại bàn cùng chọn món trong một giỏ, thay đổi được đồng bộ.">Giỏ dùng chung · ${state.presence} khách</p>`;
 }
 
-function orderListHtml() {
-  if (!state.orders.length) return '';
-  return `<section class="receipt"><h2>Các lượt gọi món của bàn</h2>${state.orders.map(order => `<article class="tracked-order"><p>Lượt gọi lúc <b>${new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</b>${order.source === 'CUSTOMER_QR' ? '' : ' · nhân viên gọi'}</p>${Number.isFinite(order.finalAmount) ? `<p>Thành tiền: <b>${money(order.finalAmount)}</b>${order.discountAmount ? ` · Đã giảm ${money(order.discountAmount)}` : ''}</p>` : ''}<p class="tracked-status" data-order-status="${escape(order.id)}">${orderStatusText(order)}</p></article>`).join('')}</section>`;
-}
-
-function orderStatusText(order) {
-  if (order.status === 'AWAITING_CONFIRMATION') return 'Chờ nhân viên tới bàn xác nhận. Món chưa chuyển vào bếp.';
-  if (order.status === 'CANCELLED') return `Yêu cầu đã được từ chối: ${order.note || 'Vui lòng hỏi nhân viên.'}`;
-  const label = item => item.servedAt ? 'Đã mang ra bàn' : item.kdsStatus === 'DONE' ? 'Sẵn sàng phục vụ' : item.kdsStatus === 'COOKING' ? 'Đang chế biến' : 'Đang chờ chế biến';
-  const items = (order.items || []).map(item => `${item.product.name} × ${item.quantity}: ${label(item)}`).join('; ');
-  return `${order.status === 'PAID' ? 'Đã thanh toán' : 'Đã nhận yêu cầu'}${items ? ' · ' + items : ''}`;
-}
+function orderListHtml() { return customerOrderHistory(state.orders,{open:state.ordersExpanded}); }
+app.addEventListener('toggle',event=>{if(event.target.isConnected&&event.target.classList?.contains('guest-order-history'))state.ordersExpanded=event.target.open;},true);
 
 let serviceBusy = false;
 function serviceActions() {
   if (!state.data?.sessionOpen) return '';
-  return `<div class="service-actions">${[['ASSISTANCE', 'Gọi nhân viên'], ['BILL', 'Yêu cầu thanh toán']].map(([kind, label]) => { const pending = state.data.serviceRequests?.some(r => r.kind === kind); return `<button type="button" data-service="${kind}" ${pending || serviceBusy ? 'disabled' : ''}>${pending ? `${label} · đã gửi` : label}</button>`; }).join('')}</div><small class="service-hint">Nhân viên sẽ đến bàn hỗ trợ. Yêu cầu thanh toán chưa phải là xác nhận đã trả tiền.</small>`;
+  return `<div class="service-actions">${[['ASSISTANCE', 'Gọi nhân viên'], ['BILL', 'Yêu cầu thanh toán']].map(([kind, label]) => { const pending = state.data.serviceRequests?.some(r => r.kind === kind); return `<button type="button" data-service="${kind}" aria-describedby="customer-service-help" ${pending || serviceBusy ? 'disabled' : ''}>${pending ? `${label} · đã gửi` : label}</button>`; }).join('')}</div><small class="service-hint guest-sr-only" id="customer-service-help">Nhân viên sẽ đến bàn hỗ trợ. Yêu cầu thanh toán chưa phải là xác nhận đã trả tiền.</small>`;
 }
 
 app.addEventListener('click', async event => {
@@ -326,8 +318,8 @@ async function refreshOrders() {
   if (!token) return;
   try {
     state.orders = await request(`/api/public/tables/${token}/orders`);
-    const holder = app.querySelector('.receipt');
-    if (holder) holder.outerHTML = orderListHtml();
+    const holder = app.querySelector('#customer-order-history');
+    if (holder) holder.innerHTML = orderListHtml();
   } catch (error) { /* Keep the last known order list during a temporary outage. */ }
 }
 
@@ -381,7 +373,7 @@ const customerHelp = token ? createCustomerHelp({
   comboSelections,
 }) : null;
 
-function updateConnectionLabel(){const label=document.querySelector('[data-customer-sync]');if(label)label.textContent=liveConnected?'Đang kết nối với nhà hàng':'Đang dùng cập nhật dự phòng · Nếu dữ liệu chưa đổi, hãy thử lại hoặc gọi nhân viên';}
+function updateConnectionLabel(){const label=document.querySelector('[data-customer-sync]');if(label)label.textContent=liveConnected?'Đã kết nối':'Đang kết nối lại…';}
 async function load() {
   if (!token) {
     app.innerHTML = '<main class="guest-entry"><div class="guest-entry-brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"> DUSKO</div><section><span class="guest-entry-icon" aria-hidden="true">▦</span><h1>Quét mã QR tại bàn</h1><p>Mở camera điện thoại và quét mã QR được đặt trên bàn để xem thực đơn, chọn món và gửi yêu cầu.</p><ol><li>Nhân viên mở bàn khi bạn đến.</li><li>Quét QR và chọn món yêu thích.</li><li>Nhân viên xác nhận rồi chuyển món tới bếp.</li></ol><p class="guest-entry-help">Không quét được mã? Nhân viên có thể gọi món giúp bạn.</p></section></main>';

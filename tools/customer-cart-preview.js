@@ -28,10 +28,10 @@ const base = [
   ['Ăn nhẹ','Khoai tây chiên',39000,'khoai-tay-chien'],
   ['Tráng miệng','Dưa hấu',29000,'dua-hau'],
 ];
-const products=base.flatMap(([category,name,sellingPrice,image],group)=>Array.from({length:13},(_,i)=>({id:group*100+i+1,name:i===0?name:`${name} ${i+1}`,sellingPrice,imageUrl:`/dishes/${image}.webp`,category:{name:category},canOrder:i!==12,availabilityReason:'Tạm hết',maxOrderQuantity:30,tags:group===0&&i<2||group===1&&i===0?['BEST_SELLER']:group===2?['VEGETARIAN']:group===3?['SPICY']:[],description:'Món được chuẩn bị khi bạn gọi. Có thể gửi ghi chú để nhân viên xác nhận.'})));
+const products=base.flatMap(([category,name,sellingPrice,image],group)=>Array.from({length:13},(_,i)=>({id:group*100+i+1,name:i===0?name:`${name} ${i+1}`,sellingPrice,imageUrl:`/dishes/${image}.webp`,category:{name:category},canOrder:i!==12,availabilityReason:'Tạm hết',maxOrderQuantity:30,tags:group===0&&i<2||group===1&&i===0?['BEST_SELLER']:group===2?['VEGETARIAN']:group===3?['SPICY']:[],description:''})));
 const quantities=new Map(), notes=new Map();
 const basket=()=>({items:[...quantities].map(([id,quantity])=>({...products.find(p=>p.id===id),productId:id,quantity,note:notes.get(id)||''})),combos:[]});
-app.innerHTML='<header><div class="brand">DUSKO</div><p>Bàn 02</p></header><main><section class="hero"><h1>Chi nhánh Quận 1</h1></section><p class="notice">BẢN XEM THỬ · 78 món giả lập · Không gửi đơn</p><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart"></section></div></main><aside class="restaurant-help"><button class="help-toggle" type="button" aria-label="Hỏi nhà hàng" title="Hỏi nhà hàng"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-7a8 8 0 1 1 18-3Z" stroke-linejoin="round"/><path d="M7 10h8M7 14h5" stroke-linecap="round"/></svg></button></aside>';
+app.innerHTML='<header class="customer-app-header"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO RESTAURANT</span></div><p>Bàn 02</p></header><main><section class="hero"><h1>Chi nhánh Quận 1</h1></section><p class="notice">BẢN XEM THỬ · 78 món giả lập · Không gửi đơn</p><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart"></section></div></main><aside class="restaurant-help"><button class="help-toggle" type="button" aria-label="Hỏi nhà hàng" title="Hỏi nhà hàng"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8H5l-3 2v-7a8 8 0 1 1 18-3Z" stroke-linejoin="round"/><path d="M7 10h8M7 14h5" stroke-linecap="round"/></svg></button></aside>';
 const cart=app.querySelector('#customer-cart');
 let menu, overlay;
 function renderCart() {
@@ -54,3 +54,5 @@ cart.addEventListener('click',event=>{
   if(button) changeQuantity(Number(button.dataset.id),Number(button.dataset.cartDelta),button);
 });
 cart.addEventListener('input',event=>{if(event.target.hasAttribute('data-note')) notes.set(Number(event.target.dataset.note),event.target.value);});
+
+import '../src/ui-foundation.css';

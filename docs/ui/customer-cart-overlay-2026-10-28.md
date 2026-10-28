@@ -85,6 +85,15 @@
 
 Ảnh: [bộ lọc rõ hình khối và kén gọn](customer-filters-defined-compact.png).
 
+## Tiêu đề nhóm và scrollspy ổn định — 29/10/2026
+
+- Thêm h3 tên danh mục ngay đầu mỗi nhóm món; giữ thanh badge để điều hướng. Không thêm số đếm lặp.
+- Thay chọn nhóm theo diện tích nhìn thấy bằng đường đọc ngay dưới sticky. Thêm vùng trễ 24px mỗi phía và chờ 160ms cho ứng viên ổn định để tránh đổi qua lại ở ranh giới. Chọn badge vẫn phản hồi ngay và cuộn mượt tới tiêu đề; kẹp biên giữ nguyên.
+- Thu lịch sử gọi món thật vào disclosure “Món đã gọi”, mặc định đóng; giữ trạng thái mở qua các lần cập nhật. Giữ toàn bộ giá/trạng thái bên trong và escape nội dung. Rút trạng thái kết nối, số khách dùng chung; hướng dẫn hỗ trợ vẫn có cho trình đọc màn hình nhưng không lặp thành đoạn dài.
+- Fixture bỏ mô tả boilerplate lặp trên mọi món và đồng bộ header/foundation với app thật.
+- Quan sát trang thật: các nhãn như VNP-78ba2320 và nhiều món nằm trong Bia là dữ liệu catalog hiện có, không phải chuỗi debug sinh bởi component. Không xóa hoặc sửa phân loại production trong lần thay đổi giao diện này.
+- 84/84 test FE đạt, build:all thành công. QA viewport 390px: tiêu đề Món chính top ~156px, sticky bottom 148px; không tràn ngang. Test mới bao phủ đường đọc, vùng trễ, nhóm lọc/cuối trang và lịch sử đóng/mở/escape.
+
 ## Áp dụng vào nhánh Tong
 
 - Giao diện được nối trực tiếp vào entry của customer-web và component phục vụ dùng chung của quản lý/nhân viên; tools chỉ là fixture xem thử, không nằm trong entry production.
