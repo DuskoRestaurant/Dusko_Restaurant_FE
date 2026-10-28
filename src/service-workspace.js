@@ -5,6 +5,8 @@ import { sharedToast } from './toast.js';
 import './service-workspace.css';
 import { showQrPreview } from './qr-preview.js';
 import { confirmDialog } from './confirm-dialog.js';
+import { serviceMenuPage } from './service-menu.js';
+import { filterServiceTables, serviceTableFilters } from './service-tables.js';
 
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[c]);
 const money = value => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(value || 0);
@@ -18,13 +20,14 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   // Shares the console toast stack so the workspace and the shell announce
   // through one live region instead of two.
   const toast = sharedToast();
-  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', filter:'ALL', search:'', menuSearch:'', category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
+  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', filter:'ALL', search:'', menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
   let disposed = false;
   let closeVnpay;
   let selection = 0;
   let polling = false;
   let liveConnected = false;
   let panelSnapshot = '';
+  let menuSnapshot = '';
   let productsAt=initialData?.products?Date.now():0, productsPending;
   if(initialData){state.tables=initialData.tables||[];state.products=initialData.products||[];}
   function loadProducts(force=false){
@@ -50,9 +53,8 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   function showMessage(message, bad = false) { state.message = message; state.bad = bad; const el = root.querySelector('[data-sw-message]'); if(el) { el.textContent = message; el.classList.toggle('sw-error', bad); el.hidden = !message; } }
   function setBusy(busy) { state.busy = busy; root.setAttribute('aria-busy',String(busy)); root.querySelectorAll('button[data-sw]').forEach(el => el.disabled = busy || el.dataset.locked === 'true'); }
   function tableCards() {
-    const tables = state.tables.filter(table => table.tableName.toLowerCase().includes(state.search.toLowerCase()) && (state.filter==='ALL' || state.filter==='CALL' && table.serviceRequestCount || state.filter==='CONFIRM' && table.unconfirmedOrderCount || state.filter==='READY' && table.readyQuantity || state.filter==='EMPTY' && table.status==='EMPTY'));
-    tables.sort((a,b) => Number(Boolean(b.serviceRequestCount))*20 + Number(Boolean(b.unconfirmedOrderCount))*10 + Number(Boolean(b.readyQuantity))*5 - Number(Boolean(a.serviceRequestCount))*20 - Number(Boolean(a.unconfirmedOrderCount))*10 - Number(Boolean(a.readyQuantity))*5 || a.tableName.localeCompare(b.tableName,'vi',{numeric:true}));
-    return tables.map(table => `<button type="button" class="sw-table ${table.serviceRequestCount||table.unconfirmedOrderCount||table.readyQuantity?'sw-attention':''}" data-state="${table.status}" data-sw="table" data-id="${table.id}"><span class="sw-table-state">${table.status==='EMPTY'?'Trống':table.status==='RESERVED'?'Đã đặt trước':'Đang phục vụ'}</span><strong>${e(table.tableName)}</strong><small>${table.seatingCapacity} chỗ</small><div>${table.serviceRequestCount?`<b class="sw-table-call">${table.serviceRequestCount} yêu cầu hỗ trợ</b>`:''}${table.unconfirmedOrderCount?`<b class="sw-table-confirm">${table.unconfirmedOrderCount} yêu cầu cần xác nhận</b>`:table.readyQuantity?`<b class="sw-table-ready">${table.readyQuantity} món cần mang ra</b>`:table.pendingOrderCount?'<span>Đang phục vụ món</span>':'<span>Chọn để xem bàn</span>'}</div></button>`).join('') || empty('Không có bàn phù hợp');
+    const tables = filterServiceTables(state.tables,{search:state.search,filter:state.filter});
+    return tables.map(table => `<button type="button" class="sw-table ${table.serviceRequestCount||table.unconfirmedOrderCount||table.readyQuantity?'sw-attention':''}" data-state="${table.status}" data-priority="${table.serviceRequestCount?'call':table.unconfirmedOrderCount?'confirm':table.readyQuantity?'ready':'idle'}" data-sw="table" data-id="${table.id}"><span class="sw-table-state">${table.status==='EMPTY'?'Trống':table.status==='RESERVED'?'Đã đặt trước':'Đang phục vụ'}</span><strong>${e(table.tableName)}</strong><small>${table.seatingCapacity} chỗ</small><div>${table.serviceRequestCount?`<b class="sw-table-call">${table.serviceRequestCount} yêu cầu hỗ trợ</b>`:''}${table.unconfirmedOrderCount?`<b class="sw-table-confirm">${table.unconfirmedOrderCount} cần xác nhận</b>`:''}${table.readyQuantity?`<b class="sw-table-ready">${table.readyQuantity} món sẵn sàng</b>`:''}${!table.serviceRequestCount&&!table.unconfirmedOrderCount&&!table.readyQuantity?(table.pendingOrderCount?'<span>Đang phục vụ món</span>':'<span>Chọn để xem bàn</span>'):''}</div></button>`).join('') || empty('Không có bàn phù hợp');
   }
   function render() {
     if(disposed) return;
@@ -62,45 +64,138 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     setBusy(state.busy);
   }
   function listView() {
-    return `<section class="sw-service-hero"><div class="sw-hero-copy"><span class="sw-hero-kicker">DUSKO · PHỤC VỤ</span><h2>Không gian phục vụ</h2><p>Theo dõi bàn, xác nhận món khách gọi và mang món ra đúng lúc.</p></div><img src="/dishes/lau-thai.webp" alt="Lẩu Thái trong thực đơn" loading="lazy"></section><div class="sw-heading"><div><h2>Danh sách bàn</h2><p>Chọn bàn để nhận yêu cầu, gọi món hoặc thanh toán.</p></div>${mayPay?button('Hóa đơn gần đây','receipts'):''}${button('Làm mới','refresh')}</div><div class="sw-overview">${listOverview()}</div><div class="sw-filters"><input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn" aria-label="Tìm bàn" value="${e(state.search)}"><select data-sw-input="table-filter" aria-label="Lọc bàn"><option value="ALL">Tất cả bàn</option><option value="CALL" ${state.filter==='CALL'?'selected':''}>Khách cần hỗ trợ</option><option value="CONFIRM" ${state.filter==='CONFIRM'?'selected':''}>Chờ xác nhận</option><option value="READY" ${state.filter==='READY'?'selected':''}>Có món sẵn sàng</option><option value="EMPTY" ${state.filter==='EMPTY'?'selected':''}>Bàn trống</option></select></div><div class="sw-tables">${tableCards()}</div><p class="sw-guide"><strong>Quy trình:</strong> Mở bàn → xác nhận yêu cầu QR hoặc gọi món giúp khách → mang món đã hoàn thành ra bàn.</p>`;
+    return `<div class="sw-heading sw-list-heading"><div><h2>Danh sách bàn</h2><p>Bàn cần xử lý được xếp trước. Chọn trạng thái để lọc nhanh.</p></div><div class="sw-heading-actions">${mayPay?button('Hóa đơn gần đây','receipts'):''}${button('Làm mới','refresh')}</div></div><div class="sw-overview" role="group" aria-label="Lọc trạng thái bàn">${listOverview()}</div><div class="sw-filters sw-table-filters"><input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></div><div class="sw-tables">${tableCards()}</div><details class="sw-guide"><summary>Hướng dẫn phục vụ</summary><p>Mở bàn → xác nhận yêu cầu QR hoặc gọi món giúp khách → mang món đã hoàn thành ra bàn → thanh toán.</p></details>`;
   }
   const mayCloseEmpty = () => Boolean(state.session) && !(state.session.orders||[]).some(order=>['AWAITING_CONFIRMATION','PENDING'].includes(order.status));
   function tableView() {
     const table = state.table;
-    return `<div class="sw-heading"><div>${button('← Danh sách bàn','back')}<h2>${e(table.tableName)}</h2><p>${state.session?'Đang phục vụ · các lần gọi món dùng chung một hóa đơn':table.status==='RESERVED'?'Bàn đang được đặt trước. Quản lý cần cập nhật tình trạng bàn.':'Bàn chưa mở phục vụ'}</p></div><div class="sw-actions">${button('Xem QR','view-qr')}<span data-sw-empty-close>${mayCloseEmpty()?button('Đóng bàn chưa gọi món','close'):''}</span>${button('Làm mới','refresh')}</div></div>${state.session?`<div data-sw-calls>${serviceCalls()}</div><div class="sw-table-summary" data-sw-summary>${summary()}</div><div class="sw-tabs" role="tablist" aria-label="Công việc tại bàn">${tabs()}</div><div class="sw-content" data-sw-panel>${panel()}</div>`:`<div class="sw-empty"><h3>${table.pendingOrderCount?'Bàn còn đơn cũ chưa thanh toán':'Khách đã đến bàn?'}</h3><p>${table.pendingOrderCount?'Thu ngân cần xử lý đơn cũ trong mục Mang đi và đơn cũ trước khi mở bàn.':'Mở bàn để khách sử dụng QR cố định hoặc để nhân viên gọi món.'}</p>${button('Mở bàn phục vụ','open',table.status==='RESERVED'||table.pendingOrderCount?'data-locked="true"':'',true)}</div>`}`;
+    return `<div class="sw-heading sw-table-heading"><div>${button('← Danh sách bàn','back')}<h2>${e(table.tableName)}</h2><p>${state.session?'Đang phục vụ · các lần gọi món dùng chung một hóa đơn':table.status==='RESERVED'?'Bàn đang được đặt trước. Quản lý cần cập nhật tình trạng bàn.':'Bàn chưa mở phục vụ'}</p></div><div class="sw-actions">${button('Xem QR','view-qr')}<span data-sw-empty-close>${mayCloseEmpty()?button('Đóng bàn chưa gọi món','close'):''}</span>${button('Làm mới','refresh')}</div></div>${state.session?`<div data-sw-calls>${serviceCalls()}</div><div class="sw-table-summary" data-sw-summary>${summary()}</div><div class="sw-tabs" role="tablist" aria-label="Công việc tại bàn">${tabs()}</div><div class="sw-content" data-sw-panel id="sw-panel" role="tabpanel" tabindex="0" aria-labelledby="sw-tab-${state.tab}">${panel()}</div>`:`<div class="sw-empty"><h3>${table.pendingOrderCount?'Bàn còn đơn cũ chưa thanh toán':'Khách đã đến bàn?'}</h3><p>${table.pendingOrderCount?'Thu ngân cần xử lý đơn cũ trong mục Mang đi và đơn cũ trước khi mở bàn.':'Mở bàn để khách sử dụng QR cố định hoặc để nhân viên gọi món.'}</p>${button('Mở bàn phục vụ','open',table.status==='RESERVED'||table.pendingOrderCount?'data-locked="true"':'',true)}</div>`}`;
   }
   function serviceCalls(){return (state.serviceRequests||[]).map(call=>`<div class="sw-service-call"><div><strong>${call.kind==='BILL'?'Khách yêu cầu thanh toán':'Khách cần nhân viên hỗ trợ'}</strong><small>Gửi lúc ${time(call.createdAt)}</small></div>${button('Đã hỗ trợ','resolve-call',`data-id="${call.id}"`)}</div>`).join('');}
-  function summary() { return `<span><b>${waitingOrders().length}</b> chờ xác nhận</span><span><b>${quantities(readyItems())}</b> món sẵn sàng</span><span><b>${money(total())}</b> đã nhận</span>`; }
-  function tabs() { return [['confirm','Chờ xác nhận',waitingOrders().length],['ready','Món sẵn sàng',quantities(readyItems())],['menu','Gọi thêm',null],['bill','Hóa đơn',null]].map(([id,label,count])=>`<button type="button" role="tab" aria-selected="${state.tab===id}" class="${state.tab===id?'sw-active':''}" data-sw="tab" data-tab="${id}">${label}${count?` <span>${count}</span>`:''}</button>`).join(''); }
+  function summary() { return `<span><b>${waitingOrders().length}</b> chờ xác nhận</span><span><b>${quantities(readyItems())}</b> món sẵn sàng</span><span><b>${money(total())}</b> tiền món</span>`; }
+  function tabs() { return [['confirm','Chờ xác nhận',waitingOrders().length],['ready','Món sẵn sàng',quantities(readyItems())],['menu','Gọi thêm',null],['bill','Hóa đơn',null]].map(([id,label,count])=>`<button type="button" role="tab" id="sw-tab-${id}" aria-controls="sw-panel" aria-selected="${state.tab===id}" tabindex="${state.tab===id?'0':'-1'}" class="${state.tab===id?'sw-active':''}" data-sw="tab" data-tab="${id}">${label}${count?` <span>${count}</span>`:''}</button>`).join(''); }
   function draftView() { return state.draft?`<aside class="sw-draft"><strong>Có lượt gọi món chưa gửi thành công</strong><p>${state.draft.items.map(item=>`${e(state.products.find(p=>p.id===item.productId)?.name||'Món')} × ${item.quantity}`).join(' · ')}. Máy chủ có thể chưa nhận; thử lại dùng cùng mã để tránh tạo trùng.</p>${state.draft.sessionId===state.session.id?button('Thử gửi lại','retry'): '<p>Bản nháp thuộc phiên bàn trước, không được gửi cho khách mới.</p>'}${button('Xóa bản nháp','discard')}</aside>`:''; }
+  function menuResults() {
+    const result = serviceMenuPage(state.products, {search:state.menuSearch, category:state.category, page:state.menuPage});
+    state.menuPage = result.page;
+    return result;
+  }
+  function menuProducts(result) {
+    return result.items.map(p=>`<button type="button" class="sw-product ${state.cart.has(p.id)?'sw-product-selected':''}" data-sw="add" data-product="${p.id}" aria-label="Thêm ${e(p.name)}" title="${e(p.name)}" ${p.canOrder===false||state.draft?'data-locked="true"':''}><span class="sw-photo">${productImageUrl(p)?`<img src="${e(productImageUrl(p))}" alt="" loading="lazy">`:'<span>Chưa có ảnh</span>'}</span><span class="sw-product-info"><strong>${e(p.name)}</strong><span data-sw-price>${money(p.sellingPrice)}</span><small data-sw-stock="${p.id}">${p.canOrder===false?e(p.availabilityReason||'Tạm chưa thể đặt'):p.requiresPreparation?'Bếp chế biến':'Phục vụ trực tiếp'}</small></span><span class="sw-add-mark" aria-hidden="true">+</span><span class="sw-menu-quantity" data-sw-menu-quantity aria-hidden="true" ${state.cart.has(p.id)?'':'hidden'}>${state.cart.get(p.id)||0}</span></button>`).join('') || empty('Không có món phù hợp', 'Thử tên khác hoặc chọn tất cả nhóm.');
+  }
+  function menuPagination(result) {
+    return `<p class="sw-menu-count" role="status">${result.start}–${result.end} / ${result.total} món · Trang ${result.page}/${result.pages}</p><div class="sw-actions">${button('← Trước','menu-prev',result.page===1?'data-locked="true"':'')}${button('Sau →','menu-next',result.page===result.pages?'data-locked="true"':'')}</div>`;
+  }
+  function updateMenuResults(resetScroll = true) {
+    const holder = root.querySelector('[data-sw-products]');
+    if (!holder) return;
+    const result = menuResults();
+    const snapshot = JSON.stringify([result,state.draft]);
+    if (!resetScroll && snapshot === menuSnapshot) return;
+    menuSnapshot = snapshot;
+    const scrollTop = resetScroll ? 0 : holder.scrollTop;
+    holder.innerHTML = menuProducts(result);
+    holder.scrollTop = scrollTop;
+    root.querySelector('[data-sw-pagination]').innerHTML = menuPagination(result);
+    setBusy(state.busy);
+  }
+  function updateCartAccess() {
+    const count = root.querySelector('[data-sw-cart-count]');
+    if (!count) return;
+    count.textContent = `Giỏ món · ${[...state.cart.values()].reduce((sum,q)=>sum+q,0)} món`;
+    root.querySelector('[data-sw-cart-total]').textContent = money([...state.cart].reduce((sum,[id,q])=>sum+(state.products.find(p=>p.id===id)?.sellingPrice||0)*q,0));
+  }
+  function updateProductSelection() {
+    root.querySelectorAll('.sw-product[data-product]').forEach(card=>{
+      const quantity=state.cart.get(Number(card.dataset.product))||0;
+      card.classList.toggle('sw-product-selected',quantity>0);
+      const badge=card.querySelector('[data-sw-menu-quantity]');
+      badge.textContent=String(quantity);badge.hidden=!quantity;
+    });
+  }
   function panel() {
-    if(state.tab==='confirm') return `<h3>Kiểm tra yêu cầu với khách tại bàn</h3><p class="sw-help">Xác nhận sau khi đọc lại món và ghi chú. Món cần chế biến tự chuyển vào bếp; món phục vụ trực tiếp chuyển sang mục Món sẵn sàng.</p>${waitingOrders().map(order=>`<article class="sw-order"><div class="sw-order-head"><strong>Khách gửi lúc ${time(order.createdAt)}</strong><small>Lượt ${e(shortCode(order))}</small></div><ul>${order.items.map(item=>`<li><div class="sw-line-item">${foodPhoto(item.product)}<div><b>${e(item.product.name)} × ${item.quantity}</b>${item.note?`<p class="sw-note">${e(item.note)}</p>`:''}</div></div><span>${money(item.price*item.quantity)}</span></li>`).join('')}</ul><div class="sw-actions">${button('Đã kiểm tra · Nhận yêu cầu','confirm',`data-id="${e(order.id)}"`,true)}${button('Từ chối','show-reject',`data-id="${e(order.id)}"`)}</div><div class="sw-reject" data-reject="${e(order.id)}" hidden><label>Lý do từ chối<input maxlength="500" placeholder="Ví dụ: khách gửi nhầm món" data-reason="${e(order.id)}"></label>${button('Xác nhận từ chối','reject',`data-id="${e(order.id)}"`)}</div></article>`).join('')||empty('Không có yêu cầu chờ xác nhận','Nhân viên gọi món trực tiếp ở mục Gọi thêm. Yêu cầu mới từ QR sẽ xuất hiện ở đây.')}`;
-    if(state.tab==='ready') { const ready = readyItems(); const cooking = activeOrders().flatMap(o=>o.items).filter(i=>i.kdsStatus!=='DONE'); return `<h3>Mang món đến ${e(state.table.tableName)}</h3><p class="sw-help">Chỉ đánh dấu sau khi món đã tới bàn. Nước và món làm sẵn xuất hiện ở đây ngay sau khi nhận yêu cầu.</p>${ready.map(item=>`<article class="sw-ready"><div class="sw-line-item">${foodPhoto(item.product)}<div><strong>${e(item.product.name)} × ${item.quantity}</strong><small>${item.product.requiresPreparation?'Bếp đã làm xong':'Phục vụ trực tiếp'} · lượt ${e(shortCode(item.order))}</small>${item.note?`<p class="sw-note">${e(item.note)}</p>`:''}</div></div>${button('Đã mang ra','serve',`data-item="${item.id}"`,true)}</article>`).join('')||empty('Chưa có món cần mang ra')}${cooking.length?`<div class="sw-progress"><h4>Bếp đang xử lý</h4>${cooking.map(item=>`<p><b>${e(item.product.name)} × ${item.quantity}</b><span>${statusText(item)}</span></p>`).join('')}</div>`:''}`; }
-    if(state.tab==='menu') return `${draftView()}<h3>Chọn món cho bàn</h3><a class="pos-cart-jump" href="#sw-cart">Xem giỏ món ↓</a><p class="sw-help">Kiểm tra giỏ món rồi gửi. Yêu cầu do nhân viên nhập được nhận ngay, không cần xác nhận lần nữa.</p><div class="sw-filters"><input data-sw-input="menu-search" type="search" placeholder="Tìm món" aria-label="Tìm món" value="${e(state.menuSearch)}"><select data-sw-input="category" aria-label="Nhóm món"><option value="ALL">Tất cả nhóm</option>${[...new Set(state.products.map(p=>p.category?.name).filter(Boolean))].map(name=>`<option ${state.category===name?'selected':''}>${e(name)}</option>`).join('')}</select></div><div class="sw-menu-layout"><div class="sw-products">${state.products.filter(p=>p.isActive).map(p=>`<article class="sw-product" data-name="${e(p.name.toLowerCase())}" data-category="${e(p.category?.name||'')}" ${p.name.toLowerCase().includes(state.menuSearch.toLowerCase())&&(state.category==='ALL'||state.category===p.category?.name)?'':'hidden'}><div class="sw-photo">${productImageUrl(p)?`<img src="${e(productImageUrl(p))}" alt="${e(p.name)}" loading="lazy">`:'<span>Chưa có ảnh</span>'}</div><div><strong>${e(p.name)}</strong><span>${money(p.sellingPrice)}</span><small data-sw-stock="${p.id}">${p.canOrder===false?e(p.availabilityReason||'Tạm chưa thể đặt'):p.requiresPreparation?'Bếp chế biến':'Phục vụ trực tiếp'}</small></div>${button('+','add',`data-product="${p.id}" aria-label="Thêm ${e(p.name)}" ${p.canOrder===false||state.draft?'data-locked="true"':''}`)}</article>`).join('')}</div><section class="sw-cart" id="sw-cart" data-sw-cart></section></div>`;
-    const orders = activeOrders(); const waiting = waitingOrders().length; const remaining = unsettledItems();
-    return `<h3>Hóa đơn chung của bàn</h3><p class="sw-help">Tổng tiền chỉ gồm các lượt đã nhận. Lượt chờ xác nhận hoặc bị từ chối chưa được tính tiền.</p>${orders.map(order=>`<article class="sw-order"><div class="sw-order-head"><strong>Lượt ${time(order.createdAt)}</strong><small>${order.source==='CUSTOMER_QR'?'Khách gửi QR':'Nhân viên gọi món'}</small></div><ul>${order.items.map(item=>`<li><div><b>${e(item.product.name)} × ${item.quantity}</b><small>${statusText(item)}</small></div><span>${money(item.price*item.quantity)}</span></li>`).join('')}</ul>${order.discountAmount?`<p class="sw-help">Ưu đãi combo: −${money(order.discountAmount)}</p><p><strong>Thành tiền: ${money(order.finalAmount)}</strong></p>`:''}</article>`).join('')||empty('Chưa có món đã nhận')}<div class="sw-bill-total"><span>Tổng thanh toán</span><strong>${money(total())}</strong></div>${waiting?`<p class="sw-alert">Còn ${waiting} yêu cầu cần xác nhận hoặc từ chối.</p>${button('Xử lý yêu cầu','tab','data-tab="confirm"')}`:remaining.length?`<p class="sw-alert">Còn ${quantities(remaining)} món chưa mang ra bàn.</p>${button('Xem món đang phục vụ','tab','data-tab="ready"')}`:orders.length?(mayPay?`<div class="sw-payment"><label>Phương thức thanh toán<select data-sw-input="payment"><option value="CASH">Tiền mặt</option><option value="QR_BANKING">VNPay</option><option value="POS_CARD">Thẻ</option></select></label><p class="sw-help">Chọn VNPay để khách quét mã thanh toán. Với tiền mặt hoặc thẻ, xác nhận sau khi đã nhận đủ tiền.</p>${button('Thanh toán','checkout','',true)}</div>`:'<p class="sw-alert">Bàn đã phục vụ đủ món. Báo thu ngân để nhận tiền và đóng bàn.</p>'):`${button('Đóng bàn chưa gọi món','close','',false)}`} ${(state.session.orders||[]).filter(o=>o.status==='CANCELLED').length?`<details class="sw-history"><summary>Các yêu cầu đã từ chối</summary>${state.session.orders.filter(o=>o.status==='CANCELLED').map(o=>`<p>Lượt ${time(o.createdAt)}: ${e(o.note||'Đã từ chối')}</p>`).join('')}</details>`:''}`;
+    if(state.tab==='confirm') return `<h3>Kiểm tra yêu cầu với khách tại bàn</h3><p class="sw-help sw-operational-help">Đọc lại món và ghi chú với khách trước khi nhận. Món cần chế biến sẽ được chuyển vào bếp.</p>${waitingOrders().map(order=>`<article class="sw-order"><div class="sw-order-head"><strong>Khách gửi lúc ${time(order.createdAt)}</strong><small>Lượt ${e(shortCode(order))}</small></div><ul>${order.items.map(item=>`<li><div class="sw-line-item">${foodPhoto(item.product)}<div><b>${e(item.product.name)} × ${item.quantity}</b>${item.note?`<p class="sw-note">${e(item.note)}</p>`:''}</div></div><span>${money(item.price*item.quantity)}</span></li>`).join('')}</ul><div class="sw-actions sw-confirm-actions">${button('Nhận yêu cầu','confirm',`data-id="${e(order.id)}"`,true)}${button('Từ chối','show-reject',`data-id="${e(order.id)}"`)}</div><div class="sw-reject" data-reject="${e(order.id)}" hidden><label>Lý do từ chối<input maxlength="500" placeholder="Ví dụ: khách gửi nhầm món" data-reason="${e(order.id)}"></label>${button('Xác nhận từ chối','reject',`data-id="${e(order.id)}"`)}</div></article>`).join('')||empty('Không có yêu cầu chờ xác nhận','Nhân viên gọi món trực tiếp ở mục Gọi thêm. Yêu cầu mới từ QR sẽ xuất hiện ở đây.')}`;
+    if(state.tab==='ready') {
+      const ready = readyItems();
+      const cooking = activeOrders().flatMap(o=>o.items).filter(i=>i.kdsStatus!=='DONE');
+      return `<h3>Mang món đến ${e(state.table.tableName)}</h3><p class="sw-help sw-operational-help">Kiểm tra đúng món và số lượng. Chỉ đánh dấu sau khi món đã tới bàn.</p>${ready.map(item=>`<article class="sw-ready"><div class="sw-line-item">${foodPhoto(item.product)}<div><div class="sw-ready-name"><strong>${e(item.product.name)}</strong><b class="sw-quantity" aria-label="Số lượng ${item.quantity}">× ${item.quantity}</b></div><small>${item.product.requiresPreparation?'Bếp đã làm xong':'Phục vụ trực tiếp'} · lượt ${e(shortCode(item.order))}</small>${item.note?`<p class="sw-note">${e(item.note)}</p>`:''}</div></div>${button('Đã mang ra','serve',`data-item="${item.id}"`,true)}</article>`).join('')||empty('Chưa có món cần mang ra')}${cooking.length?`<section class="sw-progress" aria-label="Trạng thái bếp"><h4><span aria-hidden="true">🍳</span> Bếp đang xử lý</h4>${cooking.map(item=>`<p><span class="sw-cooking-item"><b>${e(item.product.name)}</b><strong class="sw-quantity">× ${item.quantity}</strong></span><span class="sw-cooking-state"><span aria-hidden="true">${item.kdsStatus==='COOKING'?'🍳':'⏱'}</span> ${statusText(item)}</span></p>`).join('')}</section>`:''}`;
+    }
+    if(state.tab==='menu') {
+      const result = menuResults();
+      menuSnapshot = JSON.stringify([result,state.draft]);
+      return `${draftView()}<h3 id="sw-menu" tabindex="-1">Chọn món cho bàn</h3><p class="sw-help">Tìm theo tên hoặc lọc nhóm món. Món đã chọn được giữ khi đổi trang.</p><div class="sw-filters"><input data-sw-input="menu-search" type="search" placeholder="Tìm món" aria-label="Tìm món" value="${e(state.menuSearch)}"><select data-sw-input="category" aria-label="Nhóm món"><option value="ALL">Tất cả nhóm</option>${[...new Set(state.products.filter(p=>p.isActive).map(p=>p.category?.name).filter(Boolean))].map(name=>`<option ${state.category===name?'selected':''}>${e(name)}</option>`).join('')}</select></div><div class="sw-menu-layout"><div class="sw-menu-results"><div class="sw-products" data-sw-products role="region" aria-label="Các món trong thực đơn" tabindex="0">${menuProducts(result)}</div><nav class="sw-menu-pagination" data-sw-pagination aria-label="Phân trang thực đơn">${menuPagination(result)}</nav></div><section class="sw-cart" id="sw-cart" tabindex="-1" data-sw-cart></section></div><a class="sw-cart-access" href="#sw-cart"><span data-sw-cart-count>Giỏ món · 0 món</span><strong data-sw-cart-total>0 ₫</strong><span>Xem giỏ →</span></a>`;
+    }
+    return billPanel();
+  }
+  function billPanel() {
+    const orders = activeOrders();
+    const waiting = waitingOrders().length;
+    const remaining = unsettledItems();
+    const cancelled = (state.session.orders||[]).filter(order=>order.status==='CANCELLED');
+    const action = waiting || remaining.length
+      ? `<div class="sw-checkout-block" id="sw-checkout-reason" role="note"><strong>Chưa thể thanh toán</strong><p>${waiting?`Cần xác nhận hoặc từ chối ${waiting} yêu cầu của khách trước.`:`Cần mang đủ ${quantities(remaining)} món còn lại ra bàn trước.`}</p>${waiting&&remaining.length?`<p>Sau đó kiểm tra ${quantities(remaining)} món chưa mang ra.</p>`:''}</div>${button(waiting?'Xử lý yêu cầu':'Xem món đang phục vụ','tab',`data-tab="${waiting?'confirm':'ready'}"`,true)}${mayPay?button('Thanh toán','checkout','data-locked="true" aria-describedby="sw-checkout-reason"'):''}`
+        : orders.length
+          ? mayPay
+            ? `<div class="sw-payment"><label>Phương thức thanh toán<select data-sw-input="payment"><option value="CASH">Tiền mặt</option><option value="QR_BANKING">VNPay Sandbox</option><option value="POS_CARD">Thẻ</option></select></label><p class="sw-help">Với tiền mặt hoặc thẻ, xác nhận sau khi đã nhận đủ tiền. VNPay đang dùng môi trường thử nghiệm.</p>${button('Thanh toán','checkout','',true)}</div>`
+            : '<p class="sw-alert">Bàn đã phục vụ đủ món. Báo thu ngân để nhận tiền và đóng bàn.</p>'
+          : button('Đóng bàn chưa gọi món','close');
+    const orderCards = orders.map(order=>`<details class="sw-order sw-bill-order" data-sw-order="${e(order.id)}"><summary><strong>Lượt ${time(order.createdAt)}</strong> <span>${quantities(order.items)} món · ${money(order.finalAmount)}</span></summary><p class="sw-help">${order.source==='CUSTOMER_QR'?'Khách gửi QR':'Nhân viên gọi món'} · lượt ${e(shortCode(order))}</p><ul>${order.items.map(item=>`<li><div><b>${e(item.product.name)} × ${item.quantity}</b><small>${statusText(item)}</small>${item.note?`<p class="sw-note">${e(item.note)}</p>`:''}</div><span>${money(item.price*item.quantity)}</span></li>`).join('')}</ul>${order.discountAmount?`<p class="sw-help">Ưu đãi combo: −${money(order.discountAmount)}</p>`:''}<p><strong>Thành tiền: ${money(order.finalAmount)}</strong></p></details>`).join('');
+    return `<h3>Hóa đơn chung của bàn</h3><p class="sw-help">Tổng tiền chỉ gồm các lượt đã nhận. Mở từng lượt để xem món và đối chiếu.</p><div class="sw-bill-layout"><aside class="sw-checkout" aria-label="Thanh toán của bàn"><div class="sw-bill-total"><span>Tổng thanh toán</span><strong>${money(total())}</strong></div><p class="sw-help">${orders.length} lượt đã nhận · ${quantities(orders.flatMap(order=>order.items))} món</p>${action}</aside><section class="sw-bill-orders" aria-label="Các lượt gọi món đã nhận" tabindex="0">${orderCards||empty('Chưa có món đã nhận')}${cancelled.length?`<details class="sw-history"><summary>Các yêu cầu đã từ chối (${cancelled.length})</summary>${cancelled.map(order=>`<p>Lượt ${time(order.createdAt)}: ${e(order.note||'Đã từ chối')}</p>`).join('')}</details>`:''}</section></div>`;
   }
   function updateCart() {
     const holder = root.querySelector('[data-sw-cart]'); if(!holder) return;
+    const focused = holder.contains(document.activeElement) ? document.activeElement : null;
+    const focusKey = focused ? {product:focused.dataset.product,action:focused.dataset.sw,input:focused.dataset.swInput} : null;
     const entries = [...state.cart].filter(([,q])=>q>0);
     const unavailable=entries.some(([id,q])=>{const p=state.products.find(p=>p.id===id);return !p?.canOrder||q>(p.maxOrderQuantity??1000);});
-    holder.innerHTML = `<h3>Giỏ món của ${e(state.table.tableName)}</h3>${entries.map(([id,q])=>{const p=state.products.find(p=>p.id===id); return `<div class="sw-cart-item"><div><strong>${e(p.name)}</strong><span>${money(p.sellingPrice*q)}</span></div><div class="sw-stepper">${button('−','minus',`data-product="${id}" aria-label="Giảm ${e(p.name)}"`)}<b>${q}</b>${button('+','add',`data-product="${id}" aria-label="Tăng ${e(p.name)}"`)}</div><input data-sw-input="note" data-product="${id}" maxlength="500" placeholder="Ghi chú: ít cay, không hành…" value="${e(state.notes.get(id)||'')}"></div>`;}).join('')||'<p>Chọn món ở thực đơn.</p>'}<div class="sw-bill-total"><span>Tạm tính</span><strong>${money(entries.reduce((n,[id,q])=>n+state.products.find(p=>p.id===id).sellingPrice*q,0))}</strong></div><p data-sw-cart-warning ${unavailable?'':'hidden'}>Giỏ có món thiếu nguyên liệu hoặc vượt số suất còn lại. Giảm số lượng hoặc bỏ món trước khi gửi.</p>${button(`Gửi ${entries.reduce((n,[,q])=>n+q,0)} món`,'send',entries.length&&!state.draft&&!unavailable?'':'data-locked="true"',true)}`;
+    const scrollTop = holder.querySelector('.sw-cart-lines')?.scrollTop || 0;
+    holder.innerHTML = `<h3>Giỏ món của ${e(state.table.tableName)}</h3><a class="sw-menu-return" href="#sw-menu">← Tiếp tục chọn món</a><div class="sw-cart-lines" role="region" aria-label="Các món đã chọn" tabindex="0">${entries.map(([id,q])=>{const p=state.products.find(p=>p.id===id); return `<div class="sw-cart-item"><div><strong>${e(p.name)}</strong><span>${money(p.sellingPrice*q)}</span></div><div class="sw-stepper">${button('−','minus',`data-product="${id}" aria-label="Giảm ${e(p.name)}"`)}<b>${q}</b>${button('+','add',`data-product="${id}" aria-label="Tăng ${e(p.name)}"`)}</div><input data-sw-input="note" data-product="${id}" maxlength="500" aria-label="Ghi chú cho ${e(p.name)}" placeholder="Ghi chú: ít cay, không hành…" value="${e(state.notes.get(id)||'')}"></div>`;}).join('')||'<p>Chọn món ở thực đơn.</p>'}</div><div class="sw-cart-footer"><div class="sw-bill-total"><span>Tạm tính</span><strong>${money(entries.reduce((n,[id,q])=>n+state.products.find(p=>p.id===id).sellingPrice*q,0))}</strong></div><p data-sw-cart-warning ${unavailable?'':'hidden'}>Giỏ có món thiếu nguyên liệu hoặc vượt số suất còn lại. Giảm số lượng hoặc bỏ món trước khi gửi.</p>${button(`Gửi ${entries.reduce((n,[,q])=>n+q,0)} món`,'send',entries.length&&!state.draft&&!unavailable?'':'data-locked="true"',true)}</div>`;
+    holder.querySelector('.sw-cart-lines').scrollTop = scrollTop;
+    updateCartAccess();
+    updateProductSelection();
     setBusy(state.busy);
+    if (focusKey) {
+      const next = [...holder.querySelectorAll('button,input')].find(el=>el.dataset.product===focusKey.product && el.dataset.sw===focusKey.action && el.dataset.swInput===focusKey.input);
+      (next||holder).focus({preventScroll:true});
+    }
   }
   function patchTable() {
     if(!state.session || !root.querySelector('[data-sw-panel]')) { render(); return; }
     root.querySelector('[data-sw-summary]').innerHTML = summary();root.querySelector('[data-sw-calls]').innerHTML=serviceCalls();
     const closeAction = root.querySelector('[data-sw-empty-close]');
     if(closeAction) closeAction.innerHTML = mayCloseEmpty() ? button('Đóng bàn chưa gọi món','close') : '';
-    root.querySelector('.sw-tabs').innerHTML = tabs();
+    const tabList = root.querySelector('.sw-tabs');
+    const tabFocused = tabList.contains(document.activeElement);
+    tabList.innerHTML = tabs();
+    if (tabFocused) tabList.querySelector('[aria-selected="true"]').focus({preventScroll:true});
     const snapshot = JSON.stringify([state.session.orders, state.tab, state.draft]);
     const holder = root.querySelector('[data-sw-panel]');
-    if(state.tab!=='menu' && panelSnapshot!==snapshot && !(holder.contains(document.activeElement) && document.activeElement.matches('input,textarea,select'))) { holder.innerHTML = panel(); panelSnapshot = snapshot; }
+    holder.setAttribute('aria-labelledby',`sw-tab-${state.tab}`);
+    if(state.tab!=='menu' && panelSnapshot!==snapshot && !(holder.contains(document.activeElement) && document.activeElement.matches('input,textarea,select'))) {
+      const opened = new Set([...holder.querySelectorAll('.sw-bill-order[open]')].map(el=>el.dataset.swOrder));
+      const billScroll = holder.querySelector('.sw-bill-orders')?.scrollTop || 0;
+      holder.innerHTML = panel(); panelSnapshot = snapshot;
+      holder.querySelectorAll('.sw-bill-order').forEach(el=>{el.open=opened.has(el.dataset.swOrder);});
+      const billOrders=holder.querySelector('.sw-bill-orders');
+      if(billOrders) billOrders.scrollTop=billScroll;
+    }
     setBusy(state.busy);
   }
   async function refresh(force=false) {
     if(disposed) return;
-    if(!state.table) { const [tables,products] = await Promise.all([request(`/api/catalog/branches/${branchId}/tables`),loadProducts(force)]); if(disposed||state.table) return; state.tables=tables;state.products=products; const cards=root.querySelector('.sw-tables'); if(cards) { cards.innerHTML=tableCards(); root.querySelector('.sw-overview').innerHTML=listOverview(); setBusy(state.busy); } else render(); return; }
+    if(!state.table) {
+      const [tables,products] = await Promise.all([request(`/api/catalog/branches/${branchId}/tables`),loadProducts(force)]);
+      if(disposed||state.table) return;
+      state.tables=tables;state.products=products;
+      const cards=root.querySelector('.sw-tables');
+      if(cards) {
+        const filters=root.querySelector('.sw-overview');
+        const filterFocused=filters.contains(document.activeElement);
+        cards.innerHTML=tableCards();filters.innerHTML=listOverview();setBusy(state.busy);
+        if(filterFocused) filters.querySelector(`[data-filter="${state.filter}"]`).focus({preventScroll:true});
+      } else render();
+      return;
+    }
     const id=state.table.id, version=selection;
     const [result, products] = await Promise.all([request(`/api/staff/tables/${id}/session?branchId=${branchId}`),loadProducts(force)]);
     if(disposed||version!==selection||state.table?.id!==id) return;
@@ -111,12 +206,14 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     const sessionChanged=state.session?.id!==result.session?.id;
     state.table={...state.table,...result.table}; state.session=result.session;state.serviceRequests=result.serviceRequests||[];
     if(sessionChanged) { if(result.table.status==='EMPTY')state.table.pendingOrderCount=0; state.cart.clear();state.notes.clear();state.draft=readDraft(id);render(); } else {patchTable();
+      updateMenuResults(false);
+      updateCartAccess();
       root.querySelectorAll('[data-sw-stock]').forEach(el=>{const p=products.find(p=>p.id===Number(el.dataset.swStock));el.textContent=p?.canOrder?(p.requiresPreparation?'Bếp chế biến':'Phục vụ trực tiếp'):(p?.availabilityReason||'Đã ngừng bán');});
-      root.querySelectorAll('[data-sw="add"]').forEach(el=>{const p=products.find(p=>p.id===Number(el.dataset.product));if(!p?.canOrder||state.draft)el.dataset.locked='true';else delete el.dataset.locked;const card=el.closest('.sw-product');if(card&&p)card.querySelector('div:nth-child(2)>span').textContent=money(p.sellingPrice);});setBusy(state.busy);
+      root.querySelectorAll('[data-sw="add"]').forEach(el=>{const p=products.find(p=>p.id===Number(el.dataset.product));if(!p?.canOrder||state.draft)el.dataset.locked='true';else delete el.dataset.locked;const card=el.closest('.sw-product');if(card&&p)card.querySelector('[data-sw-price]').textContent=money(p.sellingPrice);});setBusy(state.busy);
       root.querySelectorAll('.sw-cart-item').forEach(row=>{const id=Number(row.querySelector('[data-product]').dataset.product),p=products.find(p=>p.id===id);if(p)row.querySelector('div>span').textContent=money(p.sellingPrice*(state.cart.get(id)||0));});const invalid=[...state.cart].some(([id,q])=>{const p=products.find(p=>p.id===id);return !p?.canOrder||q>(p.maxOrderQuantity??1000)});const send=root.querySelector('[data-sw=send]');if(send){if(invalid||state.draft||!state.cart.size)send.dataset.locked='true';else delete send.dataset.locked;}const warning=root.querySelector('[data-sw-cart-warning]');if(warning)warning.hidden=!invalid;setBusy(state.busy);const totalEl=root.querySelector('[data-sw-cart] .sw-bill-total strong');if(totalEl)totalEl.textContent=money([...state.cart].reduce((sum,[id,q])=>sum+products.find(p=>p.id===id).sellingPrice*q,0));
     }
   }
-  function listOverview() { return `<span class="sw-stat-serving"><b>${state.tables.filter(t=>t.status==='SERVING').length}</b><small>Bàn đang phục vụ</small></span><span class="sw-stat-confirm"><b>${state.tables.reduce((n,t)=>n+t.unconfirmedOrderCount,0)}</b><small>Yêu cầu chờ xác nhận</small></span><span class="sw-stat-ready"><b>${state.tables.reduce((n,t)=>n+(t.readyQuantity||0),0)}</b><small>Món cần mang ra</small></span>`; }
+  function listOverview() { return serviceTableFilters(state.tables).map(filter=>`<button type="button" class="sw-filter" data-sw="table-filter" data-filter="${filter.id}" aria-pressed="${state.filter===filter.id}">${filter.label} <b>${filter.count}</b></button>`).join(''); }
   function readDraft(id) { try { return JSON.parse(localStorage.getItem(draftKey(id))||localStorage.getItem(`dusko-staff-draft:${userId}:${branchId}:${id}`)||'null'); } catch { return null; } }
   function clearDraft(id) { localStorage.removeItem(draftKey(id));localStorage.removeItem(`dusko-staff-draft:${userId}:${branchId}:${id}`); }
   async function selectTable(id) {
@@ -157,7 +254,23 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     try {
       if(action==='table') {setBusy(true);target.textContent='Đang mở bàn…';try{showMessage('');await selectTable(Number(target.dataset.id));}finally{setBusy(false);if(!state.table)render();}return;}
       if(action==='back') { closeVnpay?.();++selection;state.table=null;state.session=null;state.cart.clear();state.notes.clear();render();await refresh();return; }
-      if(action==='tab') {state.tab=target.dataset.tab;render();return;}
+      if(action==='tab') {state.tab=target.dataset.tab;render();root.querySelector('.sw-tabs [aria-selected="true"]')?.focus({preventScroll:true});return;}
+      if(action==='table-filter') {
+        state.filter=target.dataset.filter;
+        root.querySelector('.sw-tables').innerHTML=tableCards();
+        root.querySelector('.sw-overview').innerHTML=listOverview();
+        setBusy(state.busy);
+        root.querySelector(`.sw-filter[data-filter="${state.filter}"]`).focus({preventScroll:true});
+        return;
+      }
+      if(action==='menu-prev'||action==='menu-next') {
+        state.menuPage += action==='menu-next'?1:-1;
+        updateMenuResults();
+        const results=root.querySelector('[data-sw-products]');
+        results.focus({preventScroll:true});
+        results.scrollIntoView({block:'start'});
+        return;
+      }
       if(action==='resolve-call')return mutation(()=>post(`/api/staff/tables/${state.table.id}/service-requests/${target.dataset.id}/resolve`),'Đã ghi nhận hỗ trợ khách.');
       if(action==='refresh') {setBusy(true);target.textContent='Đang cập nhật…';try{await refresh(true);showMessage('Đã cập nhật.');}finally{target.textContent='Làm mới';setBusy(false);}return;}
       if(action==='view-qr') {setBusy(true);try{showQrPreview(await request(`/api/catalog/branches/${branchId}/tables/${state.table.id}/qr`));}finally{setBusy(false);}return;}
@@ -178,11 +291,23 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   function onInput(event) {
     const type=event.target.dataset.swInput;
     if(type==='table-search') {state.search=event.target.value;root.querySelector('.sw-tables').innerHTML=tableCards();}
-    if(type==='table-filter') {state.filter=event.target.value;root.querySelector('.sw-tables').innerHTML=tableCards();}
     if(type==='note') state.notes.set(Number(event.target.dataset.product),event.target.value);
-    if(type==='menu-search'||type==='category') {if(type==='menu-search')state.menuSearch=event.target.value;else state.category=event.target.value;root.querySelectorAll('.sw-product').forEach(el=>el.hidden=!el.dataset.name.includes(state.menuSearch.toLowerCase())||(state.category!=='ALL'&&el.dataset.category!==state.category));}
+    if(type==='menu-search'||type==='category') {if(type==='menu-search')state.menuSearch=event.target.value;else state.category=event.target.value;state.menuPage=1;updateMenuResults();}
   }
-  root.addEventListener('click',onClick);root.addEventListener('input',onInput);root.addEventListener('change',onInput);
+  function onTabKeydown(event) {
+    if(state.busy || !event.target.matches('[role="tab"]')) return;
+    const ids=['confirm','ready','menu','bill'];
+    let index=ids.indexOf(state.tab);
+    if(event.key==='ArrowRight') index=(index+1)%ids.length;
+    else if(event.key==='ArrowLeft') index=(index+ids.length-1)%ids.length;
+    else if(event.key==='Home') index=0;
+    else if(event.key==='End') index=ids.length-1;
+    else return;
+    event.preventDefault();
+    state.tab=ids[index];render();
+    root.querySelector('.sw-tabs [aria-selected="true"]').focus({preventScroll:true});
+  }
+  root.addEventListener('click',onClick);root.addEventListener('input',onInput);root.addEventListener('change',onInput);root.addEventListener('keydown',onTabKeydown);
   root.innerHTML='<p class="sw-empty">Đang tải bàn phục vụ…</p>';
   /**
    * React to a scoped real-time event.
@@ -234,5 +359,5 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   // The socket pushes every change, so the list is only polled while the
   // connection is down.
   const interval=setInterval(async()=>{if(disposed||liveConnected||state.busy||polling||document.hidden)return;polling=true;try{await refresh();}catch(error){showMessage(`Không cập nhật được: ${error.message}`,true);}finally{polling=false;}},12000);
-  return {destroy(){disposed=true;closeVnpay?.();stopLive();clearInterval(interval);root.removeEventListener('click',onClick);root.removeEventListener('input',onInput);root.removeEventListener('change',onInput);}};
+  return {destroy(){disposed=true;closeVnpay?.();stopLive();clearInterval(interval);root.removeEventListener('click',onClick);root.removeEventListener('input',onInput);root.removeEventListener('change',onInput);root.removeEventListener('keydown',onTabKeydown);}};
 }

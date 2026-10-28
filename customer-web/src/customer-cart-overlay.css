@@ -1,0 +1,28 @@
+.customer-cart-dock{display:none}
+.customer-action-dock{position:fixed;z-index:1010;right:16px;bottom:16px;display:flex;align-items:center;gap:16px}
+.customer-action-dock .restaurant-help{position:relative;right:auto;bottom:auto;z-index:auto}
+.customer-action-dock .restaurant-help .help-toggle{width:52px;height:52px;min-height:52px;min-width:52px}
+.customer-cart-badge{position:absolute;right:-3px;top:-5px;min-width:23px;height:23px;padding:2px 5px;border:2px solid var(--surface);border-radius:14px;background:var(--success);color:var(--on-primary);font-size:12px;font-weight:800;line-height:15px}
+.customer-cart-feedback{position:fixed;z-index:1020;right:18px;bottom:calc(92px + env(safe-area-inset-bottom));max-width:min(300px,calc(100vw - 36px));padding:10px 14px;background:var(--surface);color:var(--ink);border:1px solid var(--success);border-radius:12px;box-shadow:var(--shadow-raised);font-size:14px;opacity:0;pointer-events:none;transform:translateY(6px);transition:opacity .18s,transform .18s}
+.customer-cart-feedback.is-visible{opacity:1;transform:translateY(0)}
+.customer-cart-dialog{padding:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:20px 20px 0 0;width:min(680px,100%);max-width:100%;max-height:85dvh;margin:auto auto 0;overflow:auto;overscroll-behavior:contain;box-shadow:var(--shadow-raised)}
+.customer-cart-dialog::backdrop{background:rgb(0 0 0 / .45)}
+.customer-cart-dialog-bar{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--line)}
+.customer-cart-dialog-bar strong{font-size:16px}
+.customer-cart-dialog-bar button{min-height:44px;padding:8px 14px;font-size:16px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink)}
+body:has(.customer-layout) .customer-cart-dialog .cart{position:static;margin:0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));border:0;border-radius:0;box-shadow:none}
+body:has(.customer-layout) .customer-cart-dialog .cart h2{margin:0 0 16px;padding:0;background:transparent;color:var(--ink);border-radius:0}
+body:has(.customer-layout) .customer-cart-dialog .cart h2 span{color:var(--muted)}
+body:has(.customer-layout) .customer-cart-dialog .cart-item input{font-size:16px}
+body:has(.customer-layout) .cart .primary:disabled{background:var(--surface-sunken);border-color:var(--line);color:var(--muted);opacity:1}
+@media(max-width:1050px){
+  body:has(.customer-layout) main{padding-bottom:calc(160px + env(safe-area-inset-bottom))}
+  body:has(.customer-layout) .customer-layout{grid-template-columns:minmax(0,1fr)}
+  .customer-layout>#customer-cart{display:none}
+  .customer-action-dock{right:12px;bottom:calc(12px + env(safe-area-inset-bottom));flex-direction:column;align-items:center;gap:18px}
+  .customer-action-dock .restaurant-help .help-toggle{width:48px;height:48px;min-width:48px;min-height:48px;border:1px solid var(--line);background:var(--surface);color:var(--primary-ink);box-shadow:var(--shadow-raised)}
+  .customer-cart-dock{position:relative;flex:none;width:56px;height:56px;display:grid;place-items:center;padding:0;border:1px solid var(--primary);border-radius:50%;background:var(--primary);color:var(--on-primary);box-shadow:var(--shadow-raised)}
+  .customer-action-dock .restaurant-help section{right:-4px;bottom:66px;max-height:calc(100dvh - 210px - env(safe-area-inset-bottom))}
+  .customer-cart-feedback{right:84px;bottom:calc(18px + env(safe-area-inset-bottom));max-width:calc(100vw - 104px)}
+}
+@media(prefers-reduced-motion:reduce){.customer-cart-feedback{transition:none}}

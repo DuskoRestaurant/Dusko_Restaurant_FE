@@ -224,7 +224,8 @@ function ordersPage() {
   const page=document.querySelector('#page'), legacy=page.querySelector('.order-layout');
   page.querySelector('.page-head')?.remove();
   const heading=document.createElement('div');
-  heading.innerHTML=title('PHỤC VỤ','Phục vụ & thu ngân','Mỗi bàn có một hóa đơn chung. Nhân viên và thu ngân làm việc trên cùng một luồng.');
+  heading.className='service-page-heading';
+  heading.innerHTML=title('VẬN HÀNH','Phục vụ & thu ngân','Quản lý bàn và hoàn tất thanh toán tại một nơi.');
   page.prepend(heading);
   const workspace=document.createElement('div'); workspace.id='service-workspace'; heading.after(workspace);
   const details=document.createElement('details'); details.className='legacy-order-tools';

@@ -1,5 +1,4 @@
 import '../../src/tokens.css';
-import { cartComboPricing } from '../../src/combo-cart.js';
 import { cartLineMap, cartItemsById, cartItemCount, cartBlockingItems, cartCheckoutable, comboSelectionsFromCart, cartOrderSnapshot, nextQuantity } from '../../src/cart-view.js';
 import { watchChanges } from '../../src/live-updates.js';
 import { createCustomerHelp } from './customer-help.js';
@@ -9,6 +8,11 @@ import './style.css';
 import './customer-cart.css';
 import '../../src/font.css';
 import '../../src/pos-theme.css';
+import './customer-cart-overlay.css';
+import { createCustomerCartOverlay } from './customer-cart-overlay.js';
+import {createCustomerMenu} from './customer-menu.js';
+import {customerBasketPricing} from './customer-basket-pricing.js';
+import './customer-menu.css';
 import { confirmDialog } from '../../src/confirm-dialog.js';
 import { readStoredJson, preparePendingOrder, tryStoreJson } from '../../src/browser-storage.js';
 
@@ -46,28 +50,35 @@ const cartItems = () => cartItemsById(state.cart?.items);
 const comboSelections = () => comboSelectionsFromCart(state.cart);
 const productById = id => state.data?.products.find(product => product.id === id);
 const quantityOf = id => cartLines().get(id) || 0;
+let cartOverlay;
+let customerMenu;
 
 function render() {
   if (!state.data) return;
+  if(customerMenu?.isDialogOpen()){renderCart();return;}
+  const cartWasOpen = cartOverlay?.isOpen();
+  const menuView = customerMenu?.getView();
+  cartOverlay?.destroy();
+  customerMenu?.destroy();
   const { branch, table, sessionOpen, products } = state.data;
-  app.innerHTML = `<header><div class="brand">DUSKO <span>RESTAURANT</span></div><p>Gọi món tại bàn</p></header>
-    <main><section class="hero"><div><small>CHI NHÁNH</small><h1>${escape(branch.name)}</h1></div><strong>${escape(table.name)}</strong></section>
+  app.innerHTML = `<header><div class="brand">DUSKO <span>RESTAURANT</span></div><p>${escape(table.name)}</p></header>
+    <main><section class="hero"><div><small>CHI NHÁNH</small><h1>${escape(branch.name)}</h1></div></section>
     <p class="notice ${sessionOpen ? '' : 'closed'}">${sessionOpen ? 'Bàn đang phục vụ · Bạn có thể gọi thêm món' : 'Bàn chưa mở phiên phục vụ. Vui lòng gọi nhân viên để được hỗ trợ.'}</p>
     ${presenceBar()}
     <div id="customer-recognition"></div>
     <div id="service-actions">${serviceActions()}</div>
     <p id="customer-message" class="message" role="status" ${state.message ? '' : 'hidden'}>${escape(state.message)}</p>
     ${orderListHtml()}
-    <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu"><div class="toolbar"><h2>Thực đơn</h2><a class="pos-cart-jump" href="#customer-cart">Xem giỏ món ↓</a><div class="menu-filters"><input id="search" type="search" placeholder="Tìm món ăn" aria-label="Tìm món ăn"><select id="category" aria-label="Lọc nhóm món"><option value="ALL">Tất cả nhóm món</option>${[...new Set(products.map(p => p.category.name))].map(name => `<option value="${escape(name)}">${escape(name)}</option>`).join('')}</select></div></div>
-    <div id="menu" class="menu">${products.map(p => `<article class="dish ${p.canOrder ? '' : 'unavailable'}" data-product="${p.id}" data-name="${escape(p.name.toLowerCase())}" data-category="${escape(p.category.name)}"><div class="photo">${p.imageUrl ? `<img src="${escape(p.imageUrl.startsWith('http') ? p.imageUrl : api + p.imageUrl)}" alt="${escape(p.name)}" loading="lazy">` : '<span>Chưa có ảnh</span>'}</div><div class="dish-body"><small>${escape(p.category.name)}</small><h3>${escape(p.name)}</h3><b>${money(p.sellingPrice)}</b>${p.canOrder ? `<div class="stepper"><button data-minus="${p.id}" aria-label="Giảm ${escape(p.name)}">−</button><span data-quantity="${p.id}">${quantityOf(p.id)}</span><button data-plus="${p.id}" aria-label="Thêm ${escape(p.name)}">+</button></div>` : `<p class="unavailable-note">${escape(p.availabilityReason || 'Tạm chưa thể đặt')}. Vui lòng hỏi nhân viên.</p>`}</div></article>`).join('')}</div>
-    </section><section class="cart" id="customer-cart">${cartHtml()}</section></div></main>`;
+    <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart">${cartHtml()}</section></div></main>`;
   customerHelp?.renderCombos();
   recognition?.render();
-  bindQuantityControls();
+  customerMenu=createCustomerMenu({root:app.querySelector('#customer-menu'),products,quantityOf,changeQuantity,sessionOpen,api,view:menuView,getLine:id=>cartItems().get(id)});
   bindCartControls();
-  const filterMenu = () => { const query = app.querySelector('#search').value.trim().toLowerCase(), category = app.querySelector('#category').value; app.querySelectorAll('.dish').forEach(dish => dish.hidden = !dish.dataset.name.includes(query) || (category !== 'ALL' && dish.dataset.category !== category)); };
-  app.querySelector('#search').oninput = filterMenu;
-  app.querySelector('#category').onchange = filterMenu;
+  cartOverlay = createCustomerCartOverlay({root:app, startOpen:cartWasOpen, summary:() => ({
+    count:cartItemCount(state.cart?.items || []),
+    total:money(customerBasketPricing(state.cart).total),
+    busy:state.busy || state.cartPending > 0,
+  })});
   const submit = app.querySelector('#submit');
   if (submit) submit.onclick = checkout;
 }
@@ -117,9 +128,9 @@ app.addEventListener('click', async event => {
 });
 
 function cartHtml() {
-  const { products, sessionOpen } = state.data;
+  const { sessionOpen } = state.data;
   const entries = state.cart?.items || [];
-  const pricing = cartComboPricing(cartLines(), products, comboSelections());
+  const pricing = customerBasketPricing(state.cart);
   const total = pricing.total;
   const blocking = cartBlockingItems(entries);
   const busy = state.busy || state.cartPending > 0;
@@ -131,16 +142,21 @@ function cartHtml() {
 function renderCart() {
   const holder = app.querySelector('#customer-cart');
   if (!holder) return;
+  const active = document.activeElement;
+  const focusAttribute = holder.contains(active) && ['data-cart-plus', 'data-cart-minus', 'data-remove', 'data-clear-cart', 'id'].find(name => active.hasAttribute(name));
+  const focusValue = focusAttribute ? active.getAttribute(focusAttribute) : null;
   holder.innerHTML = cartHtml();
+  cartOverlay?.update();
+  customerMenu?.update();
   bindCartControls();
+  if (focusAttribute) {
+    const replacement = [...holder.querySelectorAll(`[${focusAttribute}]`)].find(element => element.getAttribute(focusAttribute) === focusValue);
+    if (replacement && !replacement.disabled) replacement.focus({preventScroll:true});
+    else if (cartOverlay?.isOpen()) app.querySelector('.customer-cart-dialog-bar button').focus({preventScroll:true});
+  }
   app.querySelectorAll('[data-quantity]').forEach(counter => counter.textContent = quantityOf(Number(counter.dataset.quantity)));
   // The combo grid depends on the basket and on what is still in stock.
   customerHelp?.renderCombos();
-}
-
-function bindQuantityControls() {
-  app.querySelectorAll('[data-plus]').forEach(button => button.onclick = () => changeQuantity(Number(button.dataset.plus), 1));
-  app.querySelectorAll('[data-minus]').forEach(button => button.onclick = () => changeQuantity(Number(button.dataset.minus), -1));
 }
 
 function bindCartControls() {
@@ -163,19 +179,26 @@ function bindCartControls() {
  * The server applies the change as a delta so two guests pressing "+" at the
  * same time never overwrite each other.
  */
-async function changeQuantity(productId, delta) {
-  if (state.busy) return;
+let quantityQueue = Promise.resolve();
+function changeQuantity(productId, delta, source, note) {
+  if (state.busy) return false;
+  if (source) { source.disabled=true;source.setAttribute('aria-busy','true'); }
   state.cartPending++;
   renderCart();
-  try {
-    state.cart = await request(`/api/public/tables/${token}/cart/items`, { method: 'POST', body: JSON.stringify({ productId, quantity: delta }) });
+  quantityQueue = quantityQueue.then(async () => { try {
+    state.cart = await request(`/api/public/tables/${token}/cart/items`, { method: 'POST', body: JSON.stringify({ productId, quantity: delta, ...(note===undefined?{}:{note}) }) });
+    if (delta>0) cartOverlay?.added(productById(productId)?.name || 'món',source);
+    return true;
   } catch (error) {
     toast.error('Không cập nhật được giỏ món', error.message);
     await refreshCart();
+    return false;
   } finally {
     state.cartPending--;
     renderCart();
-  }
+    if (source?.isConnected) { source.disabled=false;source.removeAttribute('aria-busy'); }
+  }});
+  return quantityQueue;
 }
 
 async function saveNote(productId, note) {
