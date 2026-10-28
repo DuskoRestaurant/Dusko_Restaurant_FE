@@ -67,12 +67,32 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     setBusy(state.busy);
   }
   function listView() {
-    return `<div class="sw-heading sw-list-heading"><div><h2>Danh sách bàn</h2><p>Bàn cần xử lý được xếp trước. Chọn trạng thái để lọc nhanh.</p></div><div class="sw-heading-actions">${button('Làm mới','refresh')}</div></div><p class="sw-sync" data-sw-sync role="status"></p><div class="sw-overview" role="group" aria-label="Lọc trạng thái bàn">${listOverview()}</div><div class="sw-filters sw-table-filters"><input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></div><div class="sw-tables">${tableCards()}</div><details class="sw-guide"><summary>Hướng dẫn phục vụ</summary><p>Mở bàn → xác nhận yêu cầu QR hoặc gọi món giúp khách → mang món đã hoàn thành ra bàn → thanh toán.</p></details>`;
+    return `<div class="sw-heading sw-list-heading"><div><h2>Danh sách bàn</h2><p>Bàn cần xử lý được xếp trước. Chọn trạng thái để lọc nhanh.</p></div><div class="sw-heading-actions">${button('Làm mới','refresh')}</div></div><div class="sw-overview" role="group" aria-label="Lọc trạng thái bàn">${listOverview()}</div><div class="sw-filters sw-table-filters"><input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></div><div class="sw-tables">${tableCards()}</div><details class="sw-guide"><summary>Hướng dẫn phục vụ</summary><p>Mở bàn → xác nhận yêu cầu QR hoặc gọi món giúp khách → mang món đã hoàn thành ra bàn → thanh toán.</p></details>`;
   }
   const mayCloseEmpty = () => Boolean(state.session) && !(state.session.orders||[]).some(order=>['AWAITING_CONFIRMATION','PENDING'].includes(order.status));
   function tableView() {
     const table = state.table;
     return `<div class="sw-heading sw-table-heading"><div>${button('← Danh sách bàn','back')}<h2>${e(table.tableName)}</h2><p>${state.session?'Đang phục vụ · các lần gọi món dùng chung một hóa đơn':table.status==='RESERVED'?'Bàn đang được đặt trước. Quản lý cần cập nhật tình trạng bàn.':'Bàn chưa mở phục vụ'}</p></div><div class="sw-actions">${button('Xem QR','view-qr')}<span data-sw-empty-close>${mayCloseEmpty()?button('Đóng bàn chưa gọi món','close'):''}</span>${button('Làm mới','refresh')}</div></div>${state.session?`<div data-sw-customer>${customerSummary()}</div><div data-sw-calls>${serviceCalls()}</div><div class="sw-table-summary" data-sw-summary>${summary()}</div><div class="sw-tabs" role="tablist" aria-label="Công việc tại bàn">${tabs()}</div><div class="sw-content" data-sw-panel id="sw-panel" role="tabpanel" tabindex="0" aria-labelledby="sw-tab-${state.tab}">${panel()}</div>`:`<div class="sw-empty"><h3>${table.pendingOrderCount?'Bàn còn đơn cũ chưa thanh toán':'Khách đã đến bàn?'}</h3><p>${table.pendingOrderCount?'Thu ngân cần xử lý đơn cũ trong mục Mang đi và đơn cũ trước khi mở bàn.':'Mở bàn để khách sử dụng QR cố định hoặc để nhân viên gọi món.'}</p>${button('Mở bàn phục vụ','open',table.status==='RESERVED'||table.pendingOrderCount?'data-locked="true"':'',true)}</div>`}`;
+  }
+  function updateSync(){const label=root.querySelector('[data-sw-sync]');if(label)label.textContent=`${syncError?'Chưa cập nhật được dữ liệu':liveConnected?'Đang kết nối trực tiếp':'Đang dùng cập nhật dự phòng'}${lastUpdated?` · Lần cuối ${lastUpdated.toLocaleTimeString('vi-VN')}`:''}`;}
+  function customerSummary(){
+    const customer=state.session?.verifiedCustomer;
+    return `<div class="sw-customer"><div><strong>${customer?`Khách: ${e(customer.fullName)}`:'Khách vãng lai'}</strong><p>${customer?e(customer.phone):'Gắn khách hàng sau khi đối chiếu số điện thoại để nhận ưu đãi.'}</p></div>${customer?button('Bỏ gắn khách','clear-customer'):button('Gắn khách hàng','verify-customer')}</div>`;
+  }
+  function verifyCustomer(){
+    const {id:tableId,tableName}=state.table,sessionId=state.session?.id;
+    if(!sessionId)return;
+    customerDialog?.close();
+    const dialog=document.createElement('dialog');customerDialog=dialog;dialog.className='sw-customer-dialog';dialog.setAttribute('aria-label',`Gắn khách hàng · ${tableName}`);
+    dialog.innerHTML=`<form><h2>Gắn khách hàng · ${e(tableName)}</h2><p>Khách chỉ được gắn với lượt phục vụ hiện tại.</p><label>Số điện thoại<input name="phone" type="tel" inputmode="tel" autocomplete="tel" required maxlength="20" placeholder="09xx xxx xxx"></label><label class="sw-customer-check"><input type="checkbox" required> Đã đối chiếu số điện thoại trực tiếp với khách tại bàn</label><p role="status" data-error></p><div><button type="submit">Xác nhận gắn khách</button><button type="button" data-close>Đóng</button></div></form>`;
+    dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('close',()=>{dialog.remove();if(customerDialog===dialog)customerDialog=null;},{once:true});
+    dialog.querySelector('form').onsubmit=async event=>{
+      event.preventDefault();const submit=dialog.querySelector('[type=submit]');if(submit.disabled)return;submit.disabled=true;
+      const error=dialog.querySelector('[data-error]');error.textContent='Đang xác nhận…';
+      try{await post(`/api/staff/tables/${tableId}/customer/verify-by-phone`,{sessionId,phone:dialog.querySelector('[name=phone]').value.trim()});if(disposed)return;dialog.close();if(state.table?.id===tableId){await refresh();showMessage('Đã gắn khách hàng vào phiên bàn.');}}
+      catch(err){error.textContent=err.message;}finally{submit.disabled=false;}
+    };
+    document.body.append(dialog);dialog.showModal();
   }
   function serviceCalls(){return (state.serviceRequests||[]).map(call=>`<div class="sw-service-call"><div><strong>${call.kind==='BILL'?'Khách yêu cầu thanh toán':'Khách cần nhân viên hỗ trợ'}</strong><small>Gửi lúc ${time(call.createdAt)}</small></div>${button('Đã hỗ trợ','resolve-call',`data-id="${call.id}"`)}</div>`).join('');}
   function summary() { return `<span><b>${waitingOrders().length}</b> chờ xác nhận</span><span><b>${quantities(readyItems())}</b> món sẵn sàng</span><span><b>${money(total())}</b> tiền món</span>`; }

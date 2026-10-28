@@ -77,3 +77,10 @@ Trang xem thử dùng component thật và dữ liệu giả lập; mọi yêu c
 - Đây là kiểm tra component với fixture cục bộ; chưa kiểm tra thao tác ghi đơn/thanh toán với BE thật. Chưa deploy FE.
 
 Ảnh: [bàn](service-feedback-tables.png), [xác nhận](service-feedback-confirm.png), [bếp](service-feedback-ready.png), [menu lưới](service-feedback-menu.png), [thanh toán bị khóa](service-feedback-checkout.png).
+
+## Sửa lỗi runtime sau gộp main — 29/10/2026
+
+- Production hiển thị `updateSync is not defined` trên màn phục vụ/thu ngân. Khối conflict tableView đã làm thiếu định nghĩa updateSync, customerSummary và verifyCustomer, dù các chỗ gọi mới vẫn còn.
+- Khôi phục 3 helper từ main, giữ UI đã duyệt và bỏ một nhãn sync bị lặp ở danh sách bàn.
+- Thêm kiểm tra controller runtime: ADMIN/CASHIER/WAITER khởi động, báo sync và mở phiên bàn có thông tin khách. Đây là phần các test filter/menu thuần trước đó không bao phủ.
+- 80/80 test FE đạt, build cả ba app thành công. Kiểm tra UI cục bộ: mở bàn, mở/đóng hộp thoại gắn khách (không submit dữ liệu), đổi tab gọi thêm và làm mới không có console error.
