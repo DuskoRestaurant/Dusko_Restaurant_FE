@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {customerCartGroups,customerCartLines} from '../customer-web/src/customer-cart-lines.js';
 import {customerDishImages} from '../customer-web/src/customer-dish-details.js';
-import {customerBasketPricing} from '../customer-web/src/customer-basket-pricing.js';
+import {customerBasketPricing,newestCustomerBasket} from '../customer-web/src/customer-basket-pricing.js';
 
 const items=[{productId:1,name:'Gỏi',sellingPrice:60000,quantity:3,canOrder:true,note:'Ít cay'}, {productId:2,name:'Cơm',sellingPrice:40000,quantity:2,canOrder:true}];
 test('whole bundles consume only allocated units, preserve extra dishes and match the basket total',()=>{
@@ -28,4 +28,12 @@ test('photo gallery uses provided images once and leaves a single-photo dish as 
   assert.deepEqual(customerDishImages({imageUrl:'/one.jpg'}),['/one.jpg']);
   assert.deepEqual(customerDishImages({imageUrl:'/one.jpg',imageUrls:['/one.jpg','/two.jpg',null],images:[{url:'/three.jpg'}]}),['/one.jpg','/two.jpg','/three.jpg']);
   assert.deepEqual(customerDishImages({}),[]);
+});
+
+test('a delayed basket poll cannot undo a newer bundle selection or change sessions',()=>{
+  const current={sessionId:'one',version:4,combos:[{key:'1-2',quantity:1,price:80000}]};
+  assert.equal(newestCustomerBasket(current,{sessionId:'one',version:3,combos:[]},'one'),current);
+  assert.equal(newestCustomerBasket(current,{sessionId:'old',version:9},'one'),current);
+  const next={sessionId:'one',version:5,combos:[]};
+  assert.equal(newestCustomerBasket(current,next,'one'),next);
 });

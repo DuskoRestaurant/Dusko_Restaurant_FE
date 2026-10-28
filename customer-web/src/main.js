@@ -11,7 +11,7 @@ import '../../src/pos-theme.css';
 import './customer-cart-overlay.css';
 import { createCustomerCartOverlay } from './customer-cart-overlay.js';
 import {createCustomerMenu} from './customer-menu.js';
-import {customerBasketPricing} from './customer-basket-pricing.js';
+import {customerBasketPricing,newestCustomerBasket} from './customer-basket-pricing.js';
 import {customerCartLines,customerCartGroups} from './customer-cart-lines.js';
 import {customerOrderHistory} from './customer-order-history.js';
 import './customer-menu.css';
@@ -49,6 +49,7 @@ async function request(path, options = {}) {
   return payload.data;
 }
 
+const applyCart=next=>{state.cart=newestCustomerBasket(state.cart,next,state.data?.sessionId);};
 const cartLines = () => cartLineMap(state.cart?.items);
 const cartItems = () => cartItemsById(state.cart?.items);
 const comboSelections = () => comboSelectionsFromCart(state.cart);
@@ -190,7 +191,7 @@ function changeQuantity(productId, delta, source, note) {
   state.cartPending++;
   renderCart();
   quantityQueue = quantityQueue.then(async () => { try {
-    state.cart = await request(`/api/public/tables/${token}/cart/items`, { method: 'POST', body: JSON.stringify({ productId, quantity: delta, ...(note===undefined?{}:{note}) }) });
+    applyCart(await request(`/api/public/tables/${token}/cart/items`, { method: 'POST', body: JSON.stringify({ productId, quantity: delta, ...(note===undefined?{}:{note}) }) }));
     if (delta>0) cartOverlay?.added(productById(productId)?.name || 'món',source);
     return true;
   } catch (error) {
@@ -210,7 +211,7 @@ async function saveNote(productId, note) {
   if (!item || (item.note || '') === note) return;
   state.cartPending++;
   try {
-    state.cart = await request(`/api/public/tables/${token}/cart/items/${productId}`, { method: 'PATCH', body: JSON.stringify({ quantity: item.quantity, note }) });
+    applyCart(await request(`/api/public/tables/${token}/cart/items/${productId}`, { method: 'PATCH', body: JSON.stringify({ quantity: item.quantity, note }) }));
   } catch (error) {
     toast.error('Không lưu được ghi chú', error.message);
   } finally {
@@ -226,7 +227,7 @@ async function removeLine(productId) {
   state.cartPending++;
   renderCart();
   try {
-    state.cart = await request(`/api/public/tables/${token}/cart/items/${productId}`, { method: 'DELETE' });
+    applyCart(await request(`/api/public/tables/${token}/cart/items/${productId}`, { method: 'DELETE' }));
     toast.info('Đã bỏ món khỏi giỏ');
   } catch (error) {
     toast.error('Không bỏ được món', error.message);
@@ -242,7 +243,7 @@ async function clearCart() {
   state.cartPending++;
   renderCart();
   try {
-    state.cart = await request(`/api/public/tables/${token}/cart`, { method: 'DELETE' });
+    applyCart(await request(`/api/public/tables/${token}/cart`, { method: 'DELETE' }));
     toast.info('Đã xóa giỏ món của bàn');
   } catch (error) {
     toast.error('Không xóa được giỏ món', error.message);
@@ -258,7 +259,7 @@ function changeCombo(key,delta,price){
   if(delta>0&&!String(key).split('-').map(Number).every(id=>{const p=productById(id);return p?.canOrder&&quantityOf(id)+delta<=Math.min(1000,p.maxOrderQuantity??1000);})){toast.warning('Chưa thể thêm combo','Một số món đã hết hoặc vượt số suất còn lại.');return Promise.resolve(false);}
   state.cartPending++;renderCart();
   quantityQueue=quantityQueue.then(async()=>{try{
-    state.cart=await request(`/api/public/tables/${token}/cart/combos/change`,{method:'POST',body:JSON.stringify({key,delta,price})});
+    applyCart(await request(`/api/public/tables/${token}/cart/combos/change`,{method:'POST',body:JSON.stringify({key,delta,price})}));
     if(delta>0)cartOverlay?.added('combo');
     return true;
   }catch(error){toast.error('Không cập nhật được combo',error.message);await refreshCart();return false;}
@@ -302,7 +303,7 @@ async function checkout() {
 async function refreshCart() {
   if (!token) return;
   try {
-    state.cart = await request(`/api/public/tables/${token}/cart`);
+    applyCart(await request(`/api/public/tables/${token}/cart`));
     renderCart();
   } catch (error) {
     if (error.status === 409) {
