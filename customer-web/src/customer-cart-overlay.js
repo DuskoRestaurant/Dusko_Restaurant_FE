@@ -18,8 +18,8 @@ export function createCustomerCartOverlay({root, summary, startOpen = false}) {
   const dialog = document.createElement('dialog');
   dialog.id = 'customer-cart-dialog';
   dialog.className = 'customer-cart-dialog';
-  dialog.setAttribute('aria-label', 'Giỏ món của bàn');
-  dialog.innerHTML = '<div class="customer-cart-dialog-bar"><strong>Kiểm tra giỏ món</strong><button type="button" autofocus aria-label="Đóng giỏ món">Đóng ✕</button></div>';
+  dialog.setAttribute('aria-labelledby', 'customer-cart-title');
+  dialog.innerHTML = '<div class="customer-cart-dialog-bar"><button type="button" autofocus aria-label="Đóng giỏ món">✕</button></div>';
   const actions=document.createElement('div');
   actions.className='customer-action-dock';
   const help=root.querySelector('.restaurant-help')||document.querySelector('.restaurant-help');
@@ -35,7 +35,7 @@ export function createCustomerCartOverlay({root, summary, startOpen = false}) {
     dock.setAttribute('aria-expanded', 'false');
   }
   function open() {
-    if (!compact.matches || dialog.open) return;
+    if (!compact.matches || dialog.open || root.querySelector('dialog[open]')) return;
     previousOverflow = document.body.style.overflow;
     dialog.append(cart);
     document.body.style.overflow = 'hidden';
@@ -76,7 +76,7 @@ export function createCustomerCartOverlay({root, summary, startOpen = false}) {
       if (source?.isConnected) source.animate([{transform:'scale(1)'},{transform:'scale(.85)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],{duration:320});
     }
   }
-  return {update, added, isOpen:() => dialog.open, destroy() {
+  return {update, added, close, isOpen:() => dialog.open, destroy() {
     clearTimeout(feedbackTimer);
     dialog.removeEventListener('close', restore);
     if (dialog.open) { dialog.close(); restore(); }

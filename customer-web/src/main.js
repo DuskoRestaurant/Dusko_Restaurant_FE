@@ -15,7 +15,8 @@ import {customerBasketPricing} from './customer-basket-pricing.js';
 import {customerCartLines} from './customer-cart-lines.js';
 import {customerOrderHistory} from './customer-order-history.js';
 import './customer-menu.css';
-import { confirmDialog } from '../../src/confirm-dialog.js';
+import {customerServiceActions} from './customer-service-actions.js';
+import {createCustomerViews} from './customer-views.js';
 import { readStoredJson, preparePendingOrder, tryStoreJson } from '../../src/browser-storage.js';
 
 const api = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
@@ -38,7 +39,7 @@ const state = {
   presence: 0,
   cartPending: 0,
   lastServiceRequestAt: 0,
-  ordersExpanded: false,
+  cartIntent: null,
 };
 
 async function request(path, options = {}) {
@@ -55,23 +56,25 @@ const productById = id => state.data?.products.find(product => product.id === id
 const quantityOf = id => cartLines().get(id) || 0;
 let cartOverlay;
 let customerMenu;
+let customerViews;
 
 function render() {
   if (!state.data) return;
   if(customerMenu?.isDialogOpen()){renderCart();return;}
+  const navigationView=customerViews?.getView();
+  customerViews?.destroy();
   const cartWasOpen = cartOverlay?.isOpen();
   const menuView = customerMenu?.getView();
   cartOverlay?.destroy();
   customerMenu?.destroy();
   const { branch, table, sessionOpen, products } = state.data;
   app.innerHTML = `<header class="customer-app-header"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><span>DUSKO RESTAURANT</span></div><p>${escape(table.name)}</p></header>
-    <main><section class="hero"><div><small>CHI NHÁNH</small><h1>${escape(branch.name)}</h1></div></section>
+    <main><div id="customer-menu-view"><section class="hero"><div><small>CHI NHÁNH</small><h1>${escape(branch.name)}</h1></div></section>
     <p class="customer-sync" data-customer-sync role="status"></p>${sessionOpen?'': '<p class="notice closed">Bàn chưa mở phục vụ. Vui lòng gọi nhân viên.</p>'}
     ${presenceBar()}
-    <div id="service-actions">${serviceActions()}</div>
+    <div class="guest-table-tools"><div id="service-actions">${serviceActions()}</div><button type="button" data-open-history class="guest-history-button">▤ <span>Lịch sử gọi món</span></button></div>
     <p id="customer-message" class="message" role="status" ${state.message ? '' : 'hidden'}>${escape(state.message)}</p>
-    <div id="customer-order-history">${orderListHtml()}</div>
-    <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart">${cartHtml()}</section></div><div id="customer-recognition"></div></main>`;
+    <section id="customer-combos"></section><div class="customer-layout"><section class="customer-menu" id="customer-menu"></section><section class="cart" id="customer-cart">${cartHtml()}</section></div><div id="customer-recognition"></div></div><section id="customer-history-view" hidden><div class="guest-history-header"><button type="button" data-close-history>← Thực đơn</button><h1 tabindex="-1">Lịch sử gọi món</h1><p>Các lượt gọi trong phiên phục vụ hiện tại</p></div><div id="customer-order-history">${orderListHtml()}</div></section></main>`;
   customerHelp?.renderCombos();
   recognition?.render();
   updateConnectionLabel();
@@ -82,6 +85,7 @@ function render() {
     total:money(customerBasketPricing(state.cart).total),
     busy:state.busy || state.cartPending > 0,
   })});
+  customerViews=createCustomerViews({root:app,snapshot:navigationView,beforeNavigate:()=>{cartOverlay?.close();customerMenu?.closeDetails();}});
   const submit = app.querySelector('#submit');
   if (submit) submit.onclick = checkout;
 }
@@ -92,19 +96,17 @@ function presenceBar() {
   return `<p class="presence-bar" title="Các khách tại bàn cùng chọn món trong một giỏ, thay đổi được đồng bộ.">Giỏ dùng chung · ${state.presence} khách</p>`;
 }
 
-function orderListHtml() { return customerOrderHistory(state.orders,{open:state.ordersExpanded}); }
-app.addEventListener('toggle',event=>{if(event.target.isConnected&&event.target.classList?.contains('guest-order-history'))state.ordersExpanded=event.target.open;},true);
+function orderListHtml() { return customerOrderHistory(state.orders); }
 
-let serviceBusy = false;
+let serviceBusy = null;
 function serviceActions() {
-  if (!state.data?.sessionOpen) return '';
-  return `<div class="service-actions">${[['ASSISTANCE', 'Gọi nhân viên'], ['BILL', 'Yêu cầu thanh toán']].map(([kind, label]) => { const pending = state.data.serviceRequests?.some(r => r.kind === kind); return `<button type="button" data-service="${kind}" aria-describedby="customer-service-help" ${pending || serviceBusy ? 'disabled' : ''}>${pending ? `${label} · đã gửi` : label}</button>`; }).join('')}</div><small class="service-hint guest-sr-only" id="customer-service-help">Nhân viên sẽ đến bàn hỗ trợ. Yêu cầu thanh toán chưa phải là xác nhận đã trả tiền.</small>`;
+  return customerServiceActions({sessionOpen:state.data?.sessionOpen,requests:state.data?.serviceRequests,busyKind:serviceBusy});
 }
 
 app.addEventListener('click', async event => {
   const button = event.target.closest('[data-service]');
   if (!button || button.disabled || serviceBusy) return;
-  serviceBusy = true;
+  serviceBusy = button.dataset.service;
   app.querySelector('#service-actions').innerHTML = serviceActions();
   try {
     const call = await request(`/api/public/tables/${token}/service-requests`, { method: 'POST', body: JSON.stringify({ kind: button.dataset.service }) });
@@ -114,7 +116,7 @@ app.addEventListener('click', async event => {
   } catch (error) {
     toast.error('Không gửi được yêu cầu', error.message);
   } finally {
-    serviceBusy = false;
+    serviceBusy = null;
     const holder = app.querySelector('#service-actions');
     if (holder) holder.innerHTML = serviceActions();
   }
@@ -127,8 +129,8 @@ function cartHtml() {
   const total = pricing.total;
   const blocking = cartBlockingItems(entries);
   const busy = state.busy || state.cartPending > 0;
-  const canSend = cartCheckoutable(entries, { sessionOpen, busy });
-  return `<div class="guest-cart-heading"><h2>Giỏ món <span>${cartItemCount(entries)} món${state.presence > 1 ? ' · dùng chung' : ''}</span></h2>${entries.length ? `<button type="button" data-clear-cart class="guest-cart-clear" ${busy?'disabled':''}>Xóa tất cả</button>` : ''}</div>${entries.length ? customerCartLines(entries,{productById,busy}) : '<p>Chọn món từ thực đơn phía trên.</p>'}${pricing.valid.length ? `<div class="combo-cart-summary"><p>Giá món lẻ: ${money(pricing.retail)}</p>${pricing.valid.map(combo => `<p>Combo ${combo.productIds.map(id => escape(productById(id)?.name)).join(' + ')} × ${combo.quantity} · ${money(combo.price * combo.quantity)} <button type="button" data-remove-combo="${escape(combo.key)}">Bỏ combo</button></p>`).join('')}<p>Ưu đãi combo: −${money(pricing.discount)}</p></div>` : ''}<div class="total">Tạm tính <b>${money(total)}</b></div><button id="submit" class="primary" ${canSend ? '' : 'disabled'}>${state.busy ? 'Đang gửi…' : busy ? 'Đang cập nhật…' : 'Gửi yêu cầu cho nhân viên'}</button>${blocking.length ? '<small class="cart-warning">Giỏ có món thiếu nguyên liệu hoặc vượt số suất còn lại. Hãy điều chỉnh trước khi gửi.</small>' : ''}<small>Thanh toán tại quầy hoặc qua nhân viên. Giá được kiểm tra lại khi gửi.</small>`;
+  const canSend = !state.cartIntent && cartCheckoutable(entries, { sessionOpen, busy });
+  return `<div class="guest-cart-heading"><h2 id="customer-cart-title">Giỏ món <span>${cartItemCount(entries)} món${state.presence > 1 ? ' · dùng chung' : ''}</span></h2>${entries.length ? `<button type="button" data-clear-cart class="guest-cart-clear" ${busy?'disabled':''}>Xóa tất cả</button>` : ''}</div><div class="guest-cart-scroll">${entries.length ? customerCartLines(entries,{productById,busy}) : '<p>Chọn món từ thực đơn phía trên.</p>'}${pricing.valid.length ? `<div class="combo-cart-summary"><p>Giá món lẻ: ${money(pricing.retail)}</p>${pricing.valid.map(combo => `<p>Combo ${combo.productIds.map(id => escape(productById(id)?.name)).join(' + ')} × ${combo.quantity} · ${money(combo.price * combo.quantity)} <button type="button" data-remove-combo="${escape(combo.key)}">Bỏ combo</button></p>`).join('')}<p>Ưu đãi combo: −${money(pricing.discount)}</p></div>` : ''}</div><div class="guest-cart-footer">${state.cartIntent==='clear'?'<div class="guest-cart-confirm" role="group" aria-labelledby="guest-clear-title"><strong id="guest-clear-title">Xóa tất cả món của bàn?</strong><p>Mọi khách tại bàn đều thấy thay đổi này.</p><div><button type="button" data-cancel-clear>Giữ lại</button><button type="button" data-confirm-clear>Xóa tất cả</button></div></div>':''}<div class="total">Tạm tính <b>${money(total)}</b></div><button id="submit" class="primary" ${canSend ? '' : 'disabled'}>${state.busy ? 'Đang gửi…' : busy ? 'Đang cập nhật…' : 'Gửi yêu cầu cho nhân viên'}</button>${blocking.length ? '<small class="cart-warning">Giỏ có món thiếu nguyên liệu hoặc vượt số suất còn lại. Hãy điều chỉnh trước khi gửi.</small>' : ''}<small>Thanh toán tại quầy hoặc qua nhân viên. Giá được kiểm tra lại khi gửi.</small></div>`;
 }
 
 /** Replace only the cart panel so the menu keeps its scroll and search state. */
@@ -138,7 +140,9 @@ function renderCart() {
   const active = document.activeElement;
   const focusAttribute = holder.contains(active) && ['data-cart-plus', 'data-cart-minus', 'data-remove', 'data-clear-cart', 'id'].find(name => active.hasAttribute(name));
   const focusValue = focusAttribute ? active.getAttribute(focusAttribute) : null;
+  const cartScroll=holder.querySelector('.guest-cart-scroll')?.scrollTop||0;
   holder.innerHTML = cartHtml();
+  holder.querySelector('.guest-cart-scroll').scrollTop=cartScroll;
   cartOverlay?.update();
   customerMenu?.update();
   bindCartControls();
@@ -161,7 +165,10 @@ function bindCartControls() {
     input.onblur = () => saveNote(Number(input.dataset.note), input.value.trim());
   });
   const clear = app.querySelector('[data-clear-cart]');
-  if (clear) clear.onclick = clearCart;
+  if (clear) clear.onclick = () => {state.cartIntent='clear';renderCart();app.querySelector('[data-cancel-clear]')?.focus({preventScroll:true});};
+  const cancelClear=app.querySelector('[data-cancel-clear]'),confirmClear=app.querySelector('[data-confirm-clear]');
+  if(cancelClear)cancelClear.onclick=()=>{state.cartIntent=null;renderCart();app.querySelector('[data-clear-cart]')?.focus({preventScroll:true});};
+  if(confirmClear)confirmClear.onclick=clearCart;
   const submit = app.querySelector('#submit');
   if (submit) submit.onclick = checkout;
 }
@@ -223,7 +230,8 @@ async function removeLine(productId) {
 }
 
 async function clearCart() {
-  if (!await confirmDialog({ title: 'Xóa giỏ món?', message: 'Giỏ món dùng chung của bàn sẽ được xóa. Mọi khách tại bàn đều thấy thay đổi này.', confirmLabel: 'Xóa giỏ' })) return;
+  if(state.busy||state.cartPending>0)return;
+  state.cartIntent=null;
   state.cartPending++;
   renderCart();
   try {
@@ -266,16 +274,11 @@ async function removeCombo(key) {
 }
 
 async function checkout() {
-  if (state.busy || !state.data?.sessionOpen) return;
+  if (state.busy || state.cartPending>0 || state.cartIntent || !state.data?.sessionOpen) return;
+  if(!cartCheckoutable(state.cart?.items||[],{sessionOpen:state.data.sessionOpen,busy:false}))return;
   const entries = state.cart?.items || [];
   if (!entries.length) return;
   const combos = comboSelections();
-  const count = entries.reduce((sum, item) => sum + item.quantity, 0);
-  if (!await confirmDialog({
-    title: 'Gửi yêu cầu gọi món?',
-    message: `Gửi ${count} món tới nhân viên của ${state.data.table.name}. Món chỉ được chuyển vào bếp sau khi nhân viên xác nhận tại bàn.`,
-    confirmLabel: 'Gửi yêu cầu',
-  })) return;
 
   state.busy = true;
   state.message = '';

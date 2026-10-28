@@ -96,7 +96,7 @@ export function createCustomerMenu({root, products, quantityOf, changeQuantity, 
   window.addEventListener('touchstart',cancelIntent,{passive:true});
   window.addEventListener('keydown',cancelIntent);
   draw();
-  return {isDialogOpen:()=>Boolean(root.querySelector('.guest-dish-dialog[open]')),getView:()=>({query,tag,scrollLeft:nav.scrollLeft}),update() {
+  return {closeDetails:()=>details.close(),isDialogOpen:()=>Boolean(root.querySelector('.guest-dish-dialog[open]')),getView:()=>({query,tag,scrollLeft:nav.scrollLeft}),update() {
     root.querySelectorAll('[data-quantity]').forEach(counter=>{
       const quantity=quantityOf(Number(counter.dataset.quantity));counter.textContent=quantity;counter.parentElement.hidden=!quantity;
     });
