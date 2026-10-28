@@ -5,7 +5,7 @@ import './kitchen-workspace.css';
 export function mountKitchen({root,request,branchId,pollMs=15000}) {
   let disposed=false,pending=null,busy=false,again=false,batches=[],finished=[],filter='SCHEDULED',updated=null,live=false,failed=false;
   const controller=new AbortController();
-  root.innerHTML='<section class="kw-workspace"><div class="kw-heading"><div><h2>Nhà bếp</h2><p>Món, số lượng và bàn nhận trong từng mẻ nấu.</p></div><button type="button" data-kw-refresh>Làm mới</button></div><p data-kw-sync role="status"></p><p data-kw-error role="alert" hidden></p><div class="kw-tabs" aria-label="Trạng thái mẻ bếp"></div><div class="kw-list"></div></section>';
+  root.innerHTML='<section class="kw-workspace"><div class="kw-heading"><div><h2>Nhà bếp</h2><p>Món, số lượng và bàn nhận trong từng mẻ nấu.</p></div><button type="button" data-kw-refresh>Làm mới</button></div><details class="kw-method"><summary>Vì sao các món được gom vào một mẻ?</summary><p>Món cần chế biến cùng loại được gom tối đa 3 suất/mẻ, trong cửa sổ 5 phút tính theo thời điểm tạo đơn. Đơn nhiều suất được tách để không vượt sức chứa. Mẻ đã bắt đầu nấu không bị gom lại.</p><p>Đây là quy tắc xử lý đơn đang chờ, không dùng lịch sử bán hàng hay mùa vụ để đoán thời gian hoàn thành.</p></details><p data-kw-sync role="status"></p><p data-kw-error role="alert" hidden></p><div class="kw-tabs" aria-label="Trạng thái mẻ bếp"></div><div class="kw-list"></div></section>';
   const status=root.querySelector('[data-kw-sync]'), error=root.querySelector('[data-kw-error]');
   const sync=()=>{status.textContent=`${failed?'Chưa cập nhật được dữ liệu':live?'Đang kết nối trực tiếp':'Cập nhật dự phòng mỗi 15 giây'}${updated?` · Lần cuối ${updated.toLocaleTimeString('vi-VN')}`:''}`;};
   function render(){

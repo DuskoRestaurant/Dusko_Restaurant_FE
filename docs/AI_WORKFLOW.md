@@ -1,11 +1,15 @@
 # Dự báo AI theo công việc quản lý
 
-Trang được tổ chức theo mục tiêu vận hành thay vì chỉ giới thiệu thuật toán:
+Cập nhật 28/10/2026. Trang còn hai công việc: **Chuẩn bị món và nguyên liệu**, **Xây dựng combo**. Autoencoder và phần rà soát bất thường đã được gỡ khỏi giao diện/API.
 
-1. **Chuẩn bị món và nguyên liệu:** chọn ngày, ước tính nhu cầu; mỗi món ghi rõ dùng mô hình đã học hay trung bình lịch sử. Từ kết quả chọn Lập dự trù nguyên liệu để tính và lưu kế hoạch qua API hiện có, xem nguyên liệu cần bổ sung, rồi mở Kho để xem/duyệt. Không tự nhập kho hoặc đặt hàng.
-2. **Xây dựng combo:** phân tích khoảng ngày, xem nhóm món và căn cứ. Chuẩn bị combo dùng chính chi nhánh/khoảng ngày kết quả để tạo bộ dữ liệu FP-Growth. Admin chuyển tới Duyệt combo đặt giá; Manager chuyển tới Luồng FP-Growth. Không tự duyệt hoặc công bố combo. Đổi ngày cần phân tích lại trước khi chuyển dữ liệu.
-3. **Rà soát biến động:** kiểm tra ngày đã kết thúc, sau đó mở báo cáo hóa đơn của chính ngày đó với doanh thu thuần, giảm giá và nguồn dữ liệu. Khi mô hình chưa sẵn sàng vẫn có thể đối chiếu hóa đơn ngày chọn. Không suy diễn nguyên nhân từ điểm bất thường.
+Mỗi kết quả dự báo có mục “Vì sao ra … suất?”: nguồn đơn đã thanh toán, khoảng ngày UTC+7 theo thời điểm tạo đơn, số đơn thật/mô phỏng, bảng suất theo ngày, công thức trung bình hoặc phiên bản LSTM, 14 vector đầu vào và đầu ra trước làm tròn. Lịch sử theo giờ là số liệu đối chiếu, không phải dự báo theo giờ. Đặc trưng tháng chưa chứng minh mô hình học được mùa vụ.
 
-Các chỉ số mô hình được đưa vào nội dung mở rộng. Trang ghi rõ phạm vi chi nhánh, hóa đơn đã thanh toán, dữ liệu thật/mô phỏng và giới hạn sử dụng dự báo. Kết quả chi nhánh khác không được giữ khi đổi chi nhánh; ngày dự trù phải trùng ngày dự báo đã chạy.
+Trung bình lịch sử = tổng suất / số ngày có bán trong 30 ngày đã hoàn tất; không mặc định chia 30. Ví dụ minh họa 60 suất / 2 ngày = 30 suất/ngày. LSTM cần ít nhất 38 ngày liên tiếp đã hoàn tất, dùng lượng bán trễ 1/7/14 ngày, trung bình/độ lệch 7 ngày và lịch thứ/cuối tuần/tháng.
 
-Dùng lại API nghiệp vụ hiện có, không thay thuật toán hoặc schema database. Kiểm tra: test tổng hợp kết quả và render bảng dữ liệu; test FE; build đủ ba app; kiểm tra bố cục với bản render từ template thực tế.
+Phân tích giỏ, luồng FP-Growth và duyệt combo có số giỏ cùng công thức support, confidence và lift. Một đơn là một giỏ; số suất không nhân số giỏ. Giá combo do quản trị viên đặt và duyệt.
+
+Dự trù nguyên liệu cho biết từng món đóng góp bao nhiêu theo công thức: suất × định lượng / (1 − hao hụt). Lượng mua = max(0, tổng nhu cầu + tồn an toàn − tồn khả dụng). Kế hoạch đã lưu không bịa phân rã từ công thức mới. Chưa tự mua hàng hoặc nhập kho.
+
+KDS giải thích quy tắc 3 suất/mẻ, cùng món/trạm/chi nhánh, thời điểm tạo đơn cách nhau tối đa 5 phút. Đơn đến sau được bổ sung vào mẻ chưa bắt đầu nấu còn chỗ; mẻ đang nấu được giữ nguyên.
+
+Kiểm tra giao diện: `node tests/browser/ai-explanations.mjs` (Playwright + Edge). Bao gồm baseline, LSTM, bảng số liệu, dự trù, công thức FP-Growth, kết quả rỗng/lỗi và bố cục sáng/tối 390/1440 px.

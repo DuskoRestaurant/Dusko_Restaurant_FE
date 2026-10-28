@@ -5,6 +5,7 @@ import { EVENT_TARGETS, eventTarget, targetsFor, isServiceCall } from '../src/li
 test('every scoped backend action maps to a screen', () => {
   assert.equal(eventTarget('cart.updated'), 'cart');
   assert.equal(eventTarget('order.confirmed'), 'orders');
+  assert.equal(eventTarget('kds.updated'), 'orders');
   assert.equal(eventTarget('service.request'), 'service');
   assert.equal(eventTarget('table.session.closed'), 'session');
   assert.equal(eventTarget('inventory.changed'), 'inventory');
@@ -27,7 +28,7 @@ test('only a guest call is treated as a service call', () => {
 });
 
 test('the action table covers every event the backend publishes', () => {
-  for (const action of ['cart.updated', 'order.created', 'order.confirmed', 'order.rejected', 'order.served',
+  for (const action of ['cart.updated', 'kds.updated', 'order.created', 'order.confirmed', 'order.rejected', 'order.served',
     'service.request', 'service.resolved', 'table.session.opened', 'table.session.closed', 'inventory.changed', 'presence.changed']) {
     assert.ok(Object.prototype.hasOwnProperty.call(EVENT_TARGETS, action), `${action} is missing from the event table`);
   }
