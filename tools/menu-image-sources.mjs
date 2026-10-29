@@ -1,0 +1,18 @@
+import fs from 'node:fs/promises';
+// Query terms describe the actual dish; licensing and selected files are reviewed separately.
+export const searches = {
+95:'Vietnamese shrimp salad',97:'beef stir fried noodles',98:'bo luc lac',99:'grilled pork ribs',101:'boiled shrimp',102:'stir fried bok choy garlic',103:'canh cai',104:'yogurt bowl',105:'Vietnamese coffee',106:'bottled drinking water',107:'beer can glass',108:'Vietnamese beef salad',109:'beef fried rice',110:'bun thit nuong',111:'thit kho tau',112:'grilled honey chicken',113:'chicken mushroom hot pot',114:'fried shrimp',115:'stir fried mushrooms',117:'che Vietnamese dessert',118:'ca phe sua da',119:'cola can glass',121:'goi ga',122:'com ga xoi mo',123:'pho bo',124:'ga kho gung',125:'bo la lot',126:'beef hot pot',127:'steamed squid',128:'boiled vegetables plate',129:'chicken mushroom soup',130:'milk agar jelly',131:'bac xiu',132:'orange juice glass',134:'tomato salad',135:'egg fried rice',136:'seafood fried noodles',137:'ca kho to',139:'Vietnamese fish hot pot',140:'stir fried squid vegetables',141:'steamed tofu mushroom',142:'tofu soup',143:'orange slices plate',144:'iced lemon tea',145:'lemonade glass',147:'fried tofu',148:'com tam suon',149:'Vietnamese chicken vermicelli soup',150:'tom rim',153:'Vietnamese steamed fish',154:'bok choy mushrooms',155:'shrimp soup',156:'douhua syrup',157:'orange tea',158:'coconut water',160:'vegetable omelette',161:'Vietnamese rice fish tomato',162:'pho ga',163:'sweet sour squid',164:'Vietnamese grilled fish',166:'fried whole fish',168:'tomato egg soup',169:'vanilla ice cream bowl',170:'milk tea glass',171:'glass milk',173:'Thai squid salad',174:'tofu vegetables rice',175:'vegetarian stir fried noodles',176:'tofu tomato sauce',177:'grilled tofu',178:'seafood squid hot pot',179:'shrimp tomato sauce',180:'stir fried mixed vegetables',181:'vegetable mushroom soup',182:'tea jelly',183:'hot tea cup',184:'iced tea glass',186:'mixed vegetable salad',187:'shrimp fried rice'
+};
+export const reuse = {96:'/dishes/seafood-fried-rice.webp',100:'/dishes/thai-seafood-hotpot.webp',116:'/dishes/canh-chua.webp',120:107,133:107,138:'/dishes/tom-nuong.webp',146:107,151:'/dishes/muc-nuong.webp',152:100,159:119,165:'/dishes/lau-nam.webp',167:147,172:106,185:144};
+if(process.argv.includes('--search')){
+ await fs.mkdir('docs/menu-images',{recursive:true});
+ let results={};try{results=JSON.parse(await fs.readFile('docs/menu-images/candidates.json','utf8'));}catch{}
+ for(const [id,term] of Object.entries(searches)){
+   if(results[id]?.length)continue;
+   const url=new URL('https://commons.wikimedia.org/w/api.php');url.search=new URLSearchParams({action:'query',generator:'search',gsrsearch:term+' filetype:bitmap',gsrnamespace:'6',gsrlimit:'4',prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'640',format:'json'});
+   let data;for(let attempt=0;attempt<4;attempt++){await new Promise(r=>setTimeout(r,attempt?15000:1800));const response=await fetch(url,{headers:{'User-Agent':'DuskoMenuAssetCatalog/1.0'},signal:AbortSignal.timeout(25000)});if(!response.ok)continue;try{data=await response.json();break;}catch{}}if(!data)throw Error('Commons unavailable; retry later');
+   results[id]=Object.values(data.query?.pages||{}).sort((a,b)=>a.index-b.index).map(p=>{const i=p.imageinfo[0],m=i.extmetadata;return {title:p.title,url:i.thumburl||i.url,source:i.descriptionurl,license:m.LicenseShortName?.value,licenseUrl:m.LicenseUrl?.value,artist:m.Artist?.value,description:m.ImageDescription?.value};});
+   console.log(id,term,JSON.stringify(results[id].map(r=>r.title)));
+   await fs.writeFile('docs/menu-images/candidates.json',JSON.stringify(results,null,2));
+ }
+}
