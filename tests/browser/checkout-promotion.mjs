@@ -21,7 +21,7 @@ try {
        fixture.posts.push({path,body:options.body});
        if(path.endsWith('/promotion')){
          const code=options.body.code;
-         if(code&&code!=='GOOD')throw Object.assign(Error('Mã khuyến mãi không áp dụng được'),{status:400});
+         if(code&&(code!=='GOOD'||fixture.rejectPromotion))throw Object.assign(Error('Mã khuyến mãi không áp dụng được'),{status:400});
          fixture.session.checkoutPromotion=code?{code,amount:66700}:null;
          fixture.session.orders[0].discountAmount=code?66700:0;
          fixture.session.orders[0].finalAmount=code?600300:667000;
@@ -31,6 +31,7 @@ try {
        if(path==='/api/payments/vnpay/tables/1')return {id:'test-payment',amount:667000,expiresAt:new Date(Date.now()+900000).toISOString(),paymentUrl:'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?test=1',qrDataUrl:'data:image/png;base64,iVBORw0KGgo='};
        throw Error('Unexpected checkout endpoint');
      }
+     if(path.includes('/promotions?'))return fixture.noPromotions?[]:[{code:'GOOD',name:'Giảm mười phần trăm',discountAmount:66700}];
      if(path.includes('/session?'))return structuredClone({table,session:fixture.session,serviceRequests:[]});
      if(path==='/api/catalog/products')return [];
      if(path.includes('/tables'))return [table];
@@ -41,19 +42,20 @@ try {
  });
  await page.locator('[data-sw="table"]').click();
  const input=page.locator('[data-sw-input="promotion"]');
- await input.fill('GOOD');
+ await input.selectOption('GOOD');
  await page.locator('[data-sw="tab"][data-tab="ready"]').click();await page.locator('[data-tab="bill"]').click();
  assert.equal(await input.inputValue(),'GOOD');
- await input.press('Enter');await page.locator('.sw-promotion-applied').waitFor();
+ await page.locator('[data-sw=apply-promotion]').click();await page.locator('.sw-promotion-applied').waitFor();
  assert.match(await page.locator('.sw-bill-total').innerText(),/600.300/);
  assert.match(await page.locator('.sw-promotion-applied').innerText(),/66.700/);
- await input.fill('WRONG');await page.locator('[data-sw="apply-promotion"]').click();await page.locator('.dusko-toast--error').waitFor();
+ await page.evaluate(()=>fixture.rejectPromotion=true);await input.selectOption('GOOD');await page.locator('[data-sw="apply-promotion"]').click();await page.locator('.dusko-toast--error').waitFor();
  assert.match(await page.locator('.sw-bill-total').innerText(),/600.300/);
  await mkdir('docs/ui',{recursive:true});
  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.locator('.sw-promotion').scrollIntoViewIfNeeded();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:'docs/ui/checkout-promotion-'+width+'.png'});}
  await page.locator('[data-sw="remove-promotion"]').click();await page.locator('.sw-promotion-applied').waitFor({state:'detached'});
  assert.match(await page.locator('.sw-bill-total').innerText(),/667.000/);
- const calls=await page.evaluate(()=>fixture.posts);assert.deepEqual(calls.map(p=>p.body.code),['GOOD','WRONG','']);assert.ok(calls.every(p=>p.body.sessionId==='session-1'&&p.body.branchId===1));
+ await page.evaluate(()=>fixture.noPromotions=true);await page.locator('[data-sw=refresh]').click();await page.waitForFunction(()=>document.querySelector('[data-sw-input=promotion]').disabled);assert.equal(await input.locator('option').count(),1);
+ const calls=await page.evaluate(()=>fixture.posts);assert.deepEqual(calls.map(p=>p.body.code),['GOOD','GOOD','']);assert.ok(calls.every(p=>p.body.sessionId==='session-1'&&p.body.branchId===1));
  assert.deepEqual(errors,[]);await page.evaluate(()=>workspace.destroy());
  console.log('PASS: promotion apply/remove/error/Enter, input survives rerender, totals and mobile layout');
 } finally {await browser.close();await server.close();}

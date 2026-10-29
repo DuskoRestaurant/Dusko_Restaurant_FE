@@ -20,7 +20,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   // Shares the console toast stack so the workspace and the shell announce
   // through one live region instead of two.
   const toast = sharedToast();
-  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', paymentMethod:'CASH', promotionCode:'', filter:role==='CASHIER'?'PAY':'ALL', search:'', menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
+  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', paymentMethod:'CASH', promotionCode:'', promotions:[], promotionError:'', filter:role==='CASHIER'?'PAY':'ALL', search:'', menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
   let disposed = false;
   let closeVnpay, customerDialog;
   let lastUpdated=null,syncError=false;
@@ -182,11 +182,18 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       (next||holder).focus({preventScroll:true});
     }
   }
+  async function loadEligible(result,id){
+    result.promotions=[];result.promotionError='';
+    if(!mayPay||!result.session)return;
+    try{result.promotions=await request(`/api/staff/tables/${id}/promotions?branchId=${branchId}&sessionId=${encodeURIComponent(result.session.id)}`);}
+    catch(error){result.promotionError=error.message;}
+  }
+  function acceptEligible(result){state.promotions=Array.isArray(result.promotions)?result.promotions:[];state.promotionError=result.promotionError||'';if(!state.promotions.some(p=>p.code===state.promotionCode))state.promotionCode='';}
   function promotionPanel(){
     const selected=state.session?.checkoutPromotion;
     const discount=activeOrders().reduce((sum,o)=>sum+(o.discountAmount||0),0);
     const gross=activeOrders().reduce((sum,o)=>sum+o.totalAmount,0);
-    return `<section class="sw-promotion" aria-label="Mã khuyến mãi"><div class="sw-promotion-totals"><span>Tiền món</span><strong>${money(gross)}</strong><span>Tổng ưu đãi</span><strong>−${money(discount)}</strong></div><label for="sw-promotion-code">Mã khuyến mãi</label><div class="sw-promotion-entry"><input id="sw-promotion-code" data-sw-input="promotion" value="${e(state.promotionCode)}" maxlength="32" placeholder="Nhập mã khuyến mãi" autocomplete="off" autocapitalize="characters">${button('Áp dụng','apply-promotion')}</div>${selected?`<p class="sw-promotion-applied">Đã áp <strong>${e(selected.code)}</strong>: −${money(selected.amount)}</p>${button('Bỏ mã','remove-promotion')}<p class="sw-help">Nếu gọi thêm món, áp lại mã để tính trên hóa đơn mới.</p>`:'<p class="sw-help">Mã thành viên cần gắn khách trước khi áp dụng.</p>'}</section>`;
+    return `<section class="sw-promotion" aria-label="Mã khuyến mãi"><div class="sw-promotion-totals"><span>Tiền món</span><strong>${money(gross)}</strong><span>Tổng ưu đãi</span><strong>−${money(discount)}</strong></div><label for="sw-promotion-code">Khuyến mãi có thể áp dụng</label><div class="sw-promotion-entry"><select id="sw-promotion-code" data-sw-input="promotion" ${state.promotions.length?'':'disabled'}><option value="">Chọn ưu đãi</option>${state.promotions.map(p=>`<option value="${e(p.code)}" ${state.promotionCode===p.code?'selected':''}>${e(p.name)} · Giảm ${money(p.discountAmount)} (${e(p.code)})</option>`).join('')}</select>${button('Áp dụng','apply-promotion',state.promotions.length?'':'data-locked="true"')}</div>${state.promotionError?`<p class="sw-help" role="status">${e(state.promotionError)}</p>`:!state.promotions.length?'<p class="sw-help">Chưa có mã đủ điều kiện cho hóa đơn và khách hiện tại.</p>':'<p class="sw-help">Chỉ hiển thị mã đủ điều kiện. Tiền giảm đã tính theo hóa đơn hiện tại.</p>'}${selected?`<p class="sw-promotion-applied">Đã áp <strong>${e(selected.code)}</strong>: −${money(selected.amount)}</p>${button('Bỏ mã','remove-promotion')}<p class="sw-help">Nếu gọi thêm món, áp lại mã để tính trên hóa đơn mới.</p>`:'<p class="sw-help">Mã thành viên cần gắn khách trước khi áp dụng.</p>'}</section>`;
   }
   function patchTable() {
     if(!state.session || !root.querySelector('[data-sw-panel]')) { render(); return; }
@@ -197,7 +204,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     const tabFocused = tabList.contains(document.activeElement);
     tabList.innerHTML = tabs();
     if (tabFocused) tabList.querySelector('[aria-selected="true"]').focus({preventScroll:true});
-    const snapshot = JSON.stringify([state.session.orders, state.tab, state.draft]);
+    const snapshot = JSON.stringify([state.session.orders,state.tab,state.draft,state.promotions,state.promotionError,state.session.checkoutPromotion]);
     const holder = root.querySelector('[data-sw-panel]');
     holder.setAttribute('aria-labelledby',`sw-tab-${state.tab}`);
     if(state.tab!=='menu' && panelSnapshot!==snapshot && !(holder.contains(document.activeElement) && document.activeElement.matches('input,textarea,select'))) {
@@ -232,7 +239,9 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     }
     const id=state.table.id, version=selection;
     const [result, products] = await Promise.all([request(`/api/staff/tables/${id}/session?branchId=${branchId}`),loadProducts(force)]);
+    await loadEligible(result,id);
     if(disposed||version!==selection||state.table?.id!==id) return;
+    acceptEligible(result);
     const removed=state.products.filter(p=>state.cart.has(p.id)&&!products.some(n=>n.id===p.id));products.push(...removed.map(p=>({...p,isActive:false,canOrder:false,availabilityReason:'Đã ngừng bán'})));
     const pricesChanged=products.some(p=>state.cart.has(p.id)&&state.products.some(old=>old.id===p.id&&old.sellingPrice!==p.sellingPrice));
     state.products=products;
@@ -255,7 +264,9 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     const version=++selection;
     const table=state.tables.find(t=>t.id===id); if(!table) return;
     const [result,products]=await Promise.all([request(`/api/staff/tables/${id}/session?branchId=${branchId}`),loadProducts()]);
+    await loadEligible(result,id);
     if(disposed||version!==selection) return;
+    acceptEligible(result);
     state.paymentMethod='CASH';state.promotionCode='';state.products=products;state.table={...table,...result.table};state.session=result.session;state.serviceRequests=result.serviceRequests||[];state.cart.clear();state.notes.clear();state.draft=readDraft(id);
     lastUpdated=new Date();syncError=false;state.tab=cashierView&&activeOrders().length?'bill':waitingOrders().length?'confirm':readyItems().length?'ready':activeOrders().length?'bill':'menu';render();
   }
@@ -326,7 +337,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       if(action==='retry') return mutation(()=>submitDraft(state.draft),'Đã nhận lượt gọi món, không tạo trùng.');
       if(action==='discard') {clearDraft(state.table.id);state.draft=null;render();return;}
       if(action==='close') { if(!mayCloseEmpty())throw Error('Bàn còn yêu cầu hoặc món đang phục vụ. Vui lòng xử lý trước khi đóng.'); if(state.draft)throw Error('Còn lượt gọi món chưa rõ đã gửi thành công. Kiểm tra hoặc xóa bản nháp trước khi đóng bàn.'); if(!await confirmDialog({title:'Đóng bàn chưa gọi món?',message:`${state.table.tableName} sẽ trở về trạng thái trống. Món đang chọn trong giỏ sẽ được bỏ.`,confirmLabel:'Đóng bàn'}))return; return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/close-empty`);clearDraft(state.table.id);state.cart.clear();state.notes.clear();state.table=null;state.session=null;render();},'Đã đóng bàn, không phát sinh thanh toán.'); }
-      if(action==='apply-promotion'||action==='remove-promotion'){const code=action==='remove-promotion'?'':state.promotionCode.trim();if(action==='apply-promotion'&&!code)throw Error('Nhập mã khuyến mãi trước khi áp dụng.');root.querySelector('[data-sw-input=promotion]')?.blur();return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/promotion`,{sessionId:state.session.id,code});state.promotionCode='';},code?'Đã áp mã và cập nhật tổng thanh toán.':'Đã bỏ mã khuyến mãi.');}
+      if(action==='apply-promotion'||action==='remove-promotion'){const code=action==='remove-promotion'?'':state.promotionCode.trim();if(action==='apply-promotion'&&!code)throw Error('Chọn ưu đãi trước khi áp dụng.');root.querySelector('[data-sw-input=promotion]')?.blur();return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/promotion`,{sessionId:state.session.id,code});state.promotionCode='';},code?'Đã áp mã và cập nhật tổng thanh toán.':'Đã bỏ mã khuyến mãi.');}
       if(action==='checkout') {if(!mayPay)throw Error('Chỉ thu ngân được thanh toán.');const paidSessionId=state.session.id;const method=state.paymentMethod;if(method==='QR_BANKING')return mutation(async()=>{const payment=await post(`/api/payments/vnpay/tables/${state.table.id}`);closeVnpay?.();closeVnpay=showVnpayPayment(payment,request,async()=>{if(!disposed)await refresh();await openReceipt(request,'session',paidSessionId);});},'Đang chờ khách thanh toán qua VNPay.');if(!await confirmDialog({title:'Xác nhận thanh toán',message:`Đã nhận đủ ${money(total())} ${method==='CASH'?'bằng tiền mặt':'qua máy POS'}?`,confirmLabel:'Đã nhận đủ tiền'}))return;return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/checkout`,{paymentMethod:method});state.table=null;state.session=null;render();await openReceipt(request,'session',paidSessionId);},'Thanh toán thành công. Bàn đã trở về trạng thái trống.');}
     } catch(error) {showMessage(error.message,true);}
   }
@@ -339,7 +350,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     if(type==='menu-search'||type==='category') {if(type==='menu-search')state.menuSearch=event.target.value;else state.category=event.target.value;state.menuPage=1;updateMenuResults();}
   }
   function onTabKeydown(event) {
-    if(event.key==='Enter'&&event.target.dataset.swInput==='promotion'){event.preventDefault();root.querySelector('[data-sw=apply-promotion]')?.click();return;}
+    if(event.key==='Enter'&&event.target.tagName==='INPUT'&&event.target.dataset.swInput==='promotion'){event.preventDefault();root.querySelector('[data-sw=apply-promotion]')?.click();return;}
     if(state.busy || !event.target.matches('[role="tab"]')) return;
     const ids=['confirm','ready','menu','bill'];
     let index=ids.indexOf(state.tab);
