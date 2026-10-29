@@ -20,7 +20,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   // Shares the console toast stack so the workspace and the shell announce
   // through one live region instead of two.
   const toast = sharedToast();
-  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', paymentMethod:'CASH', filter:role==='CASHIER'?'PAY':'ALL', search:'', menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
+  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', paymentMethod:'CASH', promotionCode:'', filter:role==='CASHIER'?'PAY':'ALL', search:'', menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
   let disposed = false;
   let closeVnpay, customerDialog;
   let lastUpdated=null,syncError=false;
@@ -162,8 +162,8 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
             ? `<div class="sw-payment"><label>Phương thức thanh toán<select data-sw-input="payment">${[["CASH","Tiền mặt"],["QR_BANKING","VNPay"],["POS_CARD","Thẻ"]].map(([value,label])=>`<option value="${value}" ${state.paymentMethod===value?"selected":""}>${label}</option>`).join('')}</select></label><p class="sw-help">Với tiền mặt hoặc thẻ, xác nhận sau khi đã nhận đủ tiền. VNPay đang dùng môi trường thử nghiệm.</p>${button('Thanh toán','checkout','',true)}</div>`
             : '<p class="sw-alert">Bàn đã phục vụ đủ món. Báo thu ngân để nhận tiền và đóng bàn.</p>'
           : button('Đóng bàn chưa gọi món','close');
-    const orderCards = orders.map(order=>`<details class="sw-order sw-bill-order" data-sw-order="${e(order.id)}"><summary><strong>Lượt ${time(order.createdAt)}</strong> <span>${quantities(order.items)} món · ${money(order.finalAmount)}</span></summary><p class="sw-help">${order.source==='CUSTOMER_QR'?'Khách gửi QR':'Nhân viên gọi món'} · lượt ${e(shortCode(order))}</p><ul>${order.items.map(item=>`<li><div><b>${e(item.product.name)} × ${item.quantity}</b><small>${statusText(item)}</small>${item.note?`<p class="sw-note">${e(item.note)}</p>`:''}</div><span>${money(item.price*item.quantity)}</span></li>`).join('')}</ul>${order.discountAmount?`<p class="sw-help">Ưu đãi combo: −${money(order.discountAmount)}</p>`:''}<p><strong>Thành tiền: ${money(order.finalAmount)}</strong></p></details>`).join('');
-    return `<h3>Hóa đơn chung của bàn</h3><p class="sw-help">Tổng tiền chỉ gồm các lượt đã nhận. Mở từng lượt để xem món và đối chiếu.</p><div class="sw-bill-layout"><aside class="sw-checkout" aria-label="Thanh toán của bàn"><div class="sw-bill-total"><span>Tổng thanh toán</span><strong>${money(total())}</strong></div><p class="sw-help">${orders.length} lượt đã nhận · ${quantities(orders.flatMap(order=>order.items))} món</p>${action}</aside><section class="sw-bill-orders" aria-label="Các lượt gọi món đã nhận" tabindex="0">${orderCards||empty('Chưa có món đã nhận')}${cancelled.length?`<details class="sw-history"><summary>Các yêu cầu đã từ chối (${cancelled.length})</summary>${cancelled.map(order=>`<p>Lượt ${time(order.createdAt)}: ${e(order.note||'Đã từ chối')}</p>`).join('')}</details>`:''}</section></div>`;
+    const orderCards = orders.map(order=>`<details class="sw-order sw-bill-order" data-sw-order="${e(order.id)}"><summary><strong>Lượt ${time(order.createdAt)}</strong> <span>${quantities(order.items)} món · ${money(order.finalAmount)}</span></summary><p class="sw-help">${order.source==='CUSTOMER_QR'?'Khách gửi QR':'Nhân viên gọi món'} · lượt ${e(shortCode(order))}</p><ul>${order.items.map(item=>`<li><div><b>${e(item.product.name)} × ${item.quantity}</b><small>${statusText(item)}</small>${item.note?`<p class="sw-note">${e(item.note)}</p>`:''}</div><span>${money(item.price*item.quantity)}</span></li>`).join('')}</ul>${order.discountAmount?`<p class="sw-help">Tổng ưu đãi: −${money(order.discountAmount)}</p>`:''}<p><strong>Thành tiền: ${money(order.finalAmount)}</strong></p></details>`).join('');
+    return `<h3>Hóa đơn chung của bàn</h3><p class="sw-help">Tổng tiền chỉ gồm các lượt đã nhận. Mở từng lượt để xem món và đối chiếu.</p><div class="sw-bill-layout"><aside class="sw-checkout" aria-label="Thanh toán của bàn"><div class="sw-bill-total"><span>Tổng thanh toán</span><strong>${money(total())}</strong></div><p class="sw-help">${orders.length} lượt đã nhận · ${quantities(orders.flatMap(order=>order.items))} món</p>${mayPay&&orders.length?promotionPanel():''}${action}</aside><section class="sw-bill-orders" aria-label="Các lượt gọi món đã nhận" tabindex="0">${orderCards||empty('Chưa có món đã nhận')}${cancelled.length?`<details class="sw-history"><summary>Các yêu cầu đã từ chối (${cancelled.length})</summary>${cancelled.map(order=>`<p>Lượt ${time(order.createdAt)}: ${e(order.note||'Đã từ chối')}</p>`).join('')}</details>`:''}</section></div>`;
   }
   function updateCart() {
     const holder = root.querySelector('[data-sw-cart]'); if(!holder) return;
@@ -181,6 +181,12 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       const next = [...holder.querySelectorAll('button,input')].find(el=>el.dataset.product===focusKey.product && el.dataset.sw===focusKey.action && el.dataset.swInput===focusKey.input);
       (next||holder).focus({preventScroll:true});
     }
+  }
+  function promotionPanel(){
+    const selected=state.session?.checkoutPromotion;
+    const discount=activeOrders().reduce((sum,o)=>sum+(o.discountAmount||0),0);
+    const gross=activeOrders().reduce((sum,o)=>sum+o.totalAmount,0);
+    return `<section class="sw-promotion" aria-label="Mã khuyến mãi"><div class="sw-promotion-totals"><span>Tiền món</span><strong>${money(gross)}</strong><span>Tổng ưu đãi</span><strong>−${money(discount)}</strong></div><label for="sw-promotion-code">Mã khuyến mãi</label><div class="sw-promotion-entry"><input id="sw-promotion-code" data-sw-input="promotion" value="${e(state.promotionCode)}" maxlength="32" placeholder="Nhập mã khuyến mãi" autocomplete="off" autocapitalize="characters">${button('Áp dụng','apply-promotion')}</div>${selected?`<p class="sw-promotion-applied">Đã áp <strong>${e(selected.code)}</strong>: −${money(selected.amount)}</p>${button('Bỏ mã','remove-promotion')}<p class="sw-help">Nếu gọi thêm món, áp lại mã để tính trên hóa đơn mới.</p>`:'<p class="sw-help">Mã thành viên cần gắn khách trước khi áp dụng.</p>'}</section>`;
   }
   function patchTable() {
     if(!state.session || !root.querySelector('[data-sw-panel]')) { render(); return; }
@@ -233,7 +239,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     if(pricesChanged)showMessage('Giá món trong giỏ vừa thay đổi. Kiểm tra lại trước khi gửi.',true);
     const sessionChanged=state.session?.id!==result.session?.id;
     state.table={...state.table,...result.table}; state.session=result.session;state.serviceRequests=result.serviceRequests||[];
-    if(sessionChanged) { state.paymentMethod='CASH'; if(result.table.status==='EMPTY')state.table.pendingOrderCount=0; state.cart.clear();state.notes.clear();state.draft=readDraft(id);render(); } else {patchTable();
+    if(sessionChanged) { state.paymentMethod='CASH';state.promotionCode=''; if(result.table.status==='EMPTY')state.table.pendingOrderCount=0; state.cart.clear();state.notes.clear();state.draft=readDraft(id);render(); } else {patchTable();
       updateMenuResults(false);
       updateCartAccess();
       root.querySelectorAll('[data-sw-stock]').forEach(el=>{const p=products.find(p=>p.id===Number(el.dataset.swStock));el.textContent=p?.canOrder?(p.requiresPreparation?'Bếp chế biến':'Phục vụ trực tiếp'):(p?.availabilityReason||'Đã ngừng bán');});
@@ -250,7 +256,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     const table=state.tables.find(t=>t.id===id); if(!table) return;
     const [result,products]=await Promise.all([request(`/api/staff/tables/${id}/session?branchId=${branchId}`),loadProducts()]);
     if(disposed||version!==selection) return;
-    state.paymentMethod='CASH';state.products=products;state.table={...table,...result.table};state.session=result.session;state.serviceRequests=result.serviceRequests||[];state.cart.clear();state.notes.clear();state.draft=readDraft(id);
+    state.paymentMethod='CASH';state.promotionCode='';state.products=products;state.table={...table,...result.table};state.session=result.session;state.serviceRequests=result.serviceRequests||[];state.cart.clear();state.notes.clear();state.draft=readDraft(id);
     lastUpdated=new Date();syncError=false;state.tab=cashierView&&activeOrders().length?'bill':waitingOrders().length?'confirm':readyItems().length?'ready':activeOrders().length?'bill':'menu';render();
   }
   async function mutation(work, message) {
@@ -320,17 +326,20 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       if(action==='retry') return mutation(()=>submitDraft(state.draft),'Đã nhận lượt gọi món, không tạo trùng.');
       if(action==='discard') {clearDraft(state.table.id);state.draft=null;render();return;}
       if(action==='close') { if(!mayCloseEmpty())throw Error('Bàn còn yêu cầu hoặc món đang phục vụ. Vui lòng xử lý trước khi đóng.'); if(state.draft)throw Error('Còn lượt gọi món chưa rõ đã gửi thành công. Kiểm tra hoặc xóa bản nháp trước khi đóng bàn.'); if(!await confirmDialog({title:'Đóng bàn chưa gọi món?',message:`${state.table.tableName} sẽ trở về trạng thái trống. Món đang chọn trong giỏ sẽ được bỏ.`,confirmLabel:'Đóng bàn'}))return; return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/close-empty`);clearDraft(state.table.id);state.cart.clear();state.notes.clear();state.table=null;state.session=null;render();},'Đã đóng bàn, không phát sinh thanh toán.'); }
+      if(action==='apply-promotion'||action==='remove-promotion'){const code=action==='remove-promotion'?'':state.promotionCode.trim();if(action==='apply-promotion'&&!code)throw Error('Nhập mã khuyến mãi trước khi áp dụng.');root.querySelector('[data-sw-input=promotion]')?.blur();return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/promotion`,{sessionId:state.session.id,code});state.promotionCode='';},code?'Đã áp mã và cập nhật tổng thanh toán.':'Đã bỏ mã khuyến mãi.');}
       if(action==='checkout') {if(!mayPay)throw Error('Chỉ thu ngân được thanh toán.');const paidSessionId=state.session.id;const method=state.paymentMethod;if(method==='QR_BANKING')return mutation(async()=>{const payment=await post(`/api/payments/vnpay/tables/${state.table.id}`);closeVnpay?.();closeVnpay=showVnpayPayment(payment,request,async()=>{if(!disposed)await refresh();await openReceipt(request,'session',paidSessionId);});},'Đang chờ khách thanh toán qua VNPay.');if(!await confirmDialog({title:'Xác nhận thanh toán',message:`Đã nhận đủ ${money(total())} ${method==='CASH'?'bằng tiền mặt':'qua máy POS'}?`,confirmLabel:'Đã nhận đủ tiền'}))return;return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/checkout`,{paymentMethod:method});state.table=null;state.session=null;render();await openReceipt(request,'session',paidSessionId);},'Thanh toán thành công. Bàn đã trở về trạng thái trống.');}
     } catch(error) {showMessage(error.message,true);}
   }
   function onInput(event) {
     const type=event.target.dataset.swInput;
+    if(type==='promotion')state.promotionCode=event.target.value;
     if(type==='payment'&&['CASH','QR_BANKING','POS_CARD'].includes(event.target.value)) state.paymentMethod=event.target.value;
     if(type==='table-search') {state.search=event.target.value;root.querySelector('.sw-tables').innerHTML=tableCards();}
     if(type==='note') state.notes.set(Number(event.target.dataset.product),event.target.value);
     if(type==='menu-search'||type==='category') {if(type==='menu-search')state.menuSearch=event.target.value;else state.category=event.target.value;state.menuPage=1;updateMenuResults();}
   }
   function onTabKeydown(event) {
+    if(event.key==='Enter'&&event.target.dataset.swInput==='promotion'){event.preventDefault();root.querySelector('[data-sw=apply-promotion]')?.click();return;}
     if(state.busy || !event.target.matches('[role="tab"]')) return;
     const ids=['confirm','ready','menu','bill'];
     let index=ids.indexOf(state.tab);
