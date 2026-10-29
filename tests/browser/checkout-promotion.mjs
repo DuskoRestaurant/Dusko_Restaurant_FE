@@ -57,5 +57,5 @@ try {
  await page.evaluate(()=>fixture.noPromotions=true);await page.locator('[data-sw=refresh]').click();await page.waitForFunction(()=>document.querySelector('[data-sw-input=promotion]').disabled);assert.equal(await input.locator('option').count(),1);
  const calls=await page.evaluate(()=>fixture.posts);assert.deepEqual(calls.map(p=>p.body.code),['GOOD','GOOD','']);assert.ok(calls.every(p=>p.body.sessionId==='session-1'&&p.body.branchId===1));
  assert.deepEqual(errors,[]);await page.evaluate(()=>workspace.destroy());
- console.log('PASS: promotion apply/remove/error/Enter, input survives rerender, totals and mobile layout');
+ console.log('PASS: eligible selection/apply/remove/error/empty list, selection survives rerender, totals and mobile layout');
 } finally {await browser.close();await server.close();}
