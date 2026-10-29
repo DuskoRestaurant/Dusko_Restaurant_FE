@@ -16,3 +16,14 @@ Validation: full FE tests, all three production builds; fixture reviewed at 320Ã
 - Detail/cart opens reject a second open dialog. Quantity and notes are edited directly in the cart. Dish details retains its separately pinned footer.
 
 QA: fixture at 320Ã—568 with ten cart lines, scrolled to the last note: submit bottom 515px inside 568px viewport. Clear-all keeps exactly one open dialog and Cancel preserves all lines. History navigation and browser Back restore the menu. Also checked mobile/tablet layout and built customer, staff and management targets. Production QA must only inspect, never send test orders or service requests.
+
+
+## Combo category, bundle cards and dish gallery
+
+Approved combinations now appear as normal cards in a Combo category, participating in search and sticky category tracking. There is no large combo block above the menu. The cart allocates component quantities to bundle cards with the discounted package price and controls for number of packages; extra loose units remain separate. Cards include a thumbnail, background, border and spacing. Notes for components remain product-scoped and this is stated next to the inputs.
+
+The backend adds POST /api/public/tables/:token/cart/combos/change. It validates approved bundle identity and current price, checks stock and changes component quantities and bundle selection in a serializable transaction with conflict retries. Clear-cart removes bundle markers; checkout consumes the ordered bundle quantities while retaining concurrent additions. No schema migration is required.
+
+Dish galleries render provided images with object-fit:contain and native horizontal scroll snap, previous/next buttons and keyboard navigation. A dish with one image stays single-image. Existing production data currently has only imageUrl; imageUrls/images are supported when supplied. Fixture-only rice images test the multiple-image behavior; production does not fabricate angles.
+
+Validation: FE tests cover bundle allocation, overlapping/incomplete groups, server totals and gallery image normalization. BE unit tests pass; isolated CI integration covers rollback on changed price, concurrent additions, whole-bundle removal preserving loose units, checkout consumption and clear-cart. Visual checks use 390px and 320px widths; fixture bundle 115,000 plus existing loose 123,000 produces 238,000, two bundles produce 353,000 and removing bundles returns 123,000. Gallery next changes 1/2 to 2/2; submit footer stays within viewport.
