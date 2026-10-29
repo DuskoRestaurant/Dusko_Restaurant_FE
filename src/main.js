@@ -1,3 +1,5 @@
+import {bindCatalog} from './catalog-manager.js';
+import './catalog-manager.css';
 import {businessExcelDate} from './business-time.js';
 import {algorithmGuideMarkup,forecastEvidenceMarkup,ruleEvidenceMarkup} from './ai-explanations.js';
 import {effectiveRoles,hasRole,canAdminister} from './permissions.js';
@@ -398,7 +400,7 @@ async function exportRevenue() {
 }
 
 function locations() { render(title('THIẾT LẬP','Chi nhánh, bàn và QR','Quản lý khu vực phục vụ, trạng thái bàn và mã QR cố định.',btn('Làm mới','reload','secondary')) + locationsHtml({branches:access(['ADMIN'])?state.data.branches:state.data.branches.filter(b=>b.id===state.branch),tables:state.data.tables,qr:state.data.qr||[],branchId:state.branch,admin:access(['ADMIN']),canManageQr:access(['ADMIN','MANAGER'])})); }
-function catalog() { render(title('THỰC ĐƠN','Món & nhóm món','Danh mục phục vụ bán hàng và chế biến.',btn('Làm mới','reload','secondary')) + catalogHtml({categories:state.data.categories,products:state.data.products,admin:access(['ADMIN']),chef:access(['ADMIN','MANAGER','CHEF'])})); const search=document.querySelector('#catalog-search'),filter=document.querySelector('#catalog-filter');const apply=()=>{let shown=0;document.querySelectorAll('[data-catalog-name]').forEach(row=>{row.hidden=!row.dataset.catalogName.includes(search.value.trim().toLowerCase())||(filter.value!=='all'&&row.dataset.catalogStatus!==filter.value);if(!row.hidden)shown++;});document.querySelector('#catalog-empty').hidden=shown>0;};search.oninput=apply;filter.onchange=apply; }
+function catalog() { const data={categories:state.data.categories,products:state.data.products,admin:access(['ADMIN']),chef:access(['ADMIN','MANAGER','CHEF'])}; render(title('THỰC ĐƠN','Món & nhóm món','Sắp xếp thực đơn, giá bán và công thức chế biến.',btn('Làm mới','reload','secondary')) + catalogHtml(data)); bindCatalog(document.querySelector('#menu-admin'),data); }
 
 function formModal(heading, fields, submit, {description='',submitLabel='Lưu'}={}) {
   document.querySelector('.modal-wrap')?.remove();
@@ -441,6 +443,19 @@ async function onClick(ev) {
   if(action==='new-branch'||action==='edit-branch') { if(!access(['ADMIN'])) return; const branch=state.data.branches.find(b=>b.id===Number(id)); formModal(branch?'Sửa chi nhánh':'Thêm chi nhánh',branchFields(branch),async v=>{const body={name:textValue(v.name,'Tên chi nhánh'),address:v.address,phone:v.phone,...(branch?{}:{code:textValue(v.code,'Mã chi nhánh')})};return api(branch?`/api/catalog/branches/${branch.id}`:'/api/catalog/branches',{method:branch?'PATCH':'POST',body});});return; }
   if(action==='new-table'||action==='edit-table') { if(!access(['ADMIN','MANAGER'])) return; const item=state.data.tables.find(t=>t.id===Number(id)); formModal(item?'Sửa bàn':'Thêm bàn',tableFields(item),async v=>api(item?`/api/catalog/branches/${state.branch}/tables/${item.id}`:`/api/catalog/branches/${state.branch}/tables`,{method:item?'PATCH':'POST',body:{tableName:textValue(v.tableName,'Tên bàn'),seatingCapacity:numberField(v.seatingCapacity,'Sức chứa',1),...(item?{status:v.status}:{})}}));return; }
   if(action==='new-category'||action==='edit-category') { if(!access(['ADMIN'])) return; const item=state.data.categories.find(c=>c.id===Number(id)); formModal(item?'Sửa nhóm món':'Thêm nhóm món',categoryFields(item),async v=>api(item?`/api/catalog/categories/${item.id}`:'/api/catalog/categories',{method:item?'PATCH':'POST',body:{name:textValue(v.name,'Tên nhóm'),...(item?{}:{code:textValue(v.code,'Mã nhóm')})}}));return; }
+  if(action==='delete-category') {
+    if(!access(['ADMIN']))return;
+    const item=state.data.categories.find(c=>c.id===Number(id));if(!item)return;
+    const count=item._count?.products??state.data.products.filter(p=>p.categoryId===item.id).length;
+    if(count){
+      const choices=state.data.categories.filter(c=>c.id!==item.id);
+      if(!choices.length){toast('Tạo thêm một nhóm món để chuyển các món hiện có trước khi xóa nhóm này.',true);return;}
+      formModal(`Xóa nhóm “${item.name}”`,[f('targetCategoryId','Chuyển toàn bộ món sang nhóm','',{options:[{value:'',label:'Chọn nhóm nhận món'},...choices.map(c=>({value:c.id,label:c.name}))]})],async v=>api(`/api/catalog/categories/${item.id}`,{method:'DELETE',body:{targetCategoryId:numberField(v.targetCategoryId,'Nhóm nhận món',1)}}),{description:`Nhóm có ${count} món, gồm cả món đã ngừng bán. Các món sẽ được chuyển sang nhóm bạn chọn. Nhóm cũ sẽ ẩn khỏi danh mục; lịch sử đơn và hóa đơn vẫn được giữ.`,submitLabel:'Chuyển món và xóa nhóm'});
+    }else if(await confirmDialog({title:`Xóa nhóm “${item.name}”?`,message:'Nhóm không có món. Nhóm sẽ ẩn khỏi danh mục; các tham chiếu lịch sử vẫn được giữ.',confirmLabel:'Xóa nhóm',danger:true})){
+      const result=await perform(()=>api(`/api/catalog/categories/${item.id}`,{method:'DELETE',body:{}}),'Đã xóa nhóm món.');if(result)await loadPage();
+    }
+    return;
+  }
   if(action==='new-product'||action==='edit-product') { if(!access(['ADMIN'])) return; const item=state.data.products.find(p=>p.id===Number(id)); if(!item&&!state.data.categories.length) return toast('Hãy tạo nhóm món trước.',true); formModal(item?'Sửa món':'Thêm món',productFields(item),async v=>{const file=v.image; if(file?.size && (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size>5*1024*1024)) throw new Error('Chỉ chọn ảnh JPG, PNG hoặc WebP tối đa 5 MB.'); const saved=await api(item?`/api/catalog/products/${item.id}`:'/api/catalog/products',{method:item?'PATCH':'POST',body:{name:textValue(v.name,'Tên món'),sellingPrice:numberField(v.sellingPrice,'Giá bán',0,'any'),costPrice:v.costPrice===''?null:numberField(v.costPrice,'Giá vốn',0,'any'),stationType:v.stationType,prepTimeMinutes:numberField(v.prepTimeMinutes,'Thời gian chế biến',1),requiresPreparation:v.requiresPreparation==='on',...(item?{}:{code:textValue(v.code,'Mã món'),categoryId:numberField(v.categoryId,'Nhóm món',1)})}}); if(file?.size) await uploadProductImage(saved.id,file,state.token); return saved; });return; }
   if(action==='inventory-recipe') {await perform(async()=>{const products=await api('/api/catalog/products');const product=products.find(p=>p.id===Number(id));if(!product)throw Error('Món đã ngừng bán. Mở Thực đơn để quản lý.');await openRecipe(product);});return;}
   if(action==='recipe') { if(!access(['ADMIN','MANAGER','CHEF'])) return; const item=state.data.products.find(p=>p.id===Number(id)); if(item) await perform(()=>openRecipe(item));return; }
