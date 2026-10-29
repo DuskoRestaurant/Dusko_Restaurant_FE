@@ -11,7 +11,7 @@ export function createCustomerMenu({root, products, quantityOf, changeQuantity, 
   let centeredButton,centeredWidth=0;
   let scrollIntent=null,initialDraw=true;
   let activeIndex=-1,pendingIndex=-1,switchTimer;
-  root.innerHTML = '<div class="guest-menu-heading"><h2>Thực đơn</h2><input type="search" aria-label="Tìm món ăn" placeholder="Tìm món ăn…"></div><div class="guest-menu-layout"><nav class="guest-categories" aria-label="Danh mục món ăn"></nav><div class="guest-menu-sections"></div></div>';
+  root.innerHTML = '<div class="guest-menu-heading"><h2>Thực đơn</h2><input type="search" aria-label="Tìm món ăn" placeholder="Tìm món ăn…"></div><div class="guest-menu-layout"><nav class="guest-categories" aria-label="Danh mục món ăn"></nav><div class="guest-menu-sections"></div></div><p class="guest-menu-image-note">Ảnh món ăn mang tính minh họa · <a href="/menu-image-credits.html" target="_blank" rel="noopener">Nguồn ảnh</a></p>';
   const nav = root.querySelector('nav'), sections = root.querySelector('.guest-menu-sections');
   const header=document.querySelector('#app>header');
   function measureHeader(){root.style.setProperty('--guest-header-offset',`${Math.ceil(header?.getBoundingClientRect().height||64)}px`);}

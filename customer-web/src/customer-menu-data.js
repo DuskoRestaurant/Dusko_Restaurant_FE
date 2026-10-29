@@ -2,7 +2,9 @@ import {customerDishBadges} from './customer-dish-details.js';
 export function customerMenuGroups(products, {search = '', tag = ''} = {}) {
   const query = search.trim().toLocaleLowerCase('vi');
   const groups = new Map();
-  for (const product of products) {
+  // Keep the same order within each section, but offer bundles before single dishes.
+  const ordered = [...products.filter(product=>product.combo), ...products.filter(product=>!product.combo)];
+  for (const product of ordered) {
     if (tag&&!customerDishBadges(product).some(badge=>badge.key===tag)) continue;
     if (!product.name.toLocaleLowerCase('vi').includes(query)) continue;
     const category = product.category?.name || 'Món khác';

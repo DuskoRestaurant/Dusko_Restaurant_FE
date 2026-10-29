@@ -5,6 +5,15 @@ import {customerBasketPricing} from '../customer-web/src/customer-basket-pricing
 import {customerDishBadges,nextDishQuantity} from '../customer-web/src/customer-dish-details.js';
 import {categoryScrollTarget} from '../customer-web/src/customer-category-scroll.js';
 
+test('combos appear first without changing dish order or filtered search results',()=>{
+  const products=[{id:1,name:'Cơm',category:{name:'Cơm'}},{id:2,name:'Trà',category:{name:'Nước'}},{id:'c1',name:'Combo cơm trà',category:{name:'Combo'},combo:{id:'1-2'}},{id:'c2',name:'Combo gia đình',category:{name:'Combo'},combo:{id:'3-4'}}];
+  const groups=customerMenuGroups(products);
+  assert.deepEqual(groups.map(g=>g.name),['Combo','Cơm','Nước']);
+  assert.deepEqual(groups[0].items.map(p=>p.id),['c1','c2']);
+  assert.deepEqual(customerMenuGroups(products,{search:'trà'}).map(g=>g.name),['Combo','Nước']);
+  assert.deepEqual(customerMenuGroups(products.slice(0,2)).map(g=>g.name),['Cơm','Nước']);
+});
+
 test('category centering clamps both edges and handles a short category bar',()=>{
   assert.equal(categoryScrollTarget(200,100,300,800),100);
   assert.equal(categoryScrollTarget(0,100,300,800),0);

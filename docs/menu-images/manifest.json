@@ -1,0 +1,796 @@
+[
+  {
+    "id": 95,
+    "name": "Gỏi tôm rau thơm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-95.webp",
+    "kind": "AI illustration",
+    "assetId": 95
+  },
+  {
+    "id": 96,
+    "name": "Cơm chiên hải sản",
+    "imageUrl": "https://order.dusko.io.vn/dishes/seafood-fried-rice.webp",
+    "kind": "Existing restaurant asset",
+    "assetId": 96
+  },
+  {
+    "id": 97,
+    "name": "Mì xào bò",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-97.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Beef_Stir-fried_Noodles_-_Frank%27s_Noodle_House.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:TurquoiseGoose\" title=\"User:TurquoiseGoose\">TurquoiseGoose</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 97
+  },
+  {
+    "id": 98,
+    "name": "Bò lúc lắc",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-98.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Product_Shots_of_Food-Bo_Luc_Lac.jpg",
+    "artist": "Nick Nguyen",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "assetId": 98
+  },
+  {
+    "id": 99,
+    "name": "Sườn heo nướng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-99.webp",
+    "kind": "AI illustration",
+    "assetId": 99
+  },
+  {
+    "id": 100,
+    "name": "Lẩu Thái hải sản",
+    "imageUrl": "https://order.dusko.io.vn/dishes/thai-seafood-hotpot.webp",
+    "kind": "Existing restaurant asset",
+    "assetId": 100
+  },
+  {
+    "id": 101,
+    "name": "Tôm hấp",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-101.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Canto_white_boiled_shrimp.jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/10559879@N00\">Alpha</a>",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "assetId": 101
+  },
+  {
+    "id": 102,
+    "name": "Cải xào tỏi",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-102.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Bok_Choy_Delight_(2782704581).jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/37996646802@N01\">cogdogblog</a>",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetId": 102
+  },
+  {
+    "id": 103,
+    "name": "Canh cải thịt bằm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-103.webp",
+    "kind": "AI illustration",
+    "assetId": 103
+  },
+  {
+    "id": 104,
+    "name": "Sữa chua",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-104.webp",
+    "kind": "AI illustration",
+    "assetId": 104
+  },
+  {
+    "id": 105,
+    "name": "Cà phê đen",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-105.webp",
+    "kind": "AI illustration",
+    "assetId": 105
+  },
+  {
+    "id": 106,
+    "name": "Nước suối",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-106.webp",
+    "kind": "AI illustration",
+    "assetId": 106
+  },
+  {
+    "id": 107,
+    "name": "Bia lon lạnh",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-107.webp",
+    "kind": "AI illustration",
+    "assetId": 107
+  },
+  {
+    "id": 108,
+    "name": "Gỏi bò hành tây",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-108.webp",
+    "kind": "AI illustration",
+    "assetId": 108
+  },
+  {
+    "id": 109,
+    "name": "Cơm chiên bò",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-109.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Cumin_beef_fried_rice_(1).jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Fumikas_Sagisavas\" title=\"User:Fumikas Sagisavas\">Fumikas Sagisavas</a>",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetId": 109
+  },
+  {
+    "id": 110,
+    "name": "Bún thịt nướng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-110.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Bun_thit_nuong.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:L%C6%B0u_Ly\" title=\"User:Lưu Ly\">Lưu Ly</a>",
+    "license": "Public domain",
+    "assetId": 110
+  },
+  {
+    "id": 111,
+    "name": "Thịt heo kho trứng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-111.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Th%E1%BB%8Bt_kho_T%C3%A0u.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Viethavvh\" title=\"User:Viethavvh\">Viethavvh</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 111
+  },
+  {
+    "id": 112,
+    "name": "Gà nướng mật ong",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-112.webp",
+    "kind": "AI illustration",
+    "assetId": 112
+  },
+  {
+    "id": 113,
+    "name": "Lẩu gà nấm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-113.webp",
+    "kind": "AI illustration",
+    "assetId": 113
+  },
+  {
+    "id": 114,
+    "name": "Tôm chiên giòn",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-114.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Fried_prawns.jpg",
+    "artist": "Anette B.",
+    "license": "Public domain",
+    "assetId": 114
+  },
+  {
+    "id": 115,
+    "name": "Nấm xào",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-115.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Neutaribokkeum_(stir-fried_oyster_mushrooms).jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/photos/127584241@N02/\">Hyeon-Jeong Suk</a>",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "assetId": 115
+  },
+  {
+    "id": 116,
+    "name": "Canh chua cá",
+    "imageUrl": "https://order.dusko.io.vn/dishes/canh-chua.webp",
+    "kind": "Existing restaurant asset",
+    "assetId": 116
+  },
+  {
+    "id": 117,
+    "name": "Chè sữa",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-117.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Ch%C3%A8_b%C3%A0_ba.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Zxcvasdfqwer888&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Zxcvasdfqwer888 (page does not exist)\">Zxcvasdfqwer888</a>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "assetId": 117
+  },
+  {
+    "id": 118,
+    "name": "Cà phê sữa",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-118.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Ca_Phe_Sua_Da.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Clarin\" title=\"User:Clarin\">Clarin</a>",
+    "license": "CC BY 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.5",
+    "assetId": 118
+  },
+  {
+    "id": 119,
+    "name": "Nước ngọt lon",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-119.webp",
+    "kind": "AI illustration",
+    "assetId": 119
+  },
+  {
+    "id": 120,
+    "name": "Bia lon thường",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-107.webp",
+    "kind": "AI illustration",
+    "assetId": 107
+  },
+  {
+    "id": 121,
+    "name": "Gỏi gà xé",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-121.webp",
+    "kind": "AI illustration",
+    "assetId": 121
+  },
+  {
+    "id": 122,
+    "name": "Cơm gà xối mỡ",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-122.webp",
+    "kind": "AI illustration",
+    "assetId": 122
+  },
+  {
+    "id": 123,
+    "name": "Phở bò",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-123.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Pho_Bo_by_Banh_%26_Mee_in_Kirkgate_Market.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Onthewings\" title=\"User:Onthewings\">Andy Li</a>",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetId": 123
+  },
+  {
+    "id": 124,
+    "name": "Gà kho gừng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-124.webp",
+    "kind": "AI illustration",
+    "assetId": 124
+  },
+  {
+    "id": 125,
+    "name": "Bò nướng lá thơm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-125.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:B%C3%B2_n%C6%B0%E1%BB%9Bng_l%C3%A1_l%E1%BB%91t_t%E1%BA%A1i_Manchester.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Minh28397\" title=\"User:Minh28397\">Minh28397</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 125
+  },
+  {
+    "id": 126,
+    "name": "Lẩu bò",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-126.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Beef_hot_pot.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Hatra01&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Hatra01 (page does not exist)\">Khanh Ha, Tran</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 126
+  },
+  {
+    "id": 127,
+    "name": "Mực hấp hành",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-127.webp",
+    "kind": "AI illustration",
+    "assetId": 127
+  },
+  {
+    "id": 128,
+    "name": "Rau luộc",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-128.webp",
+    "kind": "AI illustration",
+    "assetId": 128
+  },
+  {
+    "id": 129,
+    "name": "Súp gà nấm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-129.webp",
+    "kind": "AI illustration",
+    "assetId": 129
+  },
+  {
+    "id": 130,
+    "name": "Rau câu sữa",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-130.webp",
+    "kind": "AI illustration",
+    "assetId": 130
+  },
+  {
+    "id": 131,
+    "name": "Bạc xỉu",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-131.webp",
+    "kind": "AI illustration",
+    "assetId": 131
+  },
+  {
+    "id": 132,
+    "name": "Nước cam",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-132.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Orange_juice_1_edit1.jpg",
+    "artist": "<ul><li>Agency of the United States Department of Agriculture</li>\n<li>Edited Version by: <a href=\"//commons.wikimedia.org/wiki/User:Arad\" title=\"User:Arad\">Arad</a></li></ul>",
+    "license": "Public domain",
+    "assetId": 132
+  },
+  {
+    "id": 133,
+    "name": "Bia kèm ly đá",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-107.webp",
+    "kind": "AI illustration",
+    "assetId": 107
+  },
+  {
+    "id": 134,
+    "name": "Salad cà chua",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-134.webp",
+    "kind": "AI illustration",
+    "assetId": 134
+  },
+  {
+    "id": 135,
+    "name": "Cơm chiên trứng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-135.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Egg_Fried_Rice.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Gaurav_Dhwaj_Khadka\" title=\"User:Gaurav Dhwaj Khadka\">Gaurav Dhwaj Khadka</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 135
+  },
+  {
+    "id": 136,
+    "name": "Mì xào hải sản",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-136.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Fried_noodle_with_seafood_from_Asian_Restautant_in_Tuen_Mun_Town_Plaza.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Peachyeung316\" title=\"User:Peachyeung316\">Peachyeung316</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 136
+  },
+  {
+    "id": 137,
+    "name": "Cá kho tộ",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-137.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:C%C3%A1_kho_t%E1%BB%99.JPG",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Binh_Giang\" title=\"User:Binh Giang\">Binh Giang</a>",
+    "license": "Public domain",
+    "assetId": 137
+  },
+  {
+    "id": 138,
+    "name": "Tôm nướng muối",
+    "imageUrl": "https://order.dusko.io.vn/dishes/tom-nuong.webp",
+    "kind": "Existing restaurant asset",
+    "assetId": 138
+  },
+  {
+    "id": 139,
+    "name": "Lẩu cá chua cay",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-139.webp",
+    "kind": "AI illustration",
+    "assetId": 139
+  },
+  {
+    "id": 140,
+    "name": "Mực xào rau",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-140.webp",
+    "kind": "AI illustration",
+    "assetId": 140
+  },
+  {
+    "id": 141,
+    "name": "Đậu hũ hấp nấm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-141.webp",
+    "kind": "AI illustration",
+    "assetId": 141
+  },
+  {
+    "id": 142,
+    "name": "Canh đậu hũ",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-142.webp",
+    "kind": "AI illustration",
+    "assetId": 142
+  },
+  {
+    "id": 143,
+    "name": "Cam tươi",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-143.webp",
+    "kind": "AI illustration",
+    "assetId": 143
+  },
+  {
+    "id": 144,
+    "name": "Trà chanh",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-144.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Iced_lemon_tea_-_Rawlab_Juice_%26_Tea.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Onthewings\" title=\"User:Onthewings\">Andy Li</a>",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetId": 144
+  },
+  {
+    "id": 145,
+    "name": "Nước chanh",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-145.webp",
+    "kind": "AI illustration",
+    "assetId": 145
+  },
+  {
+    "id": 146,
+    "name": "Bia lon lớn",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-107.webp",
+    "kind": "AI illustration",
+    "assetId": 107
+  },
+  {
+    "id": 147,
+    "name": "Đậu hũ chiên",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-147.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Tahu_Goreng.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Supardisahabu\" title=\"User:Supardisahabu\">Supardisahabu</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 147
+  },
+  {
+    "id": 148,
+    "name": "Cơm sườn nướng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-148.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:C%C6%A1m_t%E1%BA%A5m_s%C6%B0%E1%BB%9Dn_c%C3%A2y.JPG",
+    "artist": "<a href=\"https://en.wikipedia.org/wiki/vi:User:Tokeisan\" class=\"extiw\" title=\"w:vi:User:Tokeisan\">Tokeisan</a> at <a href=\"https://en.wikipedia.org/wiki/vi:\" class=\"extiw\" title=\"w:vi:\">Vietnamese Wikipedia</a>",
+    "license": "Public domain",
+    "assetId": 148
+  },
+  {
+    "id": 149,
+    "name": "Bún gà",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-149.webp",
+    "kind": "AI illustration",
+    "assetId": 149
+  },
+  {
+    "id": 150,
+    "name": "Tôm rim mặn ngọt",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-150.webp",
+    "kind": "AI illustration",
+    "assetId": 150
+  },
+  {
+    "id": 151,
+    "name": "Mực nướng sa tế",
+    "imageUrl": "https://order.dusko.io.vn/dishes/muc-nuong.webp",
+    "kind": "Existing restaurant asset",
+    "assetId": 151
+  },
+  {
+    "id": 152,
+    "name": "Lẩu tôm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/thai-seafood-hotpot.webp",
+    "kind": "Existing restaurant asset",
+    "assetId": 100
+  },
+  {
+    "id": 153,
+    "name": "Cá hấp",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-153.webp",
+    "kind": "AI illustration",
+    "assetId": 153
+  },
+  {
+    "id": 154,
+    "name": "Cải xào nấm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-154.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Bok_choy,_trumpet_mushroom,_and_a_little_ginger_-_Massachusetts.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Daderot\" title=\"User:Daderot\">Daderot</a>",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetId": 154
+  },
+  {
+    "id": 155,
+    "name": "Súp tôm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-155.webp",
+    "kind": "AI illustration",
+    "assetId": 155
+  },
+  {
+    "id": 156,
+    "name": "Chè đậu hũ",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-156.webp",
+    "kind": "AI illustration",
+    "assetId": 156
+  },
+  {
+    "id": 157,
+    "name": "Trà cam",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-157.webp",
+    "kind": "AI illustration",
+    "assetId": 157
+  },
+  {
+    "id": 158,
+    "name": "Nước dừa",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-158.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Coconut_Drink,_Pangandaran.JPG",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Crisco_1492\" title=\"User:Crisco 1492\">Crisco 1492</a>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "assetId": 158
+  },
+  {
+    "id": 159,
+    "name": "Nước ngọt lạnh",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-119.webp",
+    "kind": "AI illustration",
+    "assetId": 119
+  },
+  {
+    "id": 160,
+    "name": "Trứng cuộn rau",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-160.webp",
+    "kind": "AI illustration",
+    "assetId": 160
+  },
+  {
+    "id": 161,
+    "name": "Cơm cá sốt cà",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-161.webp",
+    "kind": "AI illustration",
+    "assetId": 161
+  },
+  {
+    "id": 162,
+    "name": "Phở gà",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-162.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Pho_ga_(noodle_soup_with_chicken),_Hanoi_(6945821707).jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/94735786@N00\">David McKelvey</a> from Brisbane, Australia",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "assetId": 162
+  },
+  {
+    "id": 163,
+    "name": "Mực xào chua ngọt",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-163.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Sweet_and_Sour_Squid_and_Shrimp_(Taiwan).jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Ralffralff\" title=\"User:Ralffralff\">Ralff Nestor Nacor</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 163
+  },
+  {
+    "id": 164,
+    "name": "Cá nướng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-164.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Grilled_Hemibagrus_elongatus_2.jpg",
+    "artist": "<ul><li><a href=\"//commons.wikimedia.org/w/index.php?title=File:Calangviettri1.jpeg&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"File:Calangviettri1.jpeg (page does not exist)\">Calangviettri1.jpeg</a>: <a href=\"//commons.wikimedia.org/w/index.php?title=User:Hungvuongking&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Hungvuongking (page does not exist)\">Hungvuongking</a></li>\n<li>derivative work: <a href=\"//commons.wikimedia.org/wiki/User:Ph%C3%B3_Nh%C3%A1y\" title=\"User:Phó Nháy\">Phó Nháy</a> (<a href=\"//commons.wikimedia.org/wiki/User_talk:Ph%C3%B3_Nh%C3%A1y\" title=\"User talk:Phó Nháy\"><span class=\"signature-talk\">talk</span></a>)</li></ul>",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "assetId": 164
+  },
+  {
+    "id": 165,
+    "name": "Lẩu nấm chay",
+    "imageUrl": "https://order.dusko.io.vn/dishes/lau-nam.webp",
+    "kind": "Existing restaurant asset",
+    "assetId": 165
+  },
+  {
+    "id": 166,
+    "name": "Cá chiên giòn",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-166.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Fried_Whole_Fish_(13951232461).jpg",
+    "artist": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/87232391@N00\">Charles Haynes</a>",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "assetId": 166
+  },
+  {
+    "id": 167,
+    "name": "Đậu hũ chiên sả",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-147.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Tahu_Goreng.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Supardisahabu\" title=\"User:Supardisahabu\">Supardisahabu</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 147
+  },
+  {
+    "id": 168,
+    "name": "Canh cà chua trứng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-168.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Tomato_and_egg_soup.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:NNU-10-HanRongrong&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:NNU-10-HanRongrong (page does not exist)\">NNU-10-HanRongrong</a>",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "assetId": 168
+  },
+  {
+    "id": 169,
+    "name": "Kem sữa",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-169.webp",
+    "kind": "AI illustration",
+    "assetId": 169
+  },
+  {
+    "id": 170,
+    "name": "Trà sữa",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-170.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Fresh_Milk_Tea_3.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Gaurav_Dhwaj_Khadka\" title=\"User:Gaurav Dhwaj Khadka\">Gaurav Dhwaj Khadka</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 170
+  },
+  {
+    "id": 171,
+    "name": "Sữa tươi",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-171.webp",
+    "kind": "AI illustration",
+    "assetId": 171
+  },
+  {
+    "id": 172,
+    "name": "Nước suối lạnh",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-106.webp",
+    "kind": "AI illustration",
+    "assetId": 106
+  },
+  {
+    "id": 173,
+    "name": "Gỏi mực chua cay",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-173.webp",
+    "kind": "AI illustration",
+    "assetId": 173
+  },
+  {
+    "id": 174,
+    "name": "Cơm đậu hũ rau",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-174.webp",
+    "kind": "AI illustration",
+    "assetId": 174
+  },
+  {
+    "id": 175,
+    "name": "Mì xào chay",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-175.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Chowmein_(Nepali_Stir-Fried_Noodles).jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:SristiAwasthi21\" title=\"User:SristiAwasthi21\">SristiAwasthi21</a>",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetId": 175
+  },
+  {
+    "id": 176,
+    "name": "Đậu hũ sốt cà",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-176.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Tomato-sauced_tofu.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Mickey_%C4%90%E1%BA%A1i_Ph%C3%A1t\" title=\"User:Mickey Đại Phát\">Mickey Đại Phát</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 176
+  },
+  {
+    "id": 177,
+    "name": "Đậu hũ nướng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-177.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Grilled_Tofu_Bars.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Chefmancave\" title=\"User:Chefmancave\">Robert Loescher</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 177
+  },
+  {
+    "id": 178,
+    "name": "Lẩu mực",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-178.webp",
+    "kind": "AI illustration",
+    "assetId": 178
+  },
+  {
+    "id": 179,
+    "name": "Tôm sốt cà",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-179.webp",
+    "kind": "AI illustration",
+    "assetId": 179
+  },
+  {
+    "id": 180,
+    "name": "Rau xào thập cẩm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-180.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Stir_fried_mixed_vegetables.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:CNEcija12345\" title=\"User:CNEcija12345\">CNEcija12345</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 180
+  },
+  {
+    "id": 181,
+    "name": "Canh nấm rau",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-181.webp",
+    "kind": "AI illustration",
+    "assetId": 181
+  },
+  {
+    "id": 182,
+    "name": "Thạch trà",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-182.webp",
+    "kind": "AI illustration",
+    "assetId": 182
+  },
+  {
+    "id": 183,
+    "name": "Trà nóng",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-183.webp",
+    "kind": "AI illustration",
+    "assetId": 183
+  },
+  {
+    "id": 184,
+    "name": "Trà đá",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-184.webp",
+    "kind": "AI illustration",
+    "assetId": 184
+  },
+  {
+    "id": 185,
+    "name": "Trà chanh lạnh",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-144.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Iced_lemon_tea_-_Rawlab_Juice_%26_Tea.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Onthewings\" title=\"User:Onthewings\">Andy Li</a>",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "assetId": 144
+  },
+  {
+    "id": 186,
+    "name": "Rau củ trộn",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-186.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Liat_Portal_for_Foodie_Disorder_-_Mixed_vegetable_salad_with_fresh_herbs.jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:HaJunkiyada&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:HaJunkiyada (page does not exist)\">HaJunkiyada</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 186
+  },
+  {
+    "id": 187,
+    "name": "Cơm chiên tôm",
+    "imageUrl": "https://order.dusko.io.vn/dishes/menu-187.webp",
+    "kind": "Wikimedia Commons",
+    "source": "https://commons.wikimedia.org/wiki/File:Shrimp_Fried_Rice_(Taiwan).jpg",
+    "artist": "<a href=\"//commons.wikimedia.org/wiki/User:Ralffralff\" title=\"User:Ralffralff\">Ralff Nestor Nacor</a>",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "assetId": 187
+  }
+]
