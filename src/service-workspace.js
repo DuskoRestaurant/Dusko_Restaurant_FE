@@ -20,7 +20,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   // Shares the console toast stack so the workspace and the shell announce
   // through one live region instead of two.
   const toast = sharedToast();
-  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', filter:role==='CASHIER'?'PAY':'ALL', search:'', menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
+  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', paymentMethod:'CASH', filter:role==='CASHIER'?'PAY':'ALL', search:'', menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
   let disposed = false;
   let closeVnpay, customerDialog;
   let lastUpdated=null,syncError=false;
@@ -159,7 +159,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       ? `<div class="sw-checkout-block" id="sw-checkout-reason" role="note"><strong>Chưa thể thanh toán</strong><p>${waiting?`Cần xác nhận hoặc từ chối ${waiting} yêu cầu của khách trước.`:`Cần mang đủ ${quantities(remaining)} món còn lại ra bàn trước.`}</p>${waiting&&remaining.length?`<p>Sau đó kiểm tra ${quantities(remaining)} món chưa mang ra.</p>`:''}</div>${button(waiting?'Xử lý yêu cầu':'Xem món đang phục vụ','tab',`data-tab="${waiting?'confirm':'ready'}"`,true)}${mayPay?button('Thanh toán','checkout','data-locked="true" aria-describedby="sw-checkout-reason"'):''}`
         : orders.length
           ? mayPay
-            ? `<div class="sw-payment"><label>Phương thức thanh toán<select data-sw-input="payment"><option value="CASH">Tiền mặt</option><option value="QR_BANKING">VNPay Sandbox</option><option value="POS_CARD">Thẻ</option></select></label><p class="sw-help">Với tiền mặt hoặc thẻ, xác nhận sau khi đã nhận đủ tiền. VNPay đang dùng môi trường thử nghiệm.</p>${button('Thanh toán','checkout','',true)}</div>`
+            ? `<div class="sw-payment"><label>Phương thức thanh toán<select data-sw-input="payment">${[["CASH","Tiền mặt"],["QR_BANKING","VNPay"],["POS_CARD","Thẻ"]].map(([value,label])=>`<option value="${value}" ${state.paymentMethod===value?"selected":""}>${label}</option>`).join('')}</select></label><p class="sw-help">Với tiền mặt hoặc thẻ, xác nhận sau khi đã nhận đủ tiền. VNPay đang dùng môi trường thử nghiệm.</p>${button('Thanh toán','checkout','',true)}</div>`
             : '<p class="sw-alert">Bàn đã phục vụ đủ món. Báo thu ngân để nhận tiền và đóng bàn.</p>'
           : button('Đóng bàn chưa gọi món','close');
     const orderCards = orders.map(order=>`<details class="sw-order sw-bill-order" data-sw-order="${e(order.id)}"><summary><strong>Lượt ${time(order.createdAt)}</strong> <span>${quantities(order.items)} món · ${money(order.finalAmount)}</span></summary><p class="sw-help">${order.source==='CUSTOMER_QR'?'Khách gửi QR':'Nhân viên gọi món'} · lượt ${e(shortCode(order))}</p><ul>${order.items.map(item=>`<li><div><b>${e(item.product.name)} × ${item.quantity}</b><small>${statusText(item)}</small>${item.note?`<p class="sw-note">${e(item.note)}</p>`:''}</div><span>${money(item.price*item.quantity)}</span></li>`).join('')}</ul>${order.discountAmount?`<p class="sw-help">Ưu đãi combo: −${money(order.discountAmount)}</p>`:''}<p><strong>Thành tiền: ${money(order.finalAmount)}</strong></p></details>`).join('');
@@ -233,7 +233,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     if(pricesChanged)showMessage('Giá món trong giỏ vừa thay đổi. Kiểm tra lại trước khi gửi.',true);
     const sessionChanged=state.session?.id!==result.session?.id;
     state.table={...state.table,...result.table}; state.session=result.session;state.serviceRequests=result.serviceRequests||[];
-    if(sessionChanged) { if(result.table.status==='EMPTY')state.table.pendingOrderCount=0; state.cart.clear();state.notes.clear();state.draft=readDraft(id);render(); } else {patchTable();
+    if(sessionChanged) { state.paymentMethod='CASH'; if(result.table.status==='EMPTY')state.table.pendingOrderCount=0; state.cart.clear();state.notes.clear();state.draft=readDraft(id);render(); } else {patchTable();
       updateMenuResults(false);
       updateCartAccess();
       root.querySelectorAll('[data-sw-stock]').forEach(el=>{const p=products.find(p=>p.id===Number(el.dataset.swStock));el.textContent=p?.canOrder?(p.requiresPreparation?'Bếp chế biến':'Phục vụ trực tiếp'):(p?.availabilityReason||'Đã ngừng bán');});
@@ -250,7 +250,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     const table=state.tables.find(t=>t.id===id); if(!table) return;
     const [result,products]=await Promise.all([request(`/api/staff/tables/${id}/session?branchId=${branchId}`),loadProducts()]);
     if(disposed||version!==selection) return;
-    state.products=products;state.table={...table,...result.table};state.session=result.session;state.serviceRequests=result.serviceRequests||[];state.cart.clear();state.notes.clear();state.draft=readDraft(id);
+    state.paymentMethod='CASH';state.products=products;state.table={...table,...result.table};state.session=result.session;state.serviceRequests=result.serviceRequests||[];state.cart.clear();state.notes.clear();state.draft=readDraft(id);
     lastUpdated=new Date();syncError=false;state.tab=cashierView&&activeOrders().length?'bill':waitingOrders().length?'confirm':readyItems().length?'ready':activeOrders().length?'bill':'menu';render();
   }
   async function mutation(work, message) {
@@ -259,6 +259,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     try { const result=await work(); if(disposed) return; showMessage(result?.kitchenPending?'Đã nhận yêu cầu nhưng kết nối bếp đang gián đoạn. Báo bếp kiểm tra.':message,Boolean(result?.kitchenPending)); await refresh(true); }
     catch(error) {
       showMessage(error.message, true);
+      toast.error('Chưa hoàn tất thao tác', error.message);
       try {
         await refresh();
         if(error.status===409&&state.table) {
@@ -319,11 +320,12 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       if(action==='retry') return mutation(()=>submitDraft(state.draft),'Đã nhận lượt gọi món, không tạo trùng.');
       if(action==='discard') {clearDraft(state.table.id);state.draft=null;render();return;}
       if(action==='close') { if(!mayCloseEmpty())throw Error('Bàn còn yêu cầu hoặc món đang phục vụ. Vui lòng xử lý trước khi đóng.'); if(state.draft)throw Error('Còn lượt gọi món chưa rõ đã gửi thành công. Kiểm tra hoặc xóa bản nháp trước khi đóng bàn.'); if(!await confirmDialog({title:'Đóng bàn chưa gọi món?',message:`${state.table.tableName} sẽ trở về trạng thái trống. Món đang chọn trong giỏ sẽ được bỏ.`,confirmLabel:'Đóng bàn'}))return; return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/close-empty`);clearDraft(state.table.id);state.cart.clear();state.notes.clear();state.table=null;state.session=null;render();},'Đã đóng bàn, không phát sinh thanh toán.'); }
-      if(action==='checkout') {if(!mayPay)throw Error('Chỉ thu ngân được thanh toán.');const paidSessionId=state.session.id;const method=root.querySelector('[data-sw-input="payment"]').value;if(method==='QR_BANKING')return mutation(async()=>{const payment=await post(`/api/payments/vnpay/tables/${state.table.id}`);closeVnpay?.();closeVnpay=showVnpayPayment(payment,request,async()=>{if(!disposed)await refresh();await openReceipt(request,'session',paidSessionId);});},'Đang chờ khách thanh toán qua VNPay.');if(!await confirmDialog({title:'Xác nhận thanh toán',message:`Đã nhận đủ ${money(total())} ${method==='CASH'?'bằng tiền mặt':'qua máy POS'}?`,confirmLabel:'Đã nhận đủ tiền'}))return;return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/checkout`,{paymentMethod:method});state.table=null;state.session=null;render();await openReceipt(request,'session',paidSessionId);},'Thanh toán thành công. Bàn đã trở về trạng thái trống.');}
+      if(action==='checkout') {if(!mayPay)throw Error('Chỉ thu ngân được thanh toán.');const paidSessionId=state.session.id;const method=state.paymentMethod;if(method==='QR_BANKING')return mutation(async()=>{const payment=await post(`/api/payments/vnpay/tables/${state.table.id}`);closeVnpay?.();closeVnpay=showVnpayPayment(payment,request,async()=>{if(!disposed)await refresh();await openReceipt(request,'session',paidSessionId);});},'Đang chờ khách thanh toán qua VNPay.');if(!await confirmDialog({title:'Xác nhận thanh toán',message:`Đã nhận đủ ${money(total())} ${method==='CASH'?'bằng tiền mặt':'qua máy POS'}?`,confirmLabel:'Đã nhận đủ tiền'}))return;return mutation(async()=>{await post(`/api/staff/tables/${state.table.id}/checkout`,{paymentMethod:method});state.table=null;state.session=null;render();await openReceipt(request,'session',paidSessionId);},'Thanh toán thành công. Bàn đã trở về trạng thái trống.');}
     } catch(error) {showMessage(error.message,true);}
   }
   function onInput(event) {
     const type=event.target.dataset.swInput;
+    if(type==='payment'&&['CASH','QR_BANKING','POS_CARD'].includes(event.target.value)) state.paymentMethod=event.target.value;
     if(type==='table-search') {state.search=event.target.value;root.querySelector('.sw-tables').innerHTML=tableCards();}
     if(type==='note') state.notes.set(Number(event.target.dataset.product),event.target.value);
     if(type==='menu-search'||type==='category') {if(type==='menu-search')state.menuSearch=event.target.value;else state.category=event.target.value;state.menuPage=1;updateMenuResults();}
