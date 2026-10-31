@@ -1,13 +1,13 @@
-# Dashboard backup ADMIN
+# Dashboard sao lưu và khôi phục
 
-ADMIN mở Hệ thống → Sao lưu dữ liệu, nút trên Tổng quan hoặc ?page=backups. MANAGER không có quyền. Deploy BE/FE cùng phiên bản.
+ADMIN: Hệ thống → Sao lưu dữ liệu, nút Tổng quan hoặc ?page=backups. Cấu trúc mới: trạng thái/tuổi bản/lịch tiếp theo; dung lượng disk thực đo; sao lưu ngay/cấu hình lịch; bảng archive với Restore/Download/Delete; nơi lưu và nhật ký. Giải thích dài đặt trong details thu gọn. Mobile hiển thị archive thành các hàng thẻ.
 
-GET /api/admin/backups trả inventory, capability, activeJob và 10 job gần nhất. Tạo backup ngay mở hộp thoại phạm vi + mã Authenticator mới, POST /api/admin/backups với {code}. Backend yêu cầu primary ADMIN và one-use TOTP. Thiếu tools/config/storage hoặc có job/khóa thì nút bị khóa kèm lý do.
+GET /api/admin/backups trả inventory, capability, disk storage, destinations, schedule và jobs. Progress là phần trăm công đoạn đã hoàn tất, có heartbeat; không mô phỏng băng thông hoặc ETA. Dung lượng là toàn ổ đĩa máy chủ, không giả gói cloud 50 GB. Cloud chưa kết nối hiển thị Chưa cấu hình.
 
-HTTP 202 là tiếp nhận. Poll mỗi 4 giây, hiển thị công đoạn/thành công/lỗi/gián đoạn; hủy khi rời trang. Lỗi MFA cho sửa mã/thử lại. Không báo hoàn tất trước khi dump + SHA-256 hoàn thành. Giữ vị trí cuộn bảng và focus sau poll.
+Mutation đều dùng fresh Authenticator, primary ADMIN. Restore/Delete bắt buộc CONFIRM chính xác; restore thêm checkbox có tài khoản ADMIN/Authenticator của bản nguồn. ZIP tải qua response binary, không dùng public URL. Delete giữ một bản khác còn nguyên vẹn. Schedule cho OFF/HOURLY/DAILY/WEEKLY theo UTC+7.
 
-Chưa backup ảnh cloud/secrets, chưa có snapshot chung SQL/Mongo/ảnh. Inventory không hash lại file khi đọc. Hoàn tất chưa chứng minh restore. Chưa có restore production, lịch tự động, offsite hoặc retention.
+Restore trả token theo dõi riêng chỉ đọc tiến độ, gửi trong X-Backup-Monitor, không nằm trong URL. Token lưu sessionStorage để reload; main.js chuyển thẳng vào monitor mà không bootstrap DB đang restore. Thành công yêu cầu đăng nhập lại và xóa token monitor. Lỗi giữa chừng giữ maintenance để vận hành kiểm tra.
 
-Bật production theo repo BE docs/BACKUP_ADMIN_RUNBOOK.md: BACKUP_ENABLED=true, image mới có tools và volume private. Mặc định chưa bật tạo mới. Chưa chạy backup production thật trong lượt này.
+Cần deploy BE/FE cùng phiên bản; bật BACKUP_ENABLED và BACKUP_RESTORE_ENABLED theo runbook BE. Bản cũ thiếu metadata/schema/đích/khóa không được tự restore trên UI. Chưa gồm ảnh cloud, source, secret, offsite hoặc retention.
 
-Kiểm tra: BE 89 unit test và build; FE 101 test và build management. Browser fixture kiểm MFA sai/thử lại, tiếp nhận so với hoàn tất, chặn tạo trùng, polling, cleanup khi rời trang, inventory rỗng/cloud/quá hạn, 1440px/390px. Ảnh docs/ui/backup-admin-*.png là fixture, không phải bằng chứng backup production.
+Kiểm tra unit/build cả ba app và browser fixture: measured storage, desktop1440/mobile390, CONFIRM/MFA sai/thử lại, ZIP download, delete, lịch tuần, backup progress, restore monitor qua reload và thu hồi session. Ảnh docs/ui/backup-admin-*.png và backup-restore-confirm.png dùng dữ liệu giả lập, không phải dữ liệu/backup production.

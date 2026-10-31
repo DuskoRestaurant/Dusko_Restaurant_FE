@@ -13,12 +13,13 @@ export class ApiError extends Error {
   constructor(message, status) { super(message); this.name = 'ApiError'; this.status = status; }
 }
 
-export async function request(path, { method = 'GET', body, token, signal, fetcher = fetch } = {}) {
+export async function request(path, { method = 'GET', body, token, signal, headers = {}, responseType, fetcher = fetch } = {}) {
   const response = await fetcher(`${API_BASE}${path}`, {
     method, signal,
-    headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { ...headers, ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
+  if(response.ok && responseType==='blob') return response.blob();
   let payload;
   try { payload = await response.json(); } catch { throw new Error(`Máy chủ trả về dữ liệu không hợp lệ (${response.status})`); }
   if (!response.ok || payload.success === false) throw new ApiError(payload.error || payload.message || `Yêu cầu thất bại (${response.status})`, response.status);

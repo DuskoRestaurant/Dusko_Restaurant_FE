@@ -14,7 +14,7 @@ import './accounts.css';
 import { mountComboApproval } from './combo-approval.js';
 import { createCustomerAdmin } from './customer-admin.js';
 import { canAccessManagement as canAccessManagementFn } from './management-access.js';
-import { mountBackupAdmin } from './backup-admin.js';
+import { mountBackupAdmin, readBackupMonitor, clearBackupMonitor } from './backup-admin.js';
 import './backup-status.css';
 import { watchChanges } from './live-updates.js';
 import { sharedToast } from './toast.js';
@@ -521,7 +521,7 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='password') return passwordDialog(api,()=>{signOut();toast('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   if(action==='logout') signOut();
 }
-function signOut() { startSeq++; closeVnpayPayment?.(); stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
+function signOut() { clearBackupMonitor(); startSeq++; closeVnpayPayment?.(); stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
 function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${canAdminister(state.user)?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
 function showEntry() {
   serviceWorkspace?.destroy();serviceWorkspace=null;
@@ -546,6 +546,7 @@ async function start() {
   app.innerHTML='<div class="loading" role="status">DUSKO · Đang tải không gian làm việc…</div>';
   let revision;
   try {
+    if(readBackupMonitor()){state.page='backups';shell();serviceWorkspace=mountBackupAdmin({root:document.querySelector('#page'),request:api,onAuthError:signOut});await serviceWorkspace.ready;return;}
     let data;
     try { data=await api(`/api/bootstrap?page=${state.page}&branchId=${state.branch}&targetDate=${state.date}`,{cache:'no-store'}); }
     catch(error) {
