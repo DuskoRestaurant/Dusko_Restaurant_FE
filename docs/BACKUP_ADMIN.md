@@ -1,36 +1,30 @@
-# Dashboard sao lưu và khôi phục
+# Module sao lưu ADMIN
 
-ADMIN: Hệ thống → Sao lưu dữ liệu, nút Tổng quan hoặc ?page=backups. Cấu trúc mới: trạng thái/tuổi bản/lịch tiếp theo; dung lượng disk thực đo; sao lưu ngay/cấu hình lịch; bảng archive với Restore/Download/Delete; nơi lưu và nhật ký. Giải thích dài đặt trong details thu gọn. Mobile hiển thị archive thành các hàng thẻ.
+Chỉ thay đổi trong module Sao lưu dữ liệu. Bộ chọn chi nhánh, điều hướng dùng chung và các luồng nghiệp vụ khác giữ nguyên. Quyền và API backend giữ nguyên: ADMIN chính có MFA mới được quản trị dữ liệu; backup/restore áp dụng toàn hệ thống, không bị giới hạn theo bộ chọn chi nhánh bên ngoài.
 
-GET /api/admin/backups trả inventory, capability, disk storage, destinations, schedule và jobs. Progress là phần trăm công đoạn đã hoàn tất, có heartbeat; không mô phỏng băng thông hoặc ETA. Dung lượng là toàn ổ đĩa máy chủ, không giả gói cloud 50 GB. Cloud chưa kết nối hiển thị Chưa cấu hình.
+## Cấu trúc vận hành
 
-Mutation đều dùng fresh Authenticator, primary ADMIN. Restore/Delete bắt buộc CONFIRM chính xác; restore thêm checkbox có tài khoản ADMIN/Authenticator của bản nguồn. ZIP tải qua response binary, không dùng public URL. Delete giữ một bản khác còn nguyên vẹn. Schedule cho OFF/HOURLY/DAILY/WEEKLY theo UTC+7.
+- Một vùng nội dung căn giữa tối đa 1.200px. CTA chính Sao lưu ngay đặt tại tiêu đề.
+- Một dòng ghi nhận bản hoàn tất gần nhất và thời điểm. Không kết luận dữ liệu an toàn chỉ từ manifest hay một lần tạo thành công.
+- Tổng quan ngắn: số bản hoàn tất đã tải và tổng size của chúng; trạng thái/lần chạy tiếp theo của lịch; phần trăm toàn ổ đĩa, dung lượng trống và footprint kho backup được ghi riêng.
+- Cảnh báo theo dữ liệu thực: không có bản hoàn tất, bản hơn 24 giờ (mốc gợi ý UI, không phải chính sách RPO cấu hình), tắt lịch, lịch lỗi, tác vụ thất bại/gián đoạn/bảo trì, dung lượng từ 75%/90%. Các giới hạn offsite/kiểm chứng restore/checksum nằm trong phần Giới hạn bảo vệ mở khi cần.
+- Bảng trung tâm: thời gian/người tạo, loại, dung lượng, hoàn tất và menu thao tác. Hoàn tất chỉ phản ánh manifest hoàn chỉnh; chưa chứng minh toàn vẹn hiện tại hay đã diễn tập restore.
+- Bộ lọc thu gọn, tìm theo mã/người tạo/ngày; lọc MANUAL/AUTO/SAFETY và khoảng ngày UTC+7. Phân trang 5/10/20 dòng. Tab riêng Nhật ký hoạt động và Cấu hình.
+- Menu từng bản có Thông tin bản sao và Tải về; Khôi phục/Xóa nằm trong nhóm cần xác nhận, cách bằng đường phân chia. Desktop menu mở sang trái để không che nút hàng kế tiếp; mobile mở trong hàng để không chồng lên bản khác. Escape/nhấn ngoài trong module đóng menu, chỉ một menu mở.
+- Thông tin bản sao nêu ID, phạm vi toàn hệ thống, thành phần, nơi lưu, compatibility và tác động restore. Cấu hình hiển thị nơi đang dùng; cloud chưa tích hợp chỉ là thông tin mở rộng, không có nút kết nối giả. Retention/phân quyền/phạm vi là thông tin đúng hiện trạng, không tạo bộ chỉnh sửa chức năng chưa có.
 
-Restore trả token theo dõi riêng chỉ đọc tiến độ, gửi trong X-Backup-Monitor, không nằm trong URL. Token lưu sessionStorage để reload; main.js chuyển thẳng vào monitor mà không bootstrap DB đang restore. Thành công yêu cầu đăng nhập lại và xóa token monitor. Lỗi giữa chừng giữ maintenance để vận hành kiểm tra.
+## Cơ chế được giữ
 
-Cần deploy BE/FE cùng phiên bản; bật BACKUP_ENABLED và BACKUP_RESTORE_ENABLED theo runbook BE. Bản cũ thiếu metadata/schema/đích/khóa không được tự restore trên UI. Chưa gồm ảnh cloud, source, secret, offsite hoặc retention.
+GET /api/admin/backups trả metadata tối đa 1.000 thư mục mới nhất; nếu truncated, UI nói rõ bộ lọc chỉ áp dụng cho phần đã tải. Đây không phải retention. Inventory nội bộ mặc định vẫn trả 20 bản; API admin mở rộng riêng ở backend.
 
-Kiểm tra unit/build cả ba app và browser fixture: measured storage, desktop1440/mobile390, CONFIRM/MFA sai/thử lại, ZIP download, delete, lịch tuần, backup progress, restore monitor qua reload và thu hồi session. Ảnh docs/ui/backup-admin-*.png và backup-restore-confirm.png dùng dữ liệu giả lập, không phải dữ liệu/backup production.
+Tiến độ nhận từ server, theo công đoạn, polling khoảng 4 giây; không giả phần trăm theo byte/ETA. Job backup hiển thị ngay khi được nhận. Bộ lọc/trang/tab và disclosure đang mở được giữ qua polling.
 
-## Cập nhật giao diện 01/11/2026
+Mutation dùng fresh Authenticator. Restore/Delete bắt buộc CONFIRM chính xác; restore thêm xác nhận có tài khoản/MFA của bản nguồn. Khôi phục tạo SAFETY, tạm dừng nghiệp vụ; lỗi sau ghi giữ bảo trì để vận hành đối soát. Không tự rollback toàn hệ thống. Nguồn gồm PostgreSQL public, hai MongoDB và uploads local nếu có; không gồm source/.env/khóa vận hành/ảnh cloud.
 
-Bố cục dùng phần nội dung rộng hơn, giảm padding/gap, làm nổi trạng thái và nút Sao lưu ngay màu xanh. Thẻ lịch có lối tắt Bật lịch tự động/Chỉnh lịch. Nơi lưu trữ là các thẻ compact, không tạo liên kết cloud giả. Hành động mỗi hàng có chiều cao tối thiểu 44px; nút Xóa được tách khoảng cách, vẫn giữ CONFIRM/MFA và xác nhận credentials khi restore.
+Restore có token monitor riêng qua X-Backup-Monitor, sessionStorage hỗ trợ reload cùng tab; không đặt token trong URL. Sau thành công phải đăng nhập lại. Download ZIP là response binary, không có static URL công khai. Delete giữ một bản khác có toàn vẹn hợp lệ. Lịch OFF/HOURLY/DAILY/WEEKLY theo UTC+7. Không có cancel job đã nhận, offsite, retention tự động hoặc tạo snapshot đồng thời đa DB.
 
-Dung lượng ổ đĩa chuyển cam từ 75%, đỏ từ 90%, kèm cảnh báo chữ; chưa đọc được số liệu không giả định là 0%. Tiến trình server hiển thị ngay khi nhận job backup, rồi cập nhật theo chu kỳ 4 giây, có phase, phần trăm và chỉ báo đang chạy. Phần trăm vẫn theo công đoạn, không phải số byte/ETA.
+## Kiểm chứng
 
-Tìm theo mã/người tạo hoặc ngày hiển thị, lọc loại MANUAL/AUTO/SAFETY, khoảng ngày tính theo UTC+7 (bao gồm cả hai ngày đầu/cuối). Phân trang 5/10/20 dòng, giữ bộ lọc/trang và con trỏ tìm kiếm qua polling, tự đưa trang về phạm vi hợp lệ khi kết quả thay đổi.
+Unit test kiểm tra trạng thái không tuyên bố an toàn, số liệu dung lượng phân biệt, dữ liệu escape, giới hạn bảo vệ, lọc và khóa. Browser fixture kiểm tra tab, chi tiết/menu, filter qua polling, bộ chọn chi nhánh dùng chung vẫn giữ cùng DOM node, màn hình 390/768/1024/1280/1440/1920/2560/3840px và CSS zoom 67%/80%/125%. Đây không phải điều khiển zoom native. Luồng MFA/CONFIRM sai/đúng, ZIP, xóa, lịch tuần, backup progress và restore monitor qua reload vẫn được kiểm tra với API giả lập.
 
-API admin trả metadata trong tối đa 1.000 thư mục mới nhất để lọc được kho có hàng trăm bản; không đọc/hash nội dung archive khi tải danh sách. Chức năng inventory mặc định dùng nội bộ vẫn trả 20 dòng. Nếu vượt giới hạn hoặc server cũ còn trả một phần, UI ghi rõ danh sách chưa đầy đủ và bộ lọc chỉ tìm trong các bản đã tải. Giới hạn này không phải retention và không tự xóa file. Cần cập nhật BE cùng FE để tìm được các bản ngoài 20 bản cũ.
-
-## Khung nội dung và cột thích ứng
-
-Nội dung backup nằm giữa vùng làm việc trong khung tối đa 1.440px; phần nền ngoài khung tăng trên màn hình rộng hoặc khi thu nhỏ zoom. Container query dùng chiều rộng thực của `.backup-console`, không chỉ viewport nên tính được cả phần menu bên trái.
-
-- Từ 1.080px chiều rộng nội dung: cột chính chiếm 75% phần chiều rộng chia cột, chứa cụm tương tác đầu bảng, tiến trình, bảng, phân trang và nhật ký; cột phụ chiếm 25%, chứa tổng quan nền trắng và nơi lưu dạng mở rộng. Khoảng cách hai cột 20px, giữa các nhóm cột phụ 24px. Các khối không kéo chiều cao bằng nhau chỉ để lấp nền.
-- Dưới 1.080px: tổng quan nằm trước cột chính; nhật ký đi cùng bảng, nơi lưu xếp phía sau. Từ 800px tổng quan dùng ba thẻ trên một hàng; các màn hình hẹp hơn chia hai cột, trạng thái/dung lượng chiếm cả hàng.
-- Dưới 760px chiều rộng nội dung: bảng chuyển thành các thẻ để cả ba thao tác vẫn nhìn thấy; dưới 620px bộ lọc và hành động nhanh chuyển sang bố cục mobile.
-- Input/select và nút thao tác chính có kích thước tương tác tối thiểu 44px; ô tìm kiếm trên desktop giới hạn 320px, nằm sát nút Sao lưu ngay và cấu hình lịch trong cùng toolbar. Thẻ cloud giữ chiều cao tối thiểu 68px và biểu tượng 28px. Người tạo được đặt ngay dưới thời điểm tạo để giảm số cột và quãng đọc ngang.
-
-Kiểm thử browser với API giả lập bao phủ viewport 390/768/1024/1280/1440/1920/2560/3840px, kiểm tra căn giữa/giới hạn khung/cột phụ và nút không bị cắt. Viewport rộng mô phỏng diện tích CSS tăng khi zoom nhỏ; bổ sung CSS zoom 67%/80%/125% để kiểm tra tỷ lệ component. Đây không phải tự động điều khiển mức zoom native của trình duyệt. Ảnh `docs/ui/backup-admin-2560.png` minh họa khung giới hạn trên màn hình rộng, vẫn là fixture.
-
-Cân bằng mật độ: các mục trạng thái/bản gần nhất/lịch/dung lượng dùng chung một panel trắng và đường phân cách nhẹ; màu chỉ nhấn icon, con số và meter. Nơi lưu mặc định thu gọn, trạng thái máy chủ luôn có trên summary; trạng thái mở và focus được giữ qua polling/lọc. Bảng dùng font chính 13px, người tạo 12px, line-height 1.65 và padding hàng 16px; tên dài rút gọn một dòng có title đầy đủ. Mô tả phạm vi Database chuyển vào title/aria-label của nhãn có thể focus. Mã archive có trong tooltip ô ngày tạo, không tạo thêm dòng trong bảng.
+Ảnh docs/ui/backup-admin-*.png, backup-actions-menu.png, backup-settings.png và backup-restore-confirm.png dùng dữ liệu giả lập; không phải số liệu dung lượng/quota hay thao tác trên production.

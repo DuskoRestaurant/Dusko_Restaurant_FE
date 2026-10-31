@@ -7,7 +7,7 @@ export function readBackupMonitor(){try{const item=JSON.parse(sessionStorage.get
 export function clearBackupMonitor(){sessionStorage.removeItem(monitorKey);}
 export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuthError=()=>{}}){
  let disposed=false,timer,loading=false,working=false,dialog,failed=false,data=null,monitor=readBackupMonitor();
- const view={query:'',type:'',from:'',to:'',page:1,pageSize:5};
+ const view={query:'',type:'',from:'',to:'',page:1,pageSize:5,tab:'archives',detailId:null};
  function renderInventory(){
   const focused=root.contains(document.activeElement)?document.activeElement:null;
   const filter=focused?.dataset?.backupFilter,action=focused?.dataset?.backup,archiveId=focused?.dataset?.archiveId;
@@ -20,7 +20,7 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   if(failed)root.querySelectorAll('[data-backup]').forEach(el=>{if(['create','restore','delete','download','schedule'].includes(el.dataset.backup))el.disabled=true;});
   view.page=Number(root.querySelector('.bk-pagination')?.dataset.page)||1;
   root.querySelectorAll('.table-scroll').forEach((el,i)=>{el.scrollLeft=scrolls[i]||0;});
-  const target=filter?root.querySelector(`[data-backup-filter="${filter}"]`):focusedDetail?root.querySelector(`details[data-backup-detail="${focusedDetail}"] summary`):[...root.querySelectorAll('[data-backup]')].find(el=>el.dataset.backup===action&&(!archiveId||el.dataset.archiveId===archiveId));
+  const target=filter?root.querySelector(`[data-backup-filter="${filter}"]`):focusedDetail?[...root.querySelectorAll('details[data-backup-detail]')].find(el=>el.dataset.backupDetail===focusedDetail)?.querySelector('summary'):[...root.querySelectorAll('[data-backup]')].find(el=>el.dataset.backup===action&&(!archiveId||el.dataset.archiveId===archiveId));
   target?.focus({preventScroll:true});if(selection&&target)target.setSelectionRange(...selection);
  }
  const toast=sharedToast();
@@ -55,7 +55,7 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   if(['restore','delete','download'].includes(kind)&&!archive)return;
   const titles={create:'Tạo bản sao lưu?',restore:'Khôi phục bản sao lưu?',delete:'Xóa bản sao lưu?',download:'Tải bản sao lưu về máy',schedule:'Cấu hình lịch sao lưu'};
   const labels={create:'Xác nhận sao lưu',restore:'Xác nhận khôi phục',delete:'Xóa bản sao lưu',download:'Tải file ZIP',schedule:'Lưu lịch trình'};
-  const notices={create:'Sao lưu PostgreSQL, MongoDB và ảnh local vào kho riêng của máy chủ.',restore:'Dữ liệu hiện tại sẽ bị ghi đè. Hệ thống tạo một bản an toàn trước khi khôi phục và tạm dừng nghiệp vụ. Tài khoản và Authenticator cũng trở về thời điểm của bản sao; ảnh cloud không được khôi phục.',delete:'Bản sao lưu này sẽ bị xóa khỏi máy chủ và không thể hoàn tác.',download:'File ZIP chứa dữ liệu của nhà hàng. Chỉ lưu ở nơi bạn kiểm soát.'};
+  const notices={create:'Sao lưu PostgreSQL, MongoDB và ảnh local vào kho riêng của máy chủ.',restore:'Dữ liệu hiện tại của toàn hệ thống (tất cả chi nhánh) sẽ bị ghi đè. Hệ thống tạo một bản an toàn trước khi khôi phục và tạm dừng nghiệp vụ. Tài khoản và Authenticator cũng trở về thời điểm của bản sao; ảnh cloud không được khôi phục.',delete:'Bản sao lưu này sẽ bị xóa khỏi máy chủ và không thể hoàn tác.',download:'File ZIP chứa dữ liệu của nhà hàng. Chỉ lưu ở nơi bạn kiểm soát.'};
   const selected=data?.schedule||{frequency:'OFF',hour:2,minute:0,weekday:1};
   const settings=kind==='schedule'?`<div class="bk-modal-fields"><label class="field"><span>Tần suất</span><select name="frequency">${[['OFF','Tắt tự động'],['HOURLY','Hằng giờ'],['DAILY','Hằng ngày'],['WEEKLY','Hằng tuần']].map(([value,label])=>`<option value="${value}" ${selected.frequency===value?'selected':''}>${label}</option>`).join('')}</select></label><label class="field" data-day-field><span>Ngày trong tuần</span><select name="weekday">${['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'].map((label,i)=>`<option value="${i}" ${selected.weekday===i?'selected':''}>${label}</option>`).join('')}</select></label><label class="field" data-hour-field><span>Giờ (UTC+7)</span><input name="hour" type="number" min="0" max="23" value="${selected.hour??2}" required></label><label class="field" data-minute-field><span>Phút</span><input name="minute" type="number" min="0" max="59" value="${selected.minute??0}" required></label></div><p class="form-help">Theo giờ Việt Nam (UTC+7). Khi máy chủ ngừng hoạt động, lịch quá hạn được chạy một lần khi dịch vụ trở lại.</p>`:'';
   dialog=document.createElement('dialog');const currentDialog=dialog;dialog.className='app-confirm backup-confirm';dialog.setAttribute('aria-labelledby','backup-confirm-title');
@@ -96,9 +96,14 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   document.body.append(dialog);dialog.showModal();(destructive?form.elements.confirmation:form.elements.code).focus();
  }
  const click=event=>{
+  root.querySelectorAll('.bk-row-menu[open]').forEach(el=>{if(!el.contains(event.target))el.open=false;});
   const button=event.target.closest('[data-backup]');if(!button||button.disabled)return;
   const kind=button.dataset.backup;
+  button.closest('.bk-row-menu')?.removeAttribute('open');
   if(kind==='refresh')void refresh();
+  else if(['tab-archives','tab-activity','tab-settings'].includes(kind)){view.tab=kind.slice(4);renderInventory();}
+  else if(kind==='details'){view.detailId=button.dataset.archiveId;renderInventory();root.querySelector('.bk-archive-detail h3')?.focus({preventScroll:true});root.querySelector('.bk-archive-detail')?.scrollIntoView({block:'nearest'});}
+  else if(kind==='close-details'){view.detailId=null;renderInventory();}
   else if(kind==='clear-filters'){Object.assign(view,{query:'',type:'',from:'',to:'',page:1});renderInventory();}
   else if(kind==='previous-page'||kind==='next-page'){view.page+=kind==='next-page'?1:-1;renderInventory();root.querySelector(`[data-backup="${kind}"]`)?.focus({preventScroll:true});}
   else if(kind==='relogin'){clearBackupMonitor();onAuthError();}
@@ -111,6 +116,8 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   if((field==='query')!==(event.type==='input'))return;
   view[field]=event.target.value;view.page=1;renderInventory();
  };
- root.addEventListener('click',click);root.addEventListener('input',filterChange);root.addEventListener('change',filterChange);const ready=refresh();
- return{ready,destroy(){disposed=true;clearTimeout(timer);root.removeEventListener('click',click);root.removeEventListener('input',filterChange);root.removeEventListener('change',filterChange);if(dialog){dialog.close();dialog.remove();dialog=null;}}};
+ const toggle=event=>{if(event.target.matches('.bk-row-menu')&&event.target.open)root.querySelectorAll('.bk-row-menu[open]').forEach(el=>{if(el!==event.target)el.open=false;});};
+ const keydown=event=>{if(event.key==='Escape')root.querySelectorAll('.bk-row-menu[open]').forEach(el=>{el.open=false;el.querySelector('summary')?.focus();});};
+ root.addEventListener('click',click);root.addEventListener('input',filterChange);root.addEventListener('change',filterChange);root.addEventListener('toggle',toggle,true);root.addEventListener('keydown',keydown);const ready=refresh();
+ return{ready,destroy(){disposed=true;clearTimeout(timer);root.removeEventListener('click',click);root.removeEventListener('input',filterChange);root.removeEventListener('change',filterChange);root.removeEventListener('toggle',toggle,true);root.removeEventListener('keydown',keydown);if(dialog){dialog.close();dialog.remove();dialog=null;}}};
 }
