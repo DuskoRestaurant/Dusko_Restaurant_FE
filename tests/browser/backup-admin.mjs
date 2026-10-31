@@ -13,7 +13,7 @@ try{
  const data={checkedAt:'2026-10-31T09:00:00Z',availability:'AVAILABLE',invalidCount:0,truncated:false,totalBackups:3,
   capability:{...cap},activeJob:null,jobs:[],schedule:{frequency:'DAILY',hour:2,minute:0,weekday:1,nextRunAt:'2026-10-31T19:00:00Z'},
   storage:{totalBytes:50*1024**3,usedBytes:15*1024**3,freeBytes:35*1024**3,backupBytes:2.3*1024**3,usagePercent:30},
-  backups:ids.map((id,i)=>({id,createdAt:`2026-10-${31-i}T07:00:00Z`,bytes:1200000000-i*120000000,trigger:i?'AUTO':'MANUAL',requestedBy:1,requestedByName:'Nguyễn Quản Trị',imageProvider:'s3',canRestore:true}))};
+  backups:ids.map((id,i)=>({id,createdAt:`2026-10-${31-i}T07:00:00Z`,bytes:1200000000-i*120000000,trigger:i?'AUTO':'MANUAL',requestedBy:1,requestedByName:i===0?'Vận hành hệ thống — kiểm chứng triển khai':'Nguyễn Quản Trị',imageProvider:'s3',canRestore:true}))};
  let bootstrap=0,creates=0,deletes=0,downloads=0,restores=0,schedules=0,expired=false;
  const jobId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',monitorToken='a'.repeat(64);
  let monitor={id:jobId,operation:'RESTORE',state:'RUNNING',phase:'RESTORE_SQL',progress:28,maintenance:true};
