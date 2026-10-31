@@ -53,19 +53,40 @@ try{
  await page.locator('[data-backup-filter=from]').fill('2026-11-01');await page.locator('[data-backup-filter=from]').dispatchEvent('change');await page.getByRole('heading',{name:'Không có bản sao phù hợp'}).waitFor();
  await page.locator('[data-backup=clear-filters]').click();
  await mkdir('docs/ui',{recursive:true});
- for(const width of [1440,390]){
+ // Wider viewports also cover the increased CSS viewport available at browser zoom-out.
+ for(const width of [390,768,1024,1280,1440,1920,2560,3840]){
   await page.setViewportSize({width,height:1050});await page.evaluate(()=>window.scrollTo(0,0));
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  const layout=await page.evaluate(()=>{
+   const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,right:r.right};};
+   return {frame:rect('.backup-console'),main:rect('.bk-main'),overview:rect('.bk-overview'),secondary:rect('.bk-bottom'),content:rect('.content'),columns:getComputedStyle(document.querySelector('.bk-workspace')).gridTemplateColumns.split(' ').length,input:rect('[data-backup-filter=query]')};
+  });
+  assert.ok(layout.frame.width<=1441,'content frame must stay bounded');
+  assert.ok(Math.abs((layout.frame.x+layout.frame.width/2)-(layout.content.x+layout.content.width/2))<=2,'content frame must be centered');
+  if(layout.frame.width>=1080){
+   assert.equal(layout.columns,2);assert.ok(layout.overview.x>layout.main.x);assert.ok(layout.overview.width<=321);assert.ok(layout.secondary.x>layout.main.x);
+   assert.ok(layout.input.width<=261,'search must not stretch across the workspace');
+  }else{assert.equal(layout.columns,1);assert.ok(layout.overview.y<layout.main.y);}
   // Check the actual action targets, not only document width (overflow:hidden can mask clipping).
-  if(width===390){
+  {
    for(const kind of ['restore','download','delete']){
     const rect=await page.locator(`[data-backup=${kind}]`).first().boundingBox();
     assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} action clipped`);assert.ok(rect.height>=44);
+    const scroll=await page.locator(`[data-backup=${kind}]`).first().evaluate(el=>{const parent=el.closest('.table-scroll'),r=el.getBoundingClientRect(),p=parent.getBoundingClientRect();return r.right<=p.right+1;});
+    assert.ok(scroll,`${kind} action must be visible without horizontal scrolling`);
    }
   }
   assert.equal(await page.locator('[data-backup=create]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(24, 112, 67)');
-  await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});
+  if([390,1440,2560].includes(width))await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});
  }
+ // CSS zoom exercises component scaling in addition to the viewport breakpoint matrix.
+ await page.setViewportSize({width:1920,height:1080});
+ for(const zoom of [.67,.8,1.25]){
+  await page.evaluate(value=>{document.body.style.zoom=String(value);},zoom);
+  const metrics=await page.evaluate(()=>({frame:parseFloat(getComputedStyle(document.querySelector('.backup-console')).width),button:parseFloat(getComputedStyle(document.querySelector('[data-backup=create]')).minHeight),input:parseFloat(getComputedStyle(document.querySelector('[data-backup-filter=query]')).height),columns:getComputedStyle(document.querySelector('.bk-workspace')).gridTemplateColumns.split(' ').length}));
+  assert.ok(metrics.frame<=1440);assert.ok(metrics.button>=44);assert.ok(Math.abs(metrics.input-44)<1);assert.equal(metrics.columns,2);
+ }
+ await page.evaluate(()=>{document.body.style.zoom='';});
  await page.setViewportSize({width:1440,height:1050});
  data.backups=originals;data.totalBackups=originals.length;await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('[data-backup=restore]').length===3);
  // Dangerous action stays disabled until exact confirmation plus MFA and credential acknowledgement.
