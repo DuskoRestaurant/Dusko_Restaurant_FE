@@ -1,9 +1,13 @@
-# Dashboard sao lưu dữ liệu
+# Dashboard backup ADMIN
 
-Ngày 31/10/2026: ADMIN mở **Hệ thống → Sao lưu dữ liệu**, nút trên Tổng quan hoặc `?page=backups`. MANAGER không có quyền mục này. Trang đọc `GET /api/admin/backups` của BE; backend cần cập nhật cùng phiên bản hỗ trợ endpoint, bootstrap và workspace `backups`.
+ADMIN mở Hệ thống → Sao lưu dữ liệu, nút trên Tổng quan hoặc ?page=backups. MANAGER không có quyền. Deploy BE/FE cùng phiên bản.
 
-Hiển thị tối đa 20 bản ghi manifest, thời điểm/dung lượng/số tệp, nguồn ảnh, nhắc bản ghi quá 24 giờ, trường hợp chưa kết nối thư mục/lỗi đọc/rỗng/bản ghi lỗi. Dữ liệu là metadata, chưa kiểm checksum hoặc xác minh restore. Bản SQL EC2 riêng và backup ngoài thư mục giám sát chưa được liệt kê. Không có nút tạo/khôi phục giả lập.
+GET /api/admin/backups trả inventory, capability, activeJob và 10 job gần nhất. Tạo backup ngay mở hộp thoại phạm vi + mã Authenticator mới, POST /api/admin/backups với {code}. Backend yêu cầu primary ADMIN và one-use TOTP. Thiếu tools/config/storage hoặc có job/khóa thì nút bị khóa kèm lý do.
 
-Kế hoạch chi tiết và cấu hình `BACKUP_ROOT`: repo BE, `docs/BACKUP_ADMIN_PLAN.md`. Các bước tiếp theo: worker nền và tạo backup ADMIN; lịch tự động/mã hóa/offsite/retention; ảnh cloud và diễn tập khôi phục. Production phải mount kho backup read-only cho BE trước khi inventory đọc được dữ liệu máy chủ.
+HTTP 202 là tiếp nhận. Poll mỗi 4 giây, hiển thị công đoạn/thành công/lỗi/gián đoạn; hủy khi rời trang. Lỗi MFA cho sửa mã/thử lại. Không báo hoàn tất trước khi dump + SHA-256 hoàn thành. Giữ vị trí cuộn bảng và focus sau poll.
 
-Kiểm tra: BE build và 81 test; FE ba app build và 100 test. Browser với API giả lập kiểm tra ADMIN deep link/navigation, làm mới, bản ghi quá hạn, ảnh S3 chưa được sao lưu, thư mục chưa cấu hình và kích thước 1440/390px. Ảnh `docs/ui/backup-admin-*.png` dùng dữ liệu giả lập, không phải bằng chứng backup production.
+Chưa backup ảnh cloud/secrets, chưa có snapshot chung SQL/Mongo/ảnh. Inventory không hash lại file khi đọc. Hoàn tất chưa chứng minh restore. Chưa có restore production, lịch tự động, offsite hoặc retention.
+
+Bật production theo repo BE docs/BACKUP_ADMIN_RUNBOOK.md: BACKUP_ENABLED=true, image mới có tools và volume private. Mặc định chưa bật tạo mới. Chưa chạy backup production thật trong lượt này.
+
+Kiểm tra: BE 89 unit test và build; FE 101 test và build management. Browser fixture kiểm MFA sai/thử lại, tiếp nhận so với hoàn tất, chặn tạo trùng, polling, cleanup khi rời trang, inventory rỗng/cloud/quá hạn, 1440px/390px. Ảnh docs/ui/backup-admin-*.png là fixture, không phải bằng chứng backup production.

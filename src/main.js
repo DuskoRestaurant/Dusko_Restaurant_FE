@@ -14,7 +14,7 @@ import './accounts.css';
 import { mountComboApproval } from './combo-approval.js';
 import { createCustomerAdmin } from './customer-admin.js';
 import { canAccessManagement as canAccessManagementFn } from './management-access.js';
-import { backupStatusHtml } from './backup-status.js';
+import { mountBackupAdmin } from './backup-admin.js';
 import './backup-status.css';
 import { watchChanges } from './live-updates.js';
 import { sharedToast } from './toast.js';
@@ -208,7 +208,7 @@ async function loadPage() {
     if(requestedPage==='kitchen') { const batches=await api(`/api/kds/batches?branchId=${requestedBranch}`); if(!stillCurrent())return; state.data.batches=batches; kitchen(); }
 
     if(requestedPage==='forecast') { const products=await api('/api/catalog/products'); if(!stillCurrent())return; state.data.forecastProducts=products; state.data.forecast=undefined; state.forecastResultDate=null; state.aiAnalysis={}; forecast(); }
-    if(requestedPage==='backups') { const data=await api('/api/admin/backups',{cache:'no-store'}); if(!stillCurrent())return; render(backupStatusHtml(data)); }
+    if(requestedPage==='backups') { serviceWorkspace=mountBackupAdmin({root:document.querySelector('#page'),request:api,canCreate:state.user.role==='ADMIN',onAuthError:signOut}); await serviceWorkspace.ready; }
     if(requestedPage==='users'){render('<div id=accounts-root></div>');await mountAccounts(document.querySelector('#accounts-root'),api,state.branches,{userId:state.user.id,signedOut:()=>{signOut();toast('Tài khoản đã thay đổi. Vui lòng đăng nhập lại.');}});}
     if(['customers','tiers','promotions'].includes(requestedPage)){const adminPages=createCustomerAdmin({api:async (p,o)=>api(p,o),branchId:requestedBranch,e,title,table,row,btn,empty,access,formModal,confirmDialog: (await import('./confirm-dialog.js')).confirmDialog,toast,reload:loadPage});render(await adminPages[requestedPage]());}
     if(requestedPage==='combos'){render('<div id="combo-approval"></div>');await mountComboApproval(document.querySelector('#combo-approval'),api,requestedBranch);}
