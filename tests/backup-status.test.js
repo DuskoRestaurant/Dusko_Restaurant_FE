@@ -13,7 +13,7 @@ test('missing inventory never invents protection or capacity and keeps create di
 test('archive summary separates server usage from backup footprint and escapes metadata',()=>{
  const data={...base,capability:{canCreate:true,canRestore:true,canManageArchives:true},totalBackups:2,storage:{totalBytes:50*1024**3,usedBytes:15*1024**3,freeBytes:35*1024**3,backupBytes:1024**3,usagePercent:30},backups:[{id:'archive',createdAt:'2026-10-30T20:00:00Z',bytes:1048576,trigger:'AUTO',requestedByName:'<script>',imageProvider:'s3',canRestore:true}]};
  const html=backupStatusHtml(data);
- for(const text of ['Dung lượng máy chủ','Kho backup: 1 GB','Còn 35 GB','value="30"','Tự động','&lt;script&gt;','data-backup="restore"','data-backup="download"','data-backup="delete"'])assert.ok(html.includes(text),text);
+ for(const text of ['Dung lượng máy chủ','Kho backup: 1 GB','Còn 35 GB','30%','Tự động','&lt;script&gt;','data-backup="restore"','data-backup="download"','data-backup="delete"'])assert.ok(html.includes(text),text);
  assert.equal((html.match(/data-backup="create"/g)||[]).length,1);
  assert.ok(!html.includes('bk-workspace'));assert.ok(!html.includes('class="bk-activity"'));
  const settings=backupStatusHtml(data,{tab:'settings'});
@@ -34,11 +34,15 @@ test('archive filters combine text/type and inclusive Vietnam dates before pagin
  assert.equal(backupArchiveView(records,{from:'2026-11-01',to:'2026-11-01'}).items[0].id,'next-day');
  assert.equal(backupArchiveView(records,{query:'missing',page:999}).page,1);assert.equal(backupArchiveView(records,{page:999}).page,3);
 });
-test('storage alerts only trigger at measured thresholds and never promise next-run capacity',()=>{
- for(const [usagePercent,tone] of [[74,'normal'],[75,'warning'],[79,'warning'],[89,'warning'],[90,'danger'],[100,'danger']]){
-  const html=backupStatusHtml({...base,storage:{usagePercent}});assert.ok(html.includes(`bk-storage--${tone}`));assert.ok(html.includes(`value="${usagePercent}"`));assert.equal(html.includes('Kiểm tra dung lượng trống'),usagePercent>=75);
+test('server usage alone never creates a configured capacity alert; the actual 512 MiB floor does',()=>{
+ for(const usagePercent of [0,74,75,79,89,90,100]){
+  const html=backupStatusHtml({...base,storage:{usagePercent,freeBytes:1024**3}});
+  assert.ok(html.includes('bk-storage--normal'));assert.ok(html.includes(`${usagePercent}%`));assert.ok(!html.includes('dưới ngưỡng tối thiểu'));
  }
- assert.ok(!backupStatusHtml(base).includes('Kiểm tra dung lượng trống'));
+ for(const [freeBytes,low] of [[512*1024**2-1,true],[512*1024**2,false],[512*1024**2+1,false]]){
+  const html=backupStatusHtml({...base,storage:{usagePercent:79,freeBytes}});assert.equal(html.includes('dưới ngưỡng tối thiểu 512 MiB'),low);
+ }
+ assert.ok(!backupStatusHtml({...base,storage:{usagePercent:null}}).includes('0%'));
 });
 test('locks, filtered emptiness, truncation and protection limits remain truthful',()=>{
  const data={...base,truncated:true,capability:{canManageArchives:true,canRestore:true},totalBackups:30,backups:[{id:'a',createdAt:base.checkedAt,canRestore:true}],activeJob:{state:'RUNNING',progress:12}};

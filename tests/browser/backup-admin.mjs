@@ -43,7 +43,7 @@ try{
  const switchTab=async name=>{await page.locator(`.bk-tabs [data-backup=tab-${name}]`).click();};
  const menuAction=async(kind,index=0)=>{const menu=page.locator('.bk-row-menu').nth(index);if(!(await menu.getAttribute('open')))await menu.locator('summary').click();await menu.locator(`[data-backup=${kind}]`).click();};
  assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('.bk-filter-panel').getAttribute('open'),null);
- assert.equal(await page.locator('.bk-activity').count(),0);assert.equal(await page.locator('.bk-storage progress').getAttribute('value'),'79');
+ assert.equal(await page.locator('.bk-activity').count(),0);assert.match(await page.locator('.bk-storage').innerText(),/79%/);assert.equal(await page.locator('.bk-storage--normal').count(),1);assert.equal(await page.locator('.bk-settings-link').count(),0);
  assert.match(await page.locator('.bk-storage').innerText(),/Kho backup/);
  await menuAction('details');await page.getByRole('region',{name:'Thông tin bản sao',exact:true}).waitFor();
  assert.match(await page.locator('.bk-archive-detail').innerText(),/tất cả chi nhánh/);assert.match(await page.locator('.bk-archive-detail').innerText(),/Không gồm ảnh cloud/);
@@ -69,10 +69,16 @@ try{
   const bounds=await page.locator('.backup-console').boundingBox();assert.ok(bounds.width<=1201);assert.ok(bounds.x>=0&&bounds.x+bounds.width<=width);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('[data-backup=create]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(24, 112, 67)');
+  if(width>=1440){
+   const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=140&&overview.height<=165,`overview height ${overview.height} at ${width}px`);
+   const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=56&&row.height<=64,`row height ${row.height}`);
+   assert.equal(await page.locator('.bk-heading h1').evaluate(el=>getComputedStyle(el).fontSize),'22px');
+   const filter=await page.locator('.bk-filter-panel>summary').boundingBox(),refresh=await page.locator('[data-backup=refresh]').boundingBox();assert.ok(Math.abs(filter.y-refresh.y)<=1,'filter and refresh share the toolbar baseline');
+  }
   if([390,1440,2560].includes(width))await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});
   const menu=page.locator('.bk-row-menu').first();await menu.locator('summary').click();
   for(const kind of ['restore','download','delete']){
-   const rect=await menu.locator(`[data-backup=${kind}]`).boundingBox();assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} menu clipped at ${width}px`);assert.ok(rect.height>=44);
+   const rect=await menu.locator(`[data-backup=${kind}]`).boundingBox();assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} menu clipped at ${width}px`);assert.ok(rect.height>=(width===390||width===768?44:36));
   }
   assert.equal(await menu.locator('.bk-menu-danger [data-backup=download]').count(),0);
   if(width===1440)await page.screenshot({path:'docs/ui/backup-actions-menu.png',fullPage:true});
@@ -82,9 +88,15 @@ try{
  for(const zoom of [.67,.8,1.25]){
   await page.evaluate(value=>{document.body.style.zoom=String(value);},zoom);
   assert.ok(await page.locator('.backup-console').evaluate(el=>parseFloat(getComputedStyle(el).width)<=1200));
-  assert.ok(await page.locator('[data-backup=create]').evaluate(el=>parseFloat(getComputedStyle(el).minHeight)>=44));
+  assert.ok(await page.locator('[data-backup=create]').evaluate(el=>parseFloat(getComputedStyle(el).minHeight)>=36));
  }
  await page.evaluate(()=>{document.body.style.zoom='';});await page.setViewportSize({width:1440,height:1050});
+ const oldFootprint=data.storage.backupBytes;data.backups=[{...originals[0],bytes:4094560}];data.totalBackups=1;data.storage.backupBytes=4100000;
+ await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('.bk-row-menu').length===1);
+ assert.ok((await page.locator('.bk-archives').boundingBox()).height<300,'a single archive must not stretch the table card');
+ assert.equal((await page.locator('.bk-row-menu>summary').innerText()).trim(),'⋯');
+ await page.screenshot({path:'docs/ui/backup-admin-single.png',fullPage:true});
+ await page.locator('.bk-row-menu>summary').click();assert.equal(await page.locator('.bk-row-menu [data-backup=delete]').isDisabled(),true);await page.keyboard.press('Escape');data.storage.backupBytes=oldFootprint;
  data.backups=originals;data.totalBackups=originals.length;await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('.bk-row-menu').length===3);
  await checkBranch();
  // Destructive operations retain exact confirmation, fresh MFA and source-credential acknowledgement.
