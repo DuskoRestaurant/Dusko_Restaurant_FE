@@ -14,6 +14,8 @@ import './accounts.css';
 import { mountComboApproval } from './combo-approval.js';
 import { createCustomerAdmin } from './customer-admin.js';
 import { canAccessManagement as canAccessManagementFn } from './management-access.js';
+import { backupStatusHtml } from './backup-status.js';
+import './backup-status.css';
 import { watchChanges } from './live-updates.js';
 import { sharedToast } from './toast.js';
 import { mountFpPipeline } from './fp-pipeline.js';
@@ -49,8 +51,8 @@ document.addEventListener('error', event => {
     image.replaceWith(placeholder);
   }
 }, true);
-const state = { page: ['pipeline','combos','users'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null };
-const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['receipts','Hóa đơn','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'] ];
+const state = { page: ['pipeline','combos','users','backups'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null };
+const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['receipts','Hóa đơn','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'], ['backups','Sao lưu dữ liệu','▦'] ];
 const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','receipts','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'] };
 // Split lock (user decision 2026-10-25): management is ADMIN/MANAGER only.
 // CASHIER/WAITER/CHEF work in staff-app; BE operational APIs stay open to
@@ -160,7 +162,7 @@ function busy(value) {
 async function perform(work, success) { try { busy(true); const result=await work(); if(success) toast(success); return result; } catch(err) { toast(err.message, true); return null; } finally { busy(false); } }
 
 function navigationMarkup(){
-  const groups=[['Tổng quan',['overview']],['Vận hành',['orders','receipts','kitchen','locations','catalog']],['Kho',['inventory']],['Khách hàng & ưu đãi',['customers','tiers','promotions','combos']],['Phân tích',['forecast','analytics','pipeline']],['Hệ thống',['users']]];
+  const groups=[['Tổng quan',['overview']],['Vận hành',['orders','receipts','kitchen','locations','catalog']],['Kho',['inventory']],['Khách hàng & ưu đãi',['customers','tiers','promotions','combos']],['Phân tích',['forecast','analytics','pipeline']],['Hệ thống',['users','backups']]];
   return groups.map(([label,keys])=>{
     const items=nav.filter(([key])=>keys.includes(key)&&allowedPages().includes(key));if(!items.length)return '';
     return `<details class="nav-group" ${keys.includes(state.page)||label==='Tổng quan'?'open':''}><summary>${label}</summary><div>${items.map(([key,title])=>`<button class="nav-item ${state.page===key?'active':''}" data-page="${key}" ${state.page===key?'aria-current="page"':''}><span class="nav-icon">${navIcon(key)}</span>${title}</button>`).join('')}</div></details>`;
@@ -206,6 +208,7 @@ async function loadPage() {
     if(requestedPage==='kitchen') { const batches=await api(`/api/kds/batches?branchId=${requestedBranch}`); if(!stillCurrent())return; state.data.batches=batches; kitchen(); }
 
     if(requestedPage==='forecast') { const products=await api('/api/catalog/products'); if(!stillCurrent())return; state.data.forecastProducts=products; state.data.forecast=undefined; state.forecastResultDate=null; state.aiAnalysis={}; forecast(); }
+    if(requestedPage==='backups') { const data=await api('/api/admin/backups',{cache:'no-store'}); if(!stillCurrent())return; render(backupStatusHtml(data)); }
     if(requestedPage==='users'){render('<div id=accounts-root></div>');await mountAccounts(document.querySelector('#accounts-root'),api,state.branches,{userId:state.user.id,signedOut:()=>{signOut();toast('Tài khoản đã thay đổi. Vui lòng đăng nhập lại.');}});}
     if(['customers','tiers','promotions'].includes(requestedPage)){const adminPages=createCustomerAdmin({api:async (p,o)=>api(p,o),branchId:requestedBranch,e,title,table,row,btn,empty,access,formModal,confirmDialog: (await import('./confirm-dialog.js')).confirmDialog,toast,reload:loadPage});render(await adminPages[requestedPage]());}
     if(requestedPage==='combos'){render('<div id="combo-approval"></div>');await mountComboApproval(document.querySelector('#combo-approval'),api,requestedBranch);}
@@ -228,7 +231,7 @@ async function workspaceRead(path,page,branch) {
 }
 function overview() {
   const {dashboard:d,orders,batches}=state.data;
-  render(title('TRUNG TÂM ĐIỀU HÀNH','Tổng quan vận hành','Theo dõi các chỉ số quan trọng trong ngày.',btn('Làm mới','reload','secondary'))+
+  render(title('TRUNG TÂM ĐIỀU HÀNH','Tổng quan vận hành','Theo dõi các chỉ số quan trọng trong ngày.',btn('Làm mới','reload','secondary')+(canAdminister(state.user)?btn('Sao lưu dữ liệu','goto-backups','secondary'):''))+
   `<div class="metric-grid"><div class="metric"><span>DOANH THU ĐƠN TẠO HÔM NAY</span><strong>${money(d.todayRevenue)}</strong><small>${number(d.totalOrdersCount)} đơn đã thanh toán · ngày tạo đơn UTC+7</small><i>↗</i></div><div class="metric"><span>ĐƠN CHỜ THANH TOÁN</span><strong>${orders.filter(o=>o.status==='PENDING').length}</strong><small>Cần xử lý tại quầy</small><i>▤</i></div><div class="metric"><span>MẺ BẾP ĐANG HOẠT ĐỘNG</span><strong>${batches.length}</strong><small>Chờ nấu và đang nấu</small><i>◈</i></div><div class="metric warn"><span>NGUYÊN LIỆU SẮP HẾT</span><strong>${d.lowStockCount}</strong><small>Cần kiểm tra tồn kho</small><i>!</i></div></div>`+
   `<div class="two-col"><section class="panel"><div class="panel-head"><div><h2>Đơn hàng gần đây</h2><p>Hoạt động tại chi nhánh ${state.branch}</p></div>${btn('Xem tất cả →','goto-orders','text')}</div>${orders.length?table(['Mã đơn','Thời gian','Giá trị','Trạng thái'],orders.slice(0,5).map(o=>row([`<span class="order-ref" title="${e(o.orderCode)}">${e(String(o.orderCode).length>18?String(o.orderCode).slice(0,12)+"…":o.orderCode)}</span>`,dateTime(o.createdAt),money(o.finalAmount),badge(o.status)]))):empty('Chưa có đơn hàng','Đơn mới sẽ xuất hiện tại đây.')}</section><section class="panel"><div class="panel-head"><div><h2>Cần chú ý</h2><p>Nguyên liệu cần bổ sung</p></div></div>${d.lowStockItems?.length?d.lowStockItems.slice(0,5).map(i=>`<div class="notice"><span class="notice-icon">!</span><div><strong>${e(i.name)}</strong><small>Còn ${number(i.availableStock??i.currentStock)} ${e(i.unit)} khả dụng · mức tối thiểu ${number(i.minStock)}</small></div></div>`).join(''):empty('Kho đang ổn định','Không có nguyên liệu dưới ngưỡng tối thiểu.')}</section></div>`);
 }
@@ -468,6 +471,7 @@ async function onClick(ev) {
   if(action==='qr-view') { const result=await perform(()=>api(`/api/catalog/branches/${state.branch}/tables/${id}/qr`)); if(result) showQrPreview(result); return; }
   if(action==='qr-create'||action==='qr-reissue') { if(!access(['ADMIN','MANAGER'])) return; if(action==='qr-reissue'&&!await confirmDialog({title:'Cấp mã QR mới?',message:'Mã QR đang in sẽ hết hiệu lực ngay sau khi cấp mã mới. Hãy in và thay mã tại bàn.',confirmLabel:'Cấp mã mới',danger:true})) return; const result=await perform(()=>api(`/api/catalog/branches/${state.branch}/tables/${id}/qr${action==='qr-reissue'?'/reissue':''}`,{method:'POST'}),action==='qr-reissue'?'Đã cấp lại QR.':'Đã tạo mã QR cố định.'); if(result){showQrPreview(result);loadPage();} return; }
   if(action==='qr-revoke') { if(!access(['ADMIN','MANAGER'])||!await confirmDialog({title:'Khóa mã QR?',message:'Khách sẽ không thể mở thực đơn từ mã QR hiện tại. Bạn có thể cấp mã mới sau đó.',confirmLabel:'Khóa QR',danger:true})) return; const result=await perform(()=>api(`/api/catalog/branches/${state.branch}/tables/${id}/qr`,{method:'DELETE'}),'Đã khóa QR.'); if(result) loadPage(); return; }
+  if(action==='goto-backups' && canAdminister(state.user)) { state.page='backups'; shell(); return loadPage(); }
   if(action==='goto-orders') { state.page='orders'; shell(); return loadPage(); }
   if(action==='select-product') { const select=document.querySelector('#product-select'); if(select) select.value=id; document.querySelectorAll('.product-choice').forEach(card=>card.classList.toggle('selected',card.dataset.id===id)); return; }
   if(action==='add-item') { const id=Number(document.querySelector('#product-select').value), qty=Number(document.querySelector('#qty').value), p=state.data.products.find(x=>x.id===id && x.isActive); if(!p||p.canOrder===false||!Number.isInteger(qty)||qty<1) return toast('Chọn món và số lượng hợp lệ.',true); const note=document.querySelector('#item-note').value.trim(); state.tableId=document.querySelector('#table-id').value; state.cart.push({productId:id,name:p.name,price:p.sellingPrice,quantity:qty,note}); return ordersPage(); }
