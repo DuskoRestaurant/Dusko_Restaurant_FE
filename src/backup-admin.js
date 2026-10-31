@@ -30,6 +30,7 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
    failed=false;
   }catch(error){
    if(disposed)return;
+   if(monitor&&[401,403,404].includes(error.status)){ended=true;root.innerHTML='<div class="backup-console"><section class="bk-card bk-restore-result"><h2>Phiên theo dõi đã hết hạn</h2><p>Đăng nhập lại để kiểm tra kết quả. Nếu hệ thống còn bảo trì, cần vận hành đối soát dữ liệu.</p><button class="btn primary" data-backup="relogin">Đăng nhập lại</button></section></div>';return;}
    if([401,403].includes(error.status)&&!monitor){onAuthError();return;}
    if(!root.querySelector('.backup-console'))root.innerHTML='<div class="error-panel" role="alert">Không tải được trạng thái. <button class="btn secondary" data-backup="refresh">Thử lại</button></div>';
    root.querySelectorAll('[data-backup]').forEach(el=>{if(!['refresh','relogin','return'].includes(el.dataset.backup))el.disabled=true;});

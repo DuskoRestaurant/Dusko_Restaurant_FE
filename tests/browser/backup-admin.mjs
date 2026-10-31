@@ -14,7 +14,7 @@ try{
   capability:{...cap},activeJob:null,jobs:[],schedule:{frequency:'DAILY',hour:2,minute:0,weekday:1,nextRunAt:'2026-10-31T19:00:00Z'},
   storage:{totalBytes:50*1024**3,usedBytes:15*1024**3,freeBytes:35*1024**3,backupBytes:2.3*1024**3,usagePercent:30},
   backups:ids.map((id,i)=>({id,createdAt:`2026-10-${31-i}T07:00:00Z`,bytes:1200000000-i*120000000,trigger:i?'AUTO':'MANUAL',requestedBy:1,requestedByName:'Nguyễn Quản Trị',imageProvider:'s3',canRestore:true}))};
- let bootstrap=0,creates=0,deletes=0,downloads=0,restores=0,schedules=0;
+ let bootstrap=0,creates=0,deletes=0,downloads=0,restores=0,schedules=0,expired=false;
  const jobId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',monitorToken='a'.repeat(64);
  let monitor={id:jobId,operation:'RESTORE',state:'RUNNING',phase:'RESTORE_SQL',progress:28,maintenance:true};
  const addJob=(operation,state='COMPLETED',phase='COMPLETED',progress=100)=>({id:jobId,operation,state,phase,progress,requestedBy:1,requestedByName:'Nguyễn Quản Trị',requestedAt:data.checkedAt,backupId:ids[0]});
@@ -23,7 +23,7 @@ try{
   const url=new URL(route.request().url()),p=url.pathname,method=route.request().method();
   const ok=result=>route.fulfill({json:{success:true,data:result}});
   if(p==='/api/bootstrap'){bootstrap++;return ok({user:{id:1,role:'ADMIN',fullName:'Nguyễn Quản Trị'},page:'backups',branchId:1,branches:[{id:1,name:'Dusko'}],resources:{},revision:1});}
-  if(p.startsWith('/api/admin/backups/restore-status/')){assert.equal(route.request().headers()['x-backup-monitor'],monitorToken);return ok(monitor);}
+  if(p.startsWith('/api/admin/backups/restore-status/')){if(expired)return route.fulfill({status:403,json:{success:false,error:'Monitor expired'}});assert.equal(route.request().headers()['x-backup-monitor'],monitorToken);return ok(monitor);}
   if(p==='/api/admin/backups'&&method==='GET')return ok(data);
   if(p.startsWith('/api/admin/backups')&&method!=='GET'){
    const body=route.request().postDataJSON();
@@ -61,5 +61,6 @@ try{
  const beforeReload=bootstrap;await page.reload();await page.getByRole('heading',{name:'Đang khôi phục dữ liệu',exact:true}).waitFor();assert.equal(bootstrap,beforeReload);
  monitor={...monitor,state:'COMPLETED',phase:'COMPLETED',progress:100,maintenance:false,message:'Đã khôi phục. Cần đăng nhập lại.'};await page.getByRole('heading',{name:'Đã khôi phục dữ liệu',exact:true}).waitFor({timeout:7000});
  await page.getByRole('button',{name:'Đăng nhập lại',exact:true}).click();assert.equal(await page.evaluate(()=>sessionStorage.getItem('dusko_backup_restore_monitor')),null);
+ expired=true;await page.evaluate(({id,token})=>sessionStorage.setItem('dusko_backup_restore_monitor',JSON.stringify({id,token})),{id:jobId,token:monitorToken});await page.reload();await page.getByRole('heading',{name:'Phiên theo dõi đã hết hạn',exact:true}).waitFor();await page.getByRole('button',{name:'Đăng nhập lại',exact:true}).click();assert.equal(await page.evaluate(()=>sessionStorage.getItem('dusko_backup_restore_monitor')),null);
  assert.deepEqual(errors,[]);console.log('PASS: measured storage, responsive archives, CONFIRM/MFA safeguards, ZIP download, delete, weekly schedule, backup progress, restore monitor through reload and session replacement');
 }finally{await browser.close();await server.close();}
