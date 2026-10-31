@@ -7,6 +7,19 @@ export function readBackupMonitor(){try{const item=JSON.parse(sessionStorage.get
 export function clearBackupMonitor(){sessionStorage.removeItem(monitorKey);}
 export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuthError=()=>{}}){
  let disposed=false,timer,loading=false,working=false,dialog,failed=false,data=null,monitor=readBackupMonitor();
+ const view={query:'',type:'',from:'',to:'',page:1,pageSize:5};
+ function renderInventory(){
+  const focused=root.contains(document.activeElement)?document.activeElement:null;
+  const filter=focused?.dataset?.backupFilter,action=focused?.dataset?.backup,archiveId=focused?.dataset?.archiveId;
+  const selection=filter&&focused.type==='search'?[focused.selectionStart,focused.selectionEnd]:null;
+  const scrolls=[...root.querySelectorAll('.table-scroll')].map(el=>el.scrollLeft);
+  root.innerHTML=backupStatusHtml(data,view);
+  if(failed)root.querySelectorAll('[data-backup]').forEach(el=>{if(['create','restore','delete','download','schedule'].includes(el.dataset.backup))el.disabled=true;});
+  view.page=Number(root.querySelector('.bk-pagination')?.dataset.page)||1;
+  root.querySelectorAll('.table-scroll').forEach((el,i)=>{el.scrollLeft=scrolls[i]||0;});
+  const target=filter?root.querySelector(`[data-backup-filter="${filter}"]`):[...root.querySelectorAll('[data-backup]')].find(el=>el.dataset.backup===action&&(!archiveId||el.dataset.archiveId===archiveId));
+  target?.focus({preventScroll:true});if(selection&&target)target.setSelectionRange(...selection);
+ }
  const toast=sharedToast();
  const schedule=()=>{clearTimeout(timer);if(!disposed)timer=setTimeout(()=>void refresh(),pollMs);};
  const renderMonitor=job=>{
@@ -21,11 +34,7 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
    else{
     const fresh=await request('/api/admin/backups',{cache:'no-store'});if(disposed)return;data=fresh;
     if(!canCreate)data.capability={...data.capability,canCreate:false,canRestore:false,canManageArchives:false,reason:'Cần đăng nhập bằng tài khoản ADMIN có Authenticator.'};
-    const focused=root.contains(document.activeElement)?document.activeElement?.dataset?.backup:null;
-    const archiveId=document.activeElement?.dataset?.archiveId;
-    const scrolls=[...root.querySelectorAll('.table-scroll')].map(el=>el.scrollLeft);
-    root.innerHTML=backupStatusHtml(data);root.querySelectorAll('.table-scroll').forEach((el,i)=>{el.scrollLeft=scrolls[i]||0;});
-    if(focused){const candidates=[...root.querySelectorAll('[data-backup]')];candidates.find(el=>el.dataset.backup===focused&&(!archiveId||el.dataset.archiveId===archiveId))?.focus({preventScroll:true});}
+    failed=false;renderInventory();
    }
    failed=false;
   }catch(error){
@@ -68,6 +77,11 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
     if(disposed)return;
     form.elements.code.value='';
     if(kind==='restore'){monitor={id:result.id,token:result.monitorToken};sessionStorage.setItem(monitorKey,JSON.stringify(monitor));}
+    if(kind==='create'){
+     // Show the accepted job immediately, even before the next inventory response.
+     data={...data,activeJob:result,capability:{...data.capability,canCreate:false,canRestore:false,canManageArchives:false,reason:'Tác vụ sao lưu đang chạy. Các thao tác khác sẽ mở lại khi hoàn tất.'}};
+     renderInventory();
+    }
     if(kind==='download'){const url=URL.createObjectURL(result),link=document.createElement('a');link.href=url;link.download=`${id}.zip`;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
     working=false;currentDialog.close();
     if(['create','restore'].includes(kind))toast.info('Đã tiếp nhận yêu cầu',kind==='restore'?'Tác vụ khôi phục đang chạy nền.':'Tác vụ sao lưu đang chạy nền.');
@@ -82,10 +96,18 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   const button=event.target.closest('[data-backup]');if(!button||button.disabled)return;
   const kind=button.dataset.backup;
   if(kind==='refresh')void refresh();
+  else if(kind==='clear-filters'){Object.assign(view,{query:'',type:'',from:'',to:'',page:1});renderInventory();}
+  else if(kind==='previous-page'||kind==='next-page'){view.page+=kind==='next-page'?1:-1;renderInventory();root.querySelector(`[data-backup="${kind}"]`)?.focus({preventScroll:true});}
   else if(kind==='relogin'){clearBackupMonitor();onAuthError();}
   else if(kind==='return'){clearBackupMonitor();monitor=null;void refresh();}
   else if(['create','restore','delete','download','schedule'].includes(kind))openOperation(kind,button.dataset.archiveId);
  };
- root.addEventListener('click',click);const ready=refresh();
- return{ready,destroy(){disposed=true;clearTimeout(timer);root.removeEventListener('click',click);if(dialog){dialog.close();dialog.remove();dialog=null;}}};
+ const filterChange=event=>{
+  const field=event.target.dataset.backupFilter;if(!field||!data)return;
+  // Search reacts as the user types; native date/select controls commit on change.
+  if((field==='query')!==(event.type==='input'))return;
+  view[field]=event.target.value;view.page=1;renderInventory();
+ };
+ root.addEventListener('click',click);root.addEventListener('input',filterChange);root.addEventListener('change',filterChange);const ready=refresh();
+ return{ready,destroy(){disposed=true;clearTimeout(timer);root.removeEventListener('click',click);root.removeEventListener('input',filterChange);root.removeEventListener('change',filterChange);if(dialog){dialog.close();dialog.remove();dialog=null;}}};
 }

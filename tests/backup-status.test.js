@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {backupStatusHtml} from '../src/backup-status.js';
+import {backupArchiveView} from '../src/backup-console.js';
 const base={availability:'AVAILABLE',checkedAt:'2026-10-31T00:00:00Z',backups:[],jobs:[]};
 test('missing inventory has no invented quota or safety claim and keeps actions disabled',()=>{
  for(const availability of ['NOT_FOUND','UNAVAILABLE','AVAILABLE']){
@@ -20,6 +21,36 @@ test('storage meter uses measured quota; archive actions, destination state and 
 test('active progress is a real bounded value and stale records do not show a green system claim',()=>{
  const html=backupStatusHtml({...base,backups:[{createdAt:'2026-10-29T00:00:00Z',bytes:1}],activeJob:{state:'RUNNING',operation:'RESTORE',phase:'RESTORE_SQL',progress:28},capability:{canCreate:false},jobs:[{operation:'DELETE',state:'FAILED',requestedAt:base.checkedAt,requestedByName:'<private>'}]});
  assert.ok(html.includes('28%'));assert.ok(html.includes('Khôi phục PostgreSQL'));
- assert.ok(html.includes('Cần bản sao mới'));assert.ok(html.includes('&lt;private&gt;'));
+ assert.ok(html.includes('Khôi phục đang chạy'));assert.ok(html.includes('&lt;private&gt;'));
  assert.ok(!html.includes('Hệ thống an toàn'));
+});
+
+test('archive filters combine text/type and inclusive Vietnam dates before pagination',()=>{
+ const records=Array.from({length:12},(_,i)=>({id:`id-${i}`,requestedByName:'Nguyễn Quản Trị',trigger:i%2?'AUTO':'MANUAL',createdAt:'2026-10-31T16:59:59Z'}));
+ records.push({id:'next-day',requestedByName:'Other',trigger:'AUTO',createdAt:'2026-10-31T17:00:00Z'});
+ let result=backupArchiveView(records,{query:'nguyễn',type:'AUTO',from:'2026-11-01',to:'2026-11-01'});
+ assert.equal(result.total,0);
+ result=backupArchiveView(records,{query:'quản',type:'AUTO',from:'2026-10-31',to:'2026-10-31',page:2,pageSize:5});
+ assert.equal(result.total,6);assert.equal(result.pages,2);assert.equal(result.items.length,1);assert.equal(result.items[0].id,'id-11');
+ assert.equal(backupArchiveView(records,{from:'2026-11-01',to:'2026-11-01'}).items[0].id,'next-day');
+ assert.equal(backupArchiveView(records,{query:'missing',page:999}).page,1);
+ assert.equal(backupArchiveView(records,{page:999}).page,3);
+});
+
+test('storage warns at 75 and 90 percent without inventing measured progress',()=>{
+ for(const [usagePercent,tone] of [[74,'normal'],[75,'warning'],[79,'warning'],[89,'warning'],[90,'danger'],[100,'danger']]){
+  const html=backupStatusHtml({...base,storage:{usagePercent}});
+  assert.ok(html.includes(`bk-storage--${tone}`));assert.ok(html.includes(`value="${usagePercent}"`));
+  assert.equal(html.includes('Kiểm tra dung lượng trống'),usagePercent>=75);
+ }
+ assert.ok(!backupStatusHtml(base).includes('Kiểm tra dung lượng trống'));
+});
+
+test('filter empty state, truncation warning and lock keep destructive actions safe',()=>{
+ const data={...base,truncated:true,capability:{canManageArchives:true,canRestore:true},totalBackups:30,backups:[{id:'a',createdAt:base.checkedAt,canRestore:true}],activeJob:{state:'RUNNING',progress:12}};
+ const html=backupStatusHtml(data);
+ assert.ok(html.includes('data-backup="delete" data-archive-id="a" disabled'));
+ assert.ok(html.includes('Bộ lọc chỉ áp dụng cho các bản đã tải'));
+ assert.ok(backupStatusHtml(data,{query:'not-found'}).includes('Không có bản sao phù hợp'));
+ assert.ok(backupStatusHtml({...base,schedule:{frequency:'OFF'},capability:{canManageArchives:true}}).includes('Bật lịch tự động'));
 });

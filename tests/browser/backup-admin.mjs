@@ -11,8 +11,8 @@ try{
  const ids=[1,2,3].map(n=>`2026-10-31T00-00-00-000Z-${String(n).repeat(8)}-1111-4111-8111-111111111111`);
  const cap={enabled:true,canCreate:true,canRestore:true,canManageArchives:true,reason:null};
  const data={checkedAt:'2026-10-31T09:00:00Z',availability:'AVAILABLE',invalidCount:0,truncated:false,totalBackups:3,
-  capability:{...cap},activeJob:null,jobs:[],schedule:{frequency:'DAILY',hour:2,minute:0,weekday:1,nextRunAt:'2026-10-31T19:00:00Z'},
-  storage:{totalBytes:50*1024**3,usedBytes:15*1024**3,freeBytes:35*1024**3,backupBytes:2.3*1024**3,usagePercent:30},
+  capability:{...cap},activeJob:null,jobs:[],schedule:{frequency:'OFF',hour:2,minute:0,weekday:1,nextRunAt:null},
+  storage:{totalBytes:50*1024**3,usedBytes:39.5*1024**3,freeBytes:10.5*1024**3,backupBytes:2.3*1024**3,usagePercent:79},
   backups:ids.map((id,i)=>({id,createdAt:`2026-10-${31-i}T07:00:00Z`,bytes:1200000000-i*120000000,trigger:i?'AUTO':'MANUAL',requestedBy:1,requestedByName:i===0?'Vận hành hệ thống — kiểm chứng triển khai':'Nguyễn Quản Trị',imageProvider:'s3',canRestore:true}))};
  let bootstrap=0,creates=0,deletes=0,downloads=0,restores=0,schedules=0,expired=false;
  const jobId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',monitorToken='a'.repeat(64);
@@ -38,11 +38,36 @@ try{
   return route.fulfill({status:503,json:{success:false,error:'Fixture: realtime unavailable'}});
  });
  await page.goto(server.resolvedUrls.local[0]+'?page=backups');await page.getByRole('heading',{name:'Sao lưu dữ liệu',exact:true}).waitFor();
- assert.match(await page.locator('.bk-storage').innerText(),/15 GB/);assert.equal(await page.locator('.bk-storage progress').getAttribute('value'),'30');
+ assert.match(await page.locator('.bk-storage').innerText(),/39,5 GB/);assert.equal(await page.locator('.bk-storage progress').getAttribute('value'),'79');
+ assert.equal(await page.locator('.bk-storage--warning').count(),1);
  assert.equal(await page.locator('[data-backup=restore]').count(),3);
+ await page.getByRole('button',{name:'Bật lịch tự động →',exact:true}).click();await page.locator('dialog').waitFor();await page.getByRole('button',{name:'Hủy',exact:true}).click();
+ // Exercise filtering and pagination through the real mounted UI, with fixture data only.
+ const originals=[...data.backups];data.backups.push(...Array.from({length:9},(_,i)=>({...originals[i%3],id:`extra-${i}`,requestedByName:`Tester ${i}`})));data.totalBackups=data.backups.length;
+ await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('[data-backup=restore]').length===5);
+ await page.getByRole('button',{name:'Trang sau',exact:true}).click();assert.match(await page.locator('.bk-pagination').innerText(),/Trang 2 \/ 3/);
+ await page.locator('[data-backup-filter=query]').fill('Tester 8');assert.equal(await page.locator('[data-backup=restore]').count(),1);
+ await page.waitForTimeout(4300);assert.equal(await page.locator('[data-backup-filter=query]').inputValue(),'Tester 8');assert.equal(await page.locator('[data-backup=restore]').count(),1);
+ await page.locator('[data-backup-filter=type]').selectOption('MANUAL');await page.getByRole('heading',{name:'Không có bản sao phù hợp'}).waitFor();
+ await page.locator('[data-backup=clear-filters]').click();assert.equal(await page.locator('[data-backup=restore]').count(),5);
+ await page.locator('[data-backup-filter=from]').fill('2026-11-01');await page.locator('[data-backup-filter=from]').dispatchEvent('change');await page.getByRole('heading',{name:'Không có bản sao phù hợp'}).waitFor();
+ await page.locator('[data-backup=clear-filters]').click();
  await mkdir('docs/ui',{recursive:true});
- for(const width of [1440,390]){await page.setViewportSize({width,height:1050});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});}
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:1050});await page.evaluate(()=>window.scrollTo(0,0));
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  // Check the actual action targets, not only document width (overflow:hidden can mask clipping).
+  if(width===390){
+   for(const kind of ['restore','download','delete']){
+    const rect=await page.locator(`[data-backup=${kind}]`).first().boundingBox();
+    assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} action clipped`);assert.ok(rect.height>=44);
+   }
+  }
+  assert.equal(await page.locator('[data-backup=create]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(24, 112, 67)');
+  await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});
+ }
  await page.setViewportSize({width:1440,height:1050});
+ data.backups=originals;data.totalBackups=originals.length;await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('[data-backup=restore]').length===3);
  // Dangerous action stays disabled until exact confirmation plus MFA and credential acknowledgement.
  await page.locator('[data-backup=restore]').first().click();await page.locator('input[name=code]').fill('123456');await page.locator('input[name=credentialsConfirmed]').check();await page.locator('input[name=confirmation]').fill('confirm');
  assert.equal(await page.locator('dialog [type=submit]').isDisabled(),true);
@@ -51,7 +76,7 @@ try{
  await page.locator('[data-backup=delete]').nth(1).click();await page.locator('input[name=confirmation]').fill('CONFIRM');await page.locator('input[name=code]').fill('123456');await page.getByRole('button',{name:'Xóa bản sao lưu',exact:true}).click();
  await page.waitForFunction(()=>document.querySelectorAll('[data-backup=delete]').length===2);assert.equal(deletes,1);
  await page.locator('[data-backup=download]').first().click();await page.locator('input[name=code]').fill('123456');const download=page.waitForEvent('download');await page.getByRole('button',{name:'Tải file ZIP',exact:true}).click();assert.match((await download).suggestedFilename(),/\.zip$/);assert.equal(downloads,1);await page.locator('dialog').waitFor({state:'detached'});
- await page.locator('[data-backup=schedule]').click();await page.locator('select[name=frequency]').selectOption('WEEKLY');await page.locator('input[name=code]').fill('123456');await page.getByRole('button',{name:'Lưu lịch trình',exact:true}).click();await page.getByText('Hằng tuần',{exact:true}).waitFor();assert.equal(schedules,1);
+ await page.locator('.bk-quick [data-backup=schedule]').click();await page.locator('select[name=frequency]').selectOption('WEEKLY');await page.locator('input[name=code]').fill('123456');await page.getByRole('button',{name:'Lưu lịch trình',exact:true}).click();await page.getByText('Hằng tuần',{exact:true}).waitFor();assert.equal(schedules,1);
  await page.locator('[data-backup=create]').click();await page.locator('input[name=code]').fill('000000');await page.locator('dialog [type=submit]').click();await page.locator('.backup-create-error:not([hidden])').waitFor();assert.equal(await page.locator('input[name=code]').inputValue(),'');
  await page.locator('input[name=code]').fill('123456');await page.locator('dialog [type=submit]').click();await page.locator('.bk-running').waitFor();assert.match(await page.locator('.bk-running').innerText(),/40%/);assert.equal(await page.locator('[data-backup=create]').isDisabled(),true);assert.equal(creates,1);
  data.jobs[0]={...data.jobs[0],state:'COMPLETED',phase:'COMPLETED',progress:100};data.activeJob=null;data.capability={...cap};

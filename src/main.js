@@ -15,7 +15,6 @@ import { mountComboApproval } from './combo-approval.js';
 import { createCustomerAdmin } from './customer-admin.js';
 import { canAccessManagement as canAccessManagementFn } from './management-access.js';
 import { mountBackupAdmin, readBackupMonitor, clearBackupMonitor } from './backup-admin.js';
-import './backup-status.css';
 import { watchChanges } from './live-updates.js';
 import { sharedToast } from './toast.js';
 import { mountFpPipeline } from './fp-pipeline.js';
@@ -595,3 +594,4 @@ start();
 import './pos-theme.css';
 
 import './ui-foundation.css';
+import './backup-status.css';
