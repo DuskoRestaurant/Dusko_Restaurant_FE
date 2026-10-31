@@ -47,7 +47,10 @@ try{
  await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('[data-backup=restore]').length===5);
  await page.getByRole('button',{name:'Trang sau',exact:true}).click();assert.match(await page.locator('.bk-pagination').innerText(),/Trang 2 \/ 3/);
  await page.locator('[data-backup-filter=query]').fill('Tester 8');assert.equal(await page.locator('[data-backup=restore]').count(),1);
+ await page.locator('.bk-destination-panel summary').click();
  await page.waitForTimeout(4300);assert.equal(await page.locator('[data-backup-filter=query]').inputValue(),'Tester 8');assert.equal(await page.locator('[data-backup=restore]').count(),1);
+ assert.equal(await page.locator('.bk-destination-panel').getAttribute('open'),'');
+ await page.locator('.bk-destination-panel summary').click();
  await page.locator('[data-backup-filter=type]').selectOption('MANUAL');await page.getByRole('heading',{name:'Không có bản sao phù hợp'}).waitFor();
  await page.locator('[data-backup=clear-filters]').click();assert.equal(await page.locator('[data-backup=restore]').count(),5);
  await page.locator('[data-backup-filter=from]').fill('2026-11-01');await page.locator('[data-backup-filter=from]').dispatchEvent('change');await page.getByRole('heading',{name:'Không có bản sao phù hợp'}).waitFor();
@@ -64,14 +67,17 @@ try{
   assert.ok(layout.frame.width<=1441,'content frame must stay bounded');
   assert.ok(Math.abs((layout.frame.x+layout.frame.width/2)-(layout.content.x+layout.content.width/2))<=2,'content frame must be centered');
   if(layout.frame.width>=1080){
-   assert.equal(layout.columns,2);assert.ok(layout.overview.x>layout.main.x);assert.ok(layout.overview.width<=321);assert.ok(layout.secondary.x>layout.main.x);
-   assert.ok(layout.input.width<=261,'search must not stretch across the workspace');
+   assert.equal(layout.columns,2);assert.ok(layout.overview.x>layout.main.x);assert.ok(layout.secondary.x>layout.main.x);
+   const ratio=layout.main.width/(layout.main.width+layout.overview.width);assert.ok(ratio>=.74&&ratio<=.76,'main column must own 75% of usable width');
+   assert.ok(layout.input.width<=321,'search must not stretch across the workspace');
+   const toolbar=await page.locator('.bk-toolbar').evaluate(el=>{const input=el.querySelector('input').getBoundingClientRect(),button=el.querySelector('[data-backup=create]').getBoundingClientRect();return {inputBottom:input.bottom,buttonBottom:button.bottom};});
+   assert.ok(Math.abs(toolbar.inputBottom-toolbar.buttonBottom)<=1,'search and primary action must share the toolbar baseline');
   }else{assert.equal(layout.columns,1);assert.ok(layout.overview.y<layout.main.y);}
   // Check the actual action targets, not only document width (overflow:hidden can mask clipping).
   {
    for(const kind of ['restore','download','delete']){
     const rect=await page.locator(`[data-backup=${kind}]`).first().boundingBox();
-    assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} action clipped`);assert.ok(rect.height>=44);
+    assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} action clipped at ${width}px`);assert.ok(rect.height>=44);
     const scroll=await page.locator(`[data-backup=${kind}]`).first().evaluate(el=>{const parent=el.closest('.table-scroll'),r=el.getBoundingClientRect(),p=parent.getBoundingClientRect();return r.right<=p.right+1;});
     assert.ok(scroll,`${kind} action must be visible without horizontal scrolling`);
    }
@@ -97,7 +103,7 @@ try{
  await page.locator('[data-backup=delete]').nth(1).click();await page.locator('input[name=confirmation]').fill('CONFIRM');await page.locator('input[name=code]').fill('123456');await page.getByRole('button',{name:'Xóa bản sao lưu',exact:true}).click();
  await page.waitForFunction(()=>document.querySelectorAll('[data-backup=delete]').length===2);assert.equal(deletes,1);
  await page.locator('[data-backup=download]').first().click();await page.locator('input[name=code]').fill('123456');const download=page.waitForEvent('download');await page.getByRole('button',{name:'Tải file ZIP',exact:true}).click();assert.match((await download).suggestedFilename(),/\.zip$/);assert.equal(downloads,1);await page.locator('dialog').waitFor({state:'detached'});
- await page.locator('.bk-quick [data-backup=schedule]').click();await page.locator('select[name=frequency]').selectOption('WEEKLY');await page.locator('input[name=code]').fill('123456');await page.getByRole('button',{name:'Lưu lịch trình',exact:true}).click();await page.getByText('Hằng tuần',{exact:true}).waitFor();assert.equal(schedules,1);
+ await page.locator('.bk-toolbar [data-backup=schedule]').click();await page.locator('select[name=frequency]').selectOption('WEEKLY');await page.locator('input[name=code]').fill('123456');await page.getByRole('button',{name:'Lưu lịch trình',exact:true}).click();await page.getByText('Hằng tuần',{exact:true}).waitFor();assert.equal(schedules,1);
  await page.locator('[data-backup=create]').click();await page.locator('input[name=code]').fill('000000');await page.locator('dialog [type=submit]').click();await page.locator('.backup-create-error:not([hidden])').waitFor();assert.equal(await page.locator('input[name=code]').inputValue(),'');
  await page.locator('input[name=code]').fill('123456');await page.locator('dialog [type=submit]').click();await page.locator('.bk-running').waitFor();assert.match(await page.locator('.bk-running').innerText(),/40%/);assert.equal(await page.locator('[data-backup=create]').isDisabled(),true);assert.equal(creates,1);
  data.jobs[0]={...data.jobs[0],state:'COMPLETED',phase:'COMPLETED',progress:100};data.activeJob=null;data.capability={...cap};

@@ -13,11 +13,14 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   const filter=focused?.dataset?.backupFilter,action=focused?.dataset?.backup,archiveId=focused?.dataset?.archiveId;
   const selection=filter&&focused.type==='search'?[focused.selectionStart,focused.selectionEnd]:null;
   const scrolls=[...root.querySelectorAll('.table-scroll')].map(el=>el.scrollLeft);
+  const expanded=[...root.querySelectorAll('details[data-backup-detail][open]')].map(el=>el.dataset.backupDetail);
+  const focusedDetail=focused?.closest('details[data-backup-detail]')?.dataset.backupDetail;
   root.innerHTML=backupStatusHtml(data,view);
+  root.querySelectorAll('details[data-backup-detail]').forEach(el=>{el.open=expanded.includes(el.dataset.backupDetail);});
   if(failed)root.querySelectorAll('[data-backup]').forEach(el=>{if(['create','restore','delete','download','schedule'].includes(el.dataset.backup))el.disabled=true;});
   view.page=Number(root.querySelector('.bk-pagination')?.dataset.page)||1;
   root.querySelectorAll('.table-scroll').forEach((el,i)=>{el.scrollLeft=scrolls[i]||0;});
-  const target=filter?root.querySelector(`[data-backup-filter="${filter}"]`):[...root.querySelectorAll('[data-backup]')].find(el=>el.dataset.backup===action&&(!archiveId||el.dataset.archiveId===archiveId));
+  const target=filter?root.querySelector(`[data-backup-filter="${filter}"]`):focusedDetail?root.querySelector(`details[data-backup-detail="${focusedDetail}"] summary`):[...root.querySelectorAll('[data-backup]')].find(el=>el.dataset.backup===action&&(!archiveId||el.dataset.archiveId===archiveId));
   target?.focus({preventScroll:true});if(selection&&target)target.setSelectionRange(...selection);
  }
  const toast=sharedToast();
