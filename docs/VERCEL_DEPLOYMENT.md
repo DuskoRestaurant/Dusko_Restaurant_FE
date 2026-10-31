@@ -2,6 +2,28 @@
 
 Repository: https://github.com/DuskoRestaurant/Dusko_Restaurant_FE
 
+## Live deployment (2026-10-15)
+
+All three projects are deployed in the dusko-restaurant-app Hobby team,
+linked to the public repository and production branch main. No Pro trial was used.
+
+| Project name | Production URL | Default Vercel URL |
+| --- | --- | --- |
+| dusko-management | https://admin.dusko.io.vn | https://dusko-management.vercel.app |
+| dusko-staff | https://staff.dusko.io.vn | https://dusko-staff.vercel.app |
+| dusko-customer | https://order.dusko.io.vn | https://dusko-customer.vercel.app |
+
+Tenten CNAME and ownership TXT records were added without changing the API,
+apex, www or existing Google verification records. Vercel reports Valid
+Configuration for all three custom domains; their HTTPS pages render.
+EC2 allows these three origins and the three exact default Vercel origins.
+HTTPS API /ready returns READY and CORS preflight checks return 204.
+HTML, JS/CSS, staff sw.js and customer /t/:token SPA fallback return 200.
+Authenticated login, ordering and realtime flows still need valid test accounts
+and a real table QR; loading the SPA fallback alone does not verify a QR session.
+
+## Project configuration
+
 Create three Vercel projects linked to this repository. Keep Root Directory at
 the repository root for all three: each app imports shared source and fonts.
 The root vercel.json provides Vite, npm ci and SPA rewrites (including /t/:token).
