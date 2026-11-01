@@ -42,10 +42,10 @@ try{
  await page.evaluate(()=>{window.__backupBranchControl=document.querySelector('#branch');});
  const checkBranch=async()=>assert.equal(await page.evaluate(()=>window.__backupBranchControl===document.querySelector('#branch')),true,'backup must not replace shared branch control');
  const switchTab=async name=>{await page.locator(`.bk-tabs [data-backup=tab-${name}]`).click();};
- const menuAction=async(kind,index=0)=>{if(kind==='restore'){await page.locator('.bk-row-actions>[data-backup=restore]').nth(index).click();return;}const menu=page.locator('.bk-row-menu').nth(index);if(!(await menu.getAttribute('open')))await menu.locator('summary').click();await menu.locator(`[data-backup=${kind}]`).click();};
- assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('[data-backup-filter=from]').isVisible(),true);assert.equal(await page.locator('[data-backup-filter=to]').isVisible(),true);
+ const menuAction=async(kind,index=0)=>{const menu=page.locator('.bk-row-menu').nth(index);if(!(await menu.getAttribute('open')))await menu.locator('summary').click();await menu.locator(`[data-backup=${kind}]`).click();};
+ assert.equal(await page.locator('.bk-heading .eyebrow').count(),0);assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('[data-backup-filter=from]').isVisible(),true);assert.equal(await page.locator('[data-backup-filter=to]').isVisible(),true);
  assert.equal(await page.locator('.bk-activity').count(),0);assert.match(await page.locator('.bk-storage').innerText(),/79%/);assert.equal(await page.locator('.bk-storage--normal').count(),1);assert.equal(await page.locator('.bk-settings-link').count(),0);
- assert.match(await page.locator('.bk-storage').innerText(),/Còn/);assert.equal(await page.locator('.bk-overview .bk-protection-notes').count(),0);assert.equal(await page.locator('.bk-archives [data-backup=restore]').count(),3);assert.equal(await page.locator('.bk-pagination nav').count(),0);
+ assert.match(await page.locator('.bk-storage').innerText(),/Còn/);assert.equal(await page.locator('.bk-overview .bk-protection-notes').count(),0);assert.equal(await page.locator('.bk-archives [data-backup=restore]').count(),3);assert.equal(await page.locator('.bk-pagination nav').count(),1);
  await page.locator('.bk-record-link').first().click();await page.getByRole('region',{name:'Thông tin bản sao',exact:true}).waitFor();
  assert.match(await page.locator('.bk-archive-detail').innerText(),/tất cả chi nhánh/);assert.match(await page.locator('.bk-archive-detail').innerText(),/Không gồm ảnh cloud/);
  await page.locator('[data-backup=close-details]').click();
@@ -123,7 +123,7 @@ try{
   for(const tab of ['activity','settings','archives']){await switchTab(tab);assert.deepEqual(await layoutPosition(),position,`${tab} layout stable at ${width}`);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));if(width===1440&&tab==='settings')await page.screenshot({path:'docs/ui/backup-settings.png',fullPage:true});if(width===390&&tab!=='archives')await page.screenshot({path:`docs/ui/backup-${tab}-390.png`,fullPage:true});}
   if([390,1440,2560].includes(width))await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});
   const menu=page.locator('.bk-row-menu').first();await menu.locator('summary').click();
-  for(const kind of ['download','delete']){
+  for(const kind of ['restore','download','delete']){
    const rect=await menu.locator(`[data-backup=${kind}]`).boundingBox();assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} menu clipped at ${width}px`);assert.ok(rect.height>=(44));
   }
   assert.equal(await menu.locator('.bk-menu-danger [data-backup=download]').count(),0);

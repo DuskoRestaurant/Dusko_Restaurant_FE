@@ -83,3 +83,7 @@ The later shared-component change supersedes the pastel KPI styling described ab
 The archive view omits the subtitle, duplicated footprint/status text, UTC+7 filter suffixes and range/count summary. Date filtering still uses Vietnam calendar boundaries. Protection/verification limitations remain in Settings, while the schedule-off banner is replaced with a shortcut inside the schedule card. Fault, stale-backup and low-capacity warnings remain conditional.
 
 Each archive row exposes Restore directly beside its secondary menu, with the same capability checks and disabled reason. Download/Delete remain in the menu; Restore still requires the existing CONFIRM, fresh MFA and source-credential acknowledgement. Creator information is available in the timestamp tooltip and archive details. Single-page navigation is omitted; multipage controls and page-size selection continue to work. Shared card/table presentation and branch controls are unchanged.
+
+## Archive actions and always-visible pagination
+
+Restore is again in each archive's three-dot action menu, alongside Download and Delete. The archive pager stays visible for a single page, with unavailable navigation disabled. The redundant system-wide eyebrow has been removed from the backup page header. The previously simplified labels and metadata remain compact; scope and restore impact remain available in details/settings and the confirmation dialog.
