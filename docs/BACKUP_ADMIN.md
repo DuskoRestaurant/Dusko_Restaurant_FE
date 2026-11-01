@@ -54,8 +54,12 @@ Thông số mới ưu tiên kết quả đo trình duyệt của hai màn hình 
 
 Script tests/browser/backup-menu-scale.mjs mở entry staff thật, vào menu bằng role WAITER và CASHIER với API giả lập, đo computed styles ở 1440/390px và xác nhận hai role dùng cùng kích thước. Kết quả tại docs/ui/backup-menu-sizing.json. tests/browser/backup-admin.mjs so sánh font/control/radius của backup với các giá trị đã đo, cùng các luồng MFA, lọc, menu, lịch và restore monitor. Chiều cao tổng quan/hàng bảng được phép tăng tự nhiên theo kích thước chung, không ép font nhỏ để giữ mốc cũ.
 
-## Bảng theo mẫu quản lý danh sách
+## Archive table and compact controls
 
-Tìm kiếm mã/người tạo và lọc loại sao lưu luôn hiển thị ngay phía trên khung bảng; ngày bắt đầu/kết thúc trong Bộ lọc mở rộng. Bảng và chân phân trang dùng chung khung viền mảnh, header nền nhạt, hàng xen kẽ/hover nhẹ và trạng thái dạng pill viền. Cột mã BK rút gọn UUID có thể bấm mở thông tin; tooltip và phần chi tiết giữ ID đầy đủ. Mã rút gọn không dùng làm định danh API.
+Search, backup type and both UTC+7 date filters are always visible above the framed archive table. Clear filters and refresh share the desktop baseline; fields stack on narrow screens. The table keeps its short clickable BK code, full identifier in details, status pill, alternating rows and contextual action menu. Short codes never identify API requests.
 
-Phân trang có số trang, trang đầu/cuối và trước/sau, số dòng mỗi trang cùng tổng kết quả trong footer. Các nút số trang hoạt động trên tập metadata đã tải, vẫn có cảnh báo nếu inventory truncated. Không thêm bộ lọc trạng thái giả vì inventory chỉ liệt kê bản hoàn tất; tác vụ thất bại xem ở Nhật ký. Giữ chữ/control theo kích thước đã đo từ menu Phục vụ/Thu ngân và giữ nguyên xác nhận MFA/CONFIRM.
+Customer order controls in `customer-web/src/customer-menu.css` and `customer-web/src/style.css` provide the reference for subtle `--line` borders, surface, control radius and restrained secondary buttons. Backup fields use 36px desktop / 40px mobile height; secondary toolbar buttons use 36px / 13px text. Focus uses the shared navy `--focus-ring`, 2px outline with 2px offset, without changing borders, dimensions or adding shadows. The main backup action and restore/delete safety flow retain their existing size and confirmation requirements.
+
+Pagination buttons use 28px desktop / 32px mobile targets and 12px text, with a compact rows-per-page selector and unchanged first/previous/numbered/next/last behavior. Filtering still precedes pagination and preserves values across polling; inventory truncation remains visible.
+
+Validation: 104 FE tests, all three production builds, and mocked Edge browser coverage at 390-3840px plus zoom. Browser checks include all five field focus states, date/type/search combinations, clear filters, polling retention, numbered and boundary navigation, unchanged branch control identity, MFA/CONFIRM and restore monitoring. Screenshots use fixtures only.

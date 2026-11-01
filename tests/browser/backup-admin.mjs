@@ -43,7 +43,7 @@ try{
  const checkBranch=async()=>assert.equal(await page.evaluate(()=>window.__backupBranchControl===document.querySelector('#branch')),true,'backup must not replace shared branch control');
  const switchTab=async name=>{await page.locator(`.bk-tabs [data-backup=tab-${name}]`).click();};
  const menuAction=async(kind,index=0)=>{const menu=page.locator('.bk-row-menu').nth(index);if(!(await menu.getAttribute('open')))await menu.locator('summary').click();await menu.locator(`[data-backup=${kind}]`).click();};
- assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('.bk-filter-panel').getAttribute('open'),null);
+ assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('[data-backup-filter=from]').isVisible(),true);assert.equal(await page.locator('[data-backup-filter=to]').isVisible(),true);
  assert.equal(await page.locator('.bk-activity').count(),0);assert.match(await page.locator('.bk-storage').innerText(),/79%/);assert.equal(await page.locator('.bk-storage--normal').count(),1);assert.equal(await page.locator('.bk-settings-link').count(),0);
  assert.match(await page.locator('.bk-storage').innerText(),/Kho backup/);
  await page.locator('.bk-record-link').first().click();await page.getByRole('region',{name:'Thông tin bản sao',exact:true}).waitFor();
@@ -54,20 +54,20 @@ try{
  await switchTab('settings');await page.getByRole('heading',{name:'Cấu hình sao lưu',exact:true}).waitFor();
  assert.match(await page.locator('.bk-settings').innerText(),/ADMIN chính/);assert.equal(await page.locator('.bk-archives').count(),0);
  await checkBranch();await switchTab('activity');assert.equal(await page.locator('.bk-activity').count(),1);await switchTab('archives');
- // Search and filters stay within their disclosure and survive server polling.
+ // All filters are visible immediately and survive server polling.
  const originals=[...data.backups];data.backups.push(...Array.from({length:9},(_,i)=>({...originals[i%3],id:`extra-${i}`,requestedByName:`Tester ${i}`})));data.totalBackups=data.backups.length;
  await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('.bk-row-menu').length===5);
- await page.locator('.bk-filter-panel>summary').click();await page.getByRole('button',{name:'Trang sau',exact:true}).click();
+ await page.getByRole('button',{name:'Trang sau',exact:true}).click();
  assert.match(await page.locator('.bk-pagination').innerText(),/Trang 2 \/ 3/);
  await page.getByRole('button',{name:'Trang cuối',exact:true}).click();assert.match(await page.locator('.bk-pagination').innerText(),/Trang 3 \/ 3/);assert.equal(await page.locator('.bk-row-menu').count(),2);
  await page.getByRole('button',{name:'Trang đầu',exact:true}).click();assert.match(await page.locator('.bk-pagination').innerText(),/Trang 1 \/ 3/);
  await page.locator('.bk-page-number[data-page="2"]').click();assert.match(await page.locator('.bk-pagination').innerText(),/Trang 2 \/ 3/);
  await page.waitForTimeout(4300);assert.equal(await page.evaluate(()=>document.activeElement?.classList.contains('bk-page-number')&&document.activeElement.dataset.page),'2');
  await page.locator('[data-backup-filter=query]').fill('Tester 8');assert.equal(await page.locator('.bk-row-menu').count(),1);
- await page.waitForTimeout(4300);assert.equal(await page.locator('[data-backup-filter=query]').inputValue(),'Tester 8');assert.equal(await page.locator('.bk-filter-panel').getAttribute('open'),'');
+ await page.waitForTimeout(4300);assert.equal(await page.locator('[data-backup-filter=query]').inputValue(),'Tester 8');assert.equal(await page.locator('[data-backup-filter=from]').isVisible(),true);
  await page.locator('[data-backup-filter=type]').selectOption('MANUAL');await page.getByRole('heading',{name:'Không có bản sao phù hợp'}).waitFor();
  await page.locator('[data-backup=clear-filters]').click();await page.locator('[data-backup-filter=from]').fill('2026-11-01');await page.locator('[data-backup-filter=from]').dispatchEvent('change');await page.getByRole('heading',{name:'Không có bản sao phù hợp'}).waitFor();
- await page.locator('[data-backup=clear-filters]').click();await page.locator('.bk-filter-panel>summary').click();
+ await page.locator('[data-backup=clear-filters]').click();
  await mkdir('docs/ui',{recursive:true});
  for(const width of [390,768,1024,1280,1440,1920,2560,3840]){
   await page.setViewportSize({width,height:1050});await page.evaluate(()=>window.scrollTo(0,0));
@@ -78,14 +78,23 @@ try{
    const menu=reference.find(item=>item.role==='WAITER'&&item.width===width);
    const dimensions=await page.evaluate(()=>{const style=selector=>{const s=getComputedStyle(document.querySelector(selector));return {font:s.fontSize,radius:s.borderRadius,minHeight:s.minHeight};};return {button:style('[data-backup=create]'),input:style('[data-backup-filter=query]'),body:style('.backup-console'),name:style('.bk-archives td strong'),meta:style('.bk-archive-actor'),panel:style('.bk-table-frame')};});
    assert.equal(dimensions.button.font,menu.button.fontSize);assert.equal(dimensions.button.radius,menu.button.borderRadius);assert.equal(dimensions.button.minHeight,menu.button.minHeight);
-   assert.equal(dimensions.input.font,menu.input.fontSize);assert.equal(dimensions.input.radius,menu.input.borderRadius);assert.equal(dimensions.input.minHeight,menu.input.minHeight);
+   assert.equal(dimensions.input.font,width===390?'16px':'14px');assert.equal(dimensions.input.radius,menu.input.borderRadius);assert.equal(dimensions.input.minHeight,width===390?'40px':'36px');
    assert.equal(dimensions.body.font,menu.body.fontSize);assert.equal(dimensions.name.font,menu.name.fontSize);assert.equal(dimensions.meta.font,menu.meta.fontSize);assert.equal(dimensions.panel.radius,menu.panel.borderRadius);
   }
   if(width>=1440){
    const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=140&&overview.height<=190,`overview height ${overview.height} at ${width}px`);
    const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=56&&row.height<=64,`row height ${row.height}`);
    assert.equal(await page.locator('.bk-heading h1').evaluate(el=>getComputedStyle(el).fontSize),'24px');
-   const filter=await page.locator('.bk-filter-panel>summary').boundingBox(),refresh=await page.locator('[data-backup=refresh]').boundingBox();assert.ok(Math.abs(filter.y-refresh.y)<=1,'filter and refresh share the toolbar baseline');
+   const filter=await page.locator('[data-backup-filter=from]').boundingBox(),refresh=await page.locator('[data-backup=refresh]').boundingBox();assert.ok(Math.abs(filter.y-refresh.y)<=1,'date fields and refresh share the toolbar baseline');
+   assert.equal(await page.locator('.bk-page-number').first().evaluate(el=>el.getBoundingClientRect().height),28);
+   for(const key of ['query','type','from','to','pageSize']){
+    const field=page.locator(`[data-backup-filter=${key}]`);
+    const idle=await field.evaluate(el=>{const s=getComputedStyle(el);return {border:s.borderColor,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height};});
+    await field.focus();
+    const focused=await field.evaluate(el=>{const s=getComputedStyle(el),probe=document.createElement('span');probe.style.color='var(--focus-ring)';el.parentElement.append(probe);const expected=getComputedStyle(probe).color;probe.remove();return {border:s.borderColor,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,outline:s.outlineColor,style:s.outlineStyle,offset:s.outlineOffset,expected};});
+    assert.equal(focused.border,idle.border,key);assert.equal(focused.width,idle.width,key);assert.equal(focused.height,idle.height,key);assert.equal(focused.style,'solid',key);assert.equal(focused.offset,'2px',key);assert.equal(focused.outline,focused.expected,key);
+    await field.blur();
+   }
   }
   if([390,1440,2560].includes(width))await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});
   const menu=page.locator('.bk-row-menu').first();await menu.locator('summary').click();
@@ -126,5 +135,5 @@ try{
  const beforeReload=bootstrap;await page.reload();await page.getByRole('heading',{name:'Đang khôi phục dữ liệu',exact:true}).waitFor();assert.equal(bootstrap,beforeReload);
  monitor={...monitor,state:'COMPLETED',phase:'COMPLETED',progress:100,maintenance:false,message:'Đã khôi phục. Cần đăng nhập lại.'};await page.getByRole('heading',{name:'Đã khôi phục dữ liệu',exact:true}).waitFor({timeout:7000});await page.getByRole('button',{name:'Đăng nhập lại',exact:true}).click();assert.equal(await page.evaluate(()=>sessionStorage.getItem('dusko_backup_restore_monitor')),null);
  expired=true;await page.evaluate(({id,token})=>sessionStorage.setItem('dusko_backup_restore_monitor',JSON.stringify({id,token})),{id:jobId,token:monitorToken});await page.reload();await page.getByRole('heading',{name:'Phiên theo dõi đã hết hạn',exact:true}).waitFor();await page.getByRole('button',{name:'Đăng nhập lại',exact:true}).click();assert.equal(await page.evaluate(()=>sessionStorage.getItem('dusko_backup_restore_monitor')),null);
- assert.deepEqual(errors,[]);console.log('PASS: single admin workspace, contextual filters/menus/details, settings/activity tabs, unchanged shared branch control, responsive/zoom, MFA/CONFIRM and restore monitoring');
+ assert.deepEqual(errors,[]);console.log('PASS: single admin workspace, always-visible filters, compact controls, shared-token focus, menus/details, settings/activity tabs, unchanged shared branch control, responsive/zoom, MFA/CONFIRM and restore monitoring');
 }finally{await browser.close();await server.close();}
