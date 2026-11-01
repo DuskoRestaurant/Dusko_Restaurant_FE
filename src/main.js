@@ -1,3 +1,4 @@
+import {metricCard,metricGrid,dataTable,statusBadge} from './ui/admin-components.js';
 import {bindCatalog} from './catalog-manager.js';
 import './catalog-manager.css';
 import {businessExcelDate} from './business-time.js';
@@ -61,11 +62,11 @@ const canAccessManagement = () => canAccessManagementFn(state.user);
 const allowedPages = () => [...new Set(effectiveRoles(state.user).flatMap(role=>pages[role]||[]))];
 const defaultPage = () => allowedPages()[0] || 'overview';
 const statusLabel = { AWAITING_CONFIRMATION:'Chờ nhân viên xác nhận', PENDING:'Chờ thanh toán', PAID:'Đã thanh toán', CANCELLED:'Đã hủy', SCHEDULED:'Chờ nấu', COOKING:'Đang nấu', COMPLETED:'Hoàn thành' };
-const badge = s => `<span class="badge ${String(s).toLowerCase()}">${statusLabel[s] || e(s)}</span>`;
+const badge = s => statusBadge(statusLabel[s]||s,{tone:['PAID','COMPLETED','GOOD'].includes(s)?'success':['PENDING','SCHEDULED','WARNING'].includes(s)?'warning':['CANCELLED','FAILED'].includes(s)?'danger':s==='COOKING'?'info':'neutral',className:`badge ${String(s).toLowerCase()}`});
 const originBadge = order => order.dataOrigin==='SYNTHETIC'?'<span class="data-origin">Dữ liệu mô phỏng đồ án</span>':'';
 const empty = (title, detail) => `<div class="empty"><span>◇</span><strong>${title}</strong><p>${detail}</p></div>`;
 const row = (cells) => `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
-const table = (headers, rows) => `<div class="table-scroll"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+const table = (headers, rows) => dataTable({headers,rowsHtml:rows.join(''),scrollClassName:'table-scroll'});
 const field = (label, html) => `<label class="field"><span>${label}</span>${html}</label>`;
 const btn = (label, action, kind='primary', extra='') => `<button class="btn ${kind}" data-action="${action}" ${extra}>${label}</button>`;
 const access = roles => !roles || !!state.user && hasRole(state.user,roles);
@@ -231,7 +232,12 @@ async function workspaceRead(path,page,branch) {
 function overview() {
   const {dashboard:d,orders,batches}=state.data;
   render(title('TRUNG TÂM ĐIỀU HÀNH','Tổng quan vận hành','Theo dõi các chỉ số quan trọng trong ngày.',btn('Làm mới','reload','secondary')+(canAdminister(state.user)?btn('Sao lưu dữ liệu','goto-backups','secondary'):''))+
-  `<div class="metric-grid"><div class="metric"><span>DOANH THU ĐƠN TẠO HÔM NAY</span><strong>${money(d.todayRevenue)}</strong><small>${number(d.totalOrdersCount)} đơn đã thanh toán · ngày tạo đơn UTC+7</small><i>↗</i></div><div class="metric"><span>ĐƠN CHỜ THANH TOÁN</span><strong>${orders.filter(o=>o.status==='PENDING').length}</strong><small>Cần xử lý tại quầy</small><i>▤</i></div><div class="metric"><span>MẺ BẾP ĐANG HOẠT ĐỘNG</span><strong>${batches.length}</strong><small>Chờ nấu và đang nấu</small><i>◈</i></div><div class="metric warn"><span>NGUYÊN LIỆU SẮP HẾT</span><strong>${d.lowStockCount}</strong><small>Cần kiểm tra tồn kho</small><i>!</i></div></div>`+
+  metricGrid([
+    metricCard({label:'DOANH THU ĐƠN TẠO HÔM NAY',value:money(d.todayRevenue),description:`${number(d.totalOrdersCount)} đơn đã thanh toán · ngày tạo đơn UTC+7`,icon:'↗'}),
+    metricCard({label:'ĐƠN CHỜ THANH TOÁN',value:orders.filter(o=>o.status==='PENDING').length,description:'Cần xử lý tại quầy',icon:'▤',tone:'warning'}),
+    metricCard({label:'MẺ BẾP ĐANG HOẠT ĐỘNG',value:batches.length,description:'Chờ nấu và đang nấu',icon:'◈',tone:'accent'}),
+    metricCard({label:'NGUYÊN LIỆU SẮP HẾT',value:d.lowStockCount,description:'Cần kiểm tra tồn kho',icon:'!',tone:'danger'})
+  ])+
   `<div class="two-col"><section class="panel"><div class="panel-head"><div><h2>Đơn hàng gần đây</h2><p>Hoạt động tại chi nhánh ${state.branch}</p></div>${btn('Xem tất cả →','goto-orders','text')}</div>${orders.length?table(['Mã đơn','Thời gian','Giá trị','Trạng thái'],orders.slice(0,5).map(o=>row([`<span class="order-ref" title="${e(o.orderCode)}">${e(String(o.orderCode).length>18?String(o.orderCode).slice(0,12)+"…":o.orderCode)}</span>`,dateTime(o.createdAt),money(o.finalAmount),badge(o.status)]))):empty('Chưa có đơn hàng','Đơn mới sẽ xuất hiện tại đây.')}</section><section class="panel"><div class="panel-head"><div><h2>Cần chú ý</h2><p>Nguyên liệu cần bổ sung</p></div></div>${d.lowStockItems?.length?d.lowStockItems.slice(0,5).map(i=>`<div class="notice"><span class="notice-icon">!</span><div><strong>${e(i.name)}</strong><small>Còn ${number(i.availableStock??i.currentStock)} ${e(i.unit)} khả dụng · mức tối thiểu ${number(i.minStock)}</small></div></div>`).join(''):empty('Kho đang ổn định','Không có nguyên liệu dưới ngưỡng tối thiểu.')}</section></div>`);
 }
 function ordersPage() {
@@ -595,3 +601,4 @@ import './pos-theme.css';
 
 import './ui-foundation.css';
 import './backup-status.css';
+import './ui/admin-components.css';

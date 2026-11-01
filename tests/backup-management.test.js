@@ -24,7 +24,7 @@ test('all tabs retain one overview with four metrics; unsupported settings never
  const data={checkedAt:'2026-11-01',availability:'AVAILABLE',capability:{canCreate:true,canManageArchives:true},jobs,backups:[]};
  for(const tab of ['archives','activity','settings']){
   const html=backupStatusHtml(data,{tab});
-  assert.equal((html.match(/class="bk-metric /g)||[]).length,4);
+  assert.equal((html.match(/class="ui-metric /g)||[]).length,4);
   assert.ok(html.indexOf('bk-metric-grid')<html.indexOf('class="bk-tabs"'));
   assert.equal((html.match(/data-backup="create"/g)||[]).length,1);
  }

@@ -1,0 +1,22 @@
+/* Operational overview is the reference. Opt-in classes avoid changing unrelated
+   layouts; module styles own column widths, filters, actions and mobile flow. */
+.ui-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:24px}
+.ui-metric{--ui-metric-accent:var(--primary);--ui-metric-icon-bg:var(--danger-soft);position:relative;min-width:0;min-height:142px;padding:20px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-top:0;border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden;font:400 16px/1.5 var(--font-ui)}
+.ui-metric::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;background:var(--ui-metric-accent)}
+.ui-metric--warning{--ui-metric-accent:var(--warning);--ui-metric-icon-bg:var(--warning-soft)}.ui-metric--accent{--ui-metric-accent:var(--accent);--ui-metric-icon-bg:var(--accent-soft)}.ui-metric--danger{--ui-metric-accent:var(--danger)}.ui-metric--success{--ui-metric-accent:var(--success);--ui-metric-icon-bg:var(--success-soft)}
+.ui-metric>span{display:block;padding-right:16px;color:var(--muted);font-size:11px;font-weight:600;line-height:1.5;letter-spacing:.06em;text-transform:uppercase}
+.ui-metric>strong{display:block;margin:8px 0;color:var(--ink);font-size:28px;font-weight:700;line-height:1.25;letter-spacing:-.03em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.ui-metric>small{margin-top:7px;color:var(--muted);font-size:12px;font-weight:400;line-height:1.5}
+.ui-metric>i{position:absolute;right:16px;top:16px;display:grid;place-items:center;width:34px;height:34px;border-radius:var(--radius-pill);background:var(--ui-metric-icon-bg);color:#a2a6ab;font-size:16px;font-style:normal;font-weight:400;line-height:1.5}.ui-metric>i svg{width:17px;height:17px}.ui-metric-detail{margin-top:8px}
+.ui-table-frame{min-width:0;max-width:100%;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);box-shadow:none;color:var(--ink);font:400 16px/1.5 var(--font-ui)}.ui-table-scroll{overflow-x:auto;border-radius:inherit;max-width:100%}
+.ui-table-frame .ui-table{width:100%;border-collapse:collapse;border-spacing:0;font-family:var(--font-ui);font-size:12px;line-height:1.5;color:var(--ink)}
+.ui-table thead{clip-path:inset(0 round var(--radius-control) var(--radius-control) 0 0)}
+.ui-table-frame .ui-table-scroll{border:0}
+.ui-table-frame .ui-table th{padding:13px 14px;background:#F8F3EE;color:var(--muted);font-size:14px;line-height:1.5;font-weight:600;letter-spacing:0;text-align:left;text-transform:none;border:0;border-bottom:1px solid var(--line);border-radius:0;vertical-align:top}
+.ui-table-frame .ui-table td{padding:15px 14px;color:var(--ink);font-size:12px;font-weight:400;line-height:1.5;border:0;border-bottom:1px solid var(--line);vertical-align:top}
+.ui-table-frame .ui-table tbody tr{background:var(--surface)}.ui-table-frame .ui-table tbody tr:hover{background:#FFFAF6}.ui-table-frame .ui-table tbody tr:last-child td{border-bottom:0}.ui-table-frame .ui-table td strong{font-size:inherit}.ui-table-frame .ui-table td small{color:var(--muted);font-size:12px;line-height:1.5}
+.ui-status{display:inline-block;padding:5px 9px;border:0!important;border-radius:var(--radius-pill);background:#F5EEE8;color:var(--muted);font:550 12px/1.5 var(--font-ui);white-space:nowrap}.ui-status--success{background:var(--success-soft);color:var(--success)}.ui-status--warning{background:var(--warning-soft);color:var(--warning)}.ui-status--danger{background:var(--danger-soft);color:var(--danger)}.ui-status--info{background:var(--accent-soft);color:var(--accent)}
+.ui-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:1350px){.ui-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
+@media(max-width:760px){.ui-metric{min-height:126px;padding:16px}.ui-metric>strong{font-size:25px}}
+@media(max-width:700px){.ui-metric>span{padding-right:0}}
