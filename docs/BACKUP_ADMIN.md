@@ -77,3 +77,9 @@ Validation: 108 FE tests and all three builds pass. Mocked Edge checks cover sta
 ## Shared operational-overview presentation
 
 The later shared-component change supersedes the pastel KPI styling described above. Backup now uses `metricCard` / `metricGrid`, `tableMarkup` / `tableFrame` and `statusBadge` from `src/ui/admin-components.js`, with the same stylesheet as the operational overview. Both archive and activity tables use its cream header, white rows, typography, padding, dividers and pill statuses. Module CSS retains only operational layout, column sizing, filters, menus and narrow-screen flow. See `docs/ADMIN_COMPONENTS.md` for the reusable API and adoption scope.
+
+## Compact archive workspace and visible restore
+
+The archive view omits the subtitle, duplicated footprint/status text, UTC+7 filter suffixes and range/count summary. Date filtering still uses Vietnam calendar boundaries. Protection/verification limitations remain in Settings, while the schedule-off banner is replaced with a shortcut inside the schedule card. Fault, stale-backup and low-capacity warnings remain conditional.
+
+Each archive row exposes Restore directly beside its secondary menu, with the same capability checks and disabled reason. Download/Delete remain in the menu; Restore still requires the existing CONFIRM, fresh MFA and source-credential acknowledgement. Creator information is available in the timestamp tooltip and archive details. Single-page navigation is omitted; multipage controls and page-size selection continue to work. Shared card/table presentation and branch controls are unchanged.
