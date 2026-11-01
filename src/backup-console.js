@@ -7,6 +7,15 @@ export const backupSize = value => {
   const unit=bytes>=1024**3?'GB':bytes>=1024**2?'MB':bytes>=1024?'KB':'B';
   return `${new Intl.NumberFormat('vi-VN',{maximumFractionDigits:1}).format(bytes/({GB:1024**3,MB:1024**2,KB:1024,B:1}[unit]))} ${unit}`;
 };
+export function backupAgeLabel(createdAt,checkedAt) {
+  const elapsed=Date.parse(checkedAt)-Date.parse(createdAt);
+  if(!Number.isFinite(elapsed)||elapsed<0)return '';
+  const minutes=Math.floor(elapsed/60000);
+  if(minutes<1)return 'Vừa xong';
+  if(minutes<60)return `${minutes} phút trước`;
+  const hours=Math.floor(minutes/60);
+  return hours<24?`${hours} giờ trước`:`${Math.floor(hours/24)} ngày trước`;
+}
 export const backupStates={QUEUED:'Đang chờ',RUNNING:'Đang chạy',COMPLETED:'Thành công',FAILED:'Thất bại',INTERRUPTED:'Gián đoạn'};
 const operations={BACKUP:'Sao lưu',RESTORE:'Khôi phục',DELETE:'Xóa bản sao',DOWNLOAD:'Tải về',SCHEDULE:'Cấu hình lịch'};
 const phases={PREPARING:'Chuẩn bị',POSTGRES:'Sao lưu PostgreSQL',MONGO_APP:'Sao lưu dữ liệu ứng dụng',MONGO_AI:'Sao lưu dữ liệu AI',UPLOADS:'Sao lưu ảnh local',CHECKSUMS:'Đối chiếu SHA-256',VALIDATING:'Kiểm tra bản sao',SAFETY_BACKUP:'Tạo bản sao an toàn trước khôi phục',RESTORE_SQL:'Khôi phục PostgreSQL',RESTORE_MONGO_APP:'Khôi phục dữ liệu ứng dụng',RESTORE_MONGO_AI:'Khôi phục dữ liệu AI',RESTORE_UPLOADS:'Khôi phục ảnh local',VERIFY_RESTORE:'Kiểm tra và thu hồi phiên đăng nhập',PACKAGING:'Đóng gói ZIP',DELETING:'Xóa bản sao',COMPLETED:'Hoàn tất'};
@@ -35,7 +44,7 @@ export function backupStatusHtml(data,view={}) {
  const lastJob=jobs.find(job=>['BACKUP','RESTORE'].includes(job.operation||'BACKUP'));
  const error=!!data.maintenance||!!active?.stalled||['FAILED','INTERRUPTED'].includes(lastJob?.state);
  const age=latest?Math.max(0,Math.floor((Date.parse(data.checkedAt)-Date.parse(latest.createdAt))/3600000)):null;
- const relative=Number.isFinite(age)?new Intl.RelativeTimeFormat('vi-VN',{numeric:'auto'}).format(-age,'hour'):'';
+ const relative=latest?backupAgeLabel(latest.createdAt,data.checkedAt):'';
  const percent=Number.isFinite(storage?.usagePercent)?Math.max(0,Math.min(100,storage.usagePercent)):null;
  const lowDisk=Number.isFinite(storage?.freeBytes)&&storage.freeBytes>=0&&storage.freeBytes<512*1024**2;
  const diskTone=lowDisk?'danger':'normal';

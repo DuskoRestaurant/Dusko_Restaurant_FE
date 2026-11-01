@@ -1,8 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {backupStatusHtml} from '../src/backup-status.js';
-import {backupArchiveView} from '../src/backup-console.js';
+import {backupArchiveView,backupAgeLabel} from '../src/backup-console.js';
 const base={availability:'AVAILABLE',checkedAt:'2026-10-31T00:00:00Z',backups:[],jobs:[]};
+test('backup age shows explicit minutes/hours/days instead of ambiguous zero-hour wording',()=>{
+ const createdAt='2026-11-01T05:20:00Z',start=Date.parse(createdAt);
+ for(const [seconds,label] of [[0,'Vừa xong'],[59,'Vừa xong'],[60,'1 phút trước'],[3599,'59 phút trước'],[3600,'1 giờ trước'],[86399,'23 giờ trước'],[86400,'1 ngày trước']]){
+  const checkedAt=new Date(start+seconds*1000).toISOString();
+  assert.equal(backupAgeLabel(createdAt,checkedAt),label);
+  const html=backupStatusHtml({...base,checkedAt,backups:[{id:'recent',createdAt}]});
+  assert.ok(html.includes(`>${label}</strong>`));assert.ok(!html.includes('giờ này'));
+ }
+ assert.equal(backupAgeLabel('invalid',createdAt),'');
+ assert.equal(backupAgeLabel(createdAt,'invalid'),'');
+ assert.equal(backupAgeLabel(createdAt,new Date(start-1).toISOString()),'');
+});
 test('missing inventory never invents protection or capacity and keeps create disabled',()=>{
  for(const availability of ['NOT_FOUND','UNAVAILABLE','AVAILABLE']){
   const html=backupStatusHtml({...base,availability});
