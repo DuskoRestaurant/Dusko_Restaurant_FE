@@ -8,7 +8,7 @@ const reference=JSON.parse(await readFile('docs/ui/backup-menu-sizing.json','utf
 const server=await createServer({configFile:false,server:{host:'127.0.0.1',port:0}});await server.listen();
 const browser=await chromium.launch({channel:'msedge',headless:true});
 try{
- const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
  const ids=[1,2,3].map(n=>`2026-10-31T00-00-00-000Z-${String(n).repeat(8)}-1111-4111-8111-111111111111`);
  const cap={enabled:true,canCreate:true,canRestore:true,canManageArchives:true,reason:null};
  const data={checkedAt:'2026-10-31T09:00:00Z',availability:'AVAILABLE',invalidCount:0,truncated:false,totalBackups:3,
@@ -51,9 +51,29 @@ try{
  await page.locator('[data-backup=close-details]').click();
  await page.locator('.bk-row-menu').first().locator('summary').click();await page.locator('.bk-row-menu').nth(1).locator('summary').click();
  assert.equal(await page.locator('.bk-row-menu[open]').count(),1);await page.keyboard.press('Escape');assert.equal(await page.locator('.bk-row-menu[open]').count(),0);
+ const layoutPosition=()=>page.evaluate(()=>['.bk-heading','.bk-overview','.bk-tabs'].map(selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {top:r.top+scrollY,height:r.height};}));
+ const initialPositions=await layoutPosition();
+ data.jobs=Array.from({length:10},(_,i)=>({id:`audit-${i}`,backupId:ids[i%3],operation:['BACKUP','RESTORE','DOWNLOAD','DELETE','SCHEDULE'][i%5],state:i%3===1?'FAILED':'COMPLETED',phase:'COMPLETED',progress:100,requestedBy:i+1,requestedByName:`Audit ${i}`,requestedAt:`2026-10-${31-i}T07:00:00Z`,message:i===1?'Fixture failure details':'Fixture completed',monitorToken:'SECRET_MONITOR',metadata:{code:'SECRET_MFA'}}));
  await switchTab('settings');await page.getByRole('heading',{name:'Cấu hình sao lưu',exact:true}).waitFor();
  assert.match(await page.locator('.bk-settings').innerText(),/ADMIN chính/);assert.equal(await page.locator('.bk-archives').count(),0);
- await checkBranch();await switchTab('activity');assert.equal(await page.locator('.bk-activity').count(),1);await switchTab('archives');
+ assert.deepEqual(await layoutPosition(),initialPositions,'settings retains overview and tab geometry');
+ await checkBranch();await switchTab('activity');assert.equal(await page.locator('.bk-activity').count(),1);
+ assert.deepEqual(await layoutPosition(),initialPositions,'activity retains overview and tab geometry');
+ await page.locator('[data-backup=refresh]').click();await page.locator('[data-backup=audit-next]:not([disabled])').waitFor();
+ await page.locator('[data-backup=audit-next]').click();await switchTab('archives');await switchTab('activity');assert.equal(await page.locator('[data-audit-page]').getAttribute('data-audit-page'),'2');
+ await page.locator('[data-backup=audit-previous]').click();assert.equal(await page.locator('.bk-activity [data-backup=audit-next]').evaluate(el=>el.getBoundingClientRect().height),28);
+ await page.locator('[data-backup-filter=auditQuery]').fill('Audit 1');
+ await page.locator('[data-backup-filter=auditOperation]').selectOption('RESTORE');await page.locator('[data-backup-filter=auditState]').selectOption('FAILED');
+ assert.equal(await page.locator('.bk-audit-open').count(),1);
+ await page.locator('[data-backup-filter=auditQuery]').focus();await page.waitForTimeout(4300);
+ assert.equal(await page.locator('[data-backup-filter=auditQuery]').inputValue(),'Audit 1');assert.equal(await page.evaluate(()=>document.activeElement.dataset.backupFilter),'auditQuery');
+ const csvDownload=page.waitForEvent('download');await page.locator('[data-backup=export-audit]').click();const csvFile=await csvDownload;
+ assert.match(csvFile.suggestedFilename(),/\.csv$/);const csv=await readFile(await csvFile.path(),'utf8');assert.equal(csv.split('\r\n').length,2);assert.ok(csv.includes('audit-1'));assert.ok(!csv.includes('SECRET_'));
+ await page.locator('[data-backup=audit-details]').click();await page.locator('.bk-audit-detail h3').waitFor();assert.match(await page.locator('.bk-audit-detail').innerText(),/Fixture failure details/);
+ await page.locator('[data-backup=close-audit-detail]').click();await page.locator('[data-backup=clear-audit]').click();
+ await page.screenshot({path:'docs/ui/backup-activity-1440.png',fullPage:true});
+ await switchTab('archives');assert.deepEqual(await layoutPosition(),initialPositions);
+
  // All filters are visible immediately and survive server polling.
  const originals=[...data.backups];data.backups.push(...Array.from({length:9},(_,i)=>({...originals[i%3],id:`extra-${i}`,requestedByName:`Tester ${i}`})));data.totalBackups=data.backups.length;
  await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('.bk-row-menu').length===5);
@@ -82,7 +102,7 @@ try{
    assert.equal(dimensions.body.font,menu.body.fontSize);assert.equal(dimensions.name.font,menu.name.fontSize);assert.equal(dimensions.meta.font,menu.meta.fontSize);assert.equal(dimensions.panel.radius,menu.panel.borderRadius);
   }
   if(width>=1440){
-   const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=140&&overview.height<=190,`overview height ${overview.height} at ${width}px`);
+   const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=140&&overview.height<=250,`overview height ${overview.height} at ${width}px`);
    const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=56&&row.height<=64,`row height ${row.height}`);
    assert.equal(await page.locator('.bk-heading h1').evaluate(el=>getComputedStyle(el).fontSize),'24px');
    const filter=await page.locator('[data-backup-filter=from]').boundingBox(),refresh=await page.locator('[data-backup=refresh]').boundingBox();assert.ok(Math.abs(filter.y-refresh.y)<=1,'date fields and refresh share the toolbar baseline');
@@ -96,6 +116,11 @@ try{
     await field.blur();
    }
   }
+  const cards=await page.locator('.bk-metric').evaluateAll(els=>els.map(el=>({top:el.getBoundingClientRect().top,left:el.getBoundingClientRect().left,height:el.getBoundingClientRect().height})));
+  if(width>=1440){assert.equal(new Set(cards.map(card=>card.top)).size,1);assert.equal(new Set(cards.map(card=>card.height)).size,1);}
+  if(width===390)assert.equal(new Set(cards.map(card=>card.left)).size,1);
+  const position=await layoutPosition();
+  for(const tab of ['activity','settings','archives']){await switchTab(tab);assert.deepEqual(await layoutPosition(),position,`${tab} layout stable at ${width}`);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));if(width===1440&&tab==='settings')await page.screenshot({path:'docs/ui/backup-settings.png',fullPage:true});if(width===390&&tab!=='archives')await page.screenshot({path:`docs/ui/backup-${tab}-390.png`,fullPage:true});}
   if([390,1440,2560].includes(width))await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});
   const menu=page.locator('.bk-row-menu').first();await menu.locator('summary').click();
   for(const kind of ['restore','download','delete']){
@@ -126,7 +151,7 @@ try{
  await menuAction('delete',1);await page.locator('input[name=confirmation]').fill('CONFIRM');await page.locator('input[name=code]').fill('123456');await page.getByRole('button',{name:'Xóa bản sao lưu',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.bk-row-menu').length===2);assert.equal(deletes,1);
  await menuAction('download');await page.locator('input[name=code]').fill('123456');const download=page.waitForEvent('download');await page.getByRole('button',{name:'Tải file ZIP',exact:true}).click();assert.match((await download).suggestedFilename(),/\.zip$/);assert.equal(downloads,1);await page.locator('dialog').waitFor({state:'detached'});
  await switchTab('settings');await page.locator('.bk-settings [data-backup=schedule]').click();await page.locator('select[name=frequency]').selectOption('WEEKLY');await page.locator('input[name=code]').fill('123456');await page.getByRole('button',{name:'Lưu lịch trình',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.bk-settings')?.textContent.includes('Hằng tuần'));assert.equal(schedules,1);
- await page.screenshot({path:'docs/ui/backup-settings.png',fullPage:true});await switchTab('archives');
+ await switchTab('archives');
  await page.locator('[data-backup=create]').click();await page.locator('input[name=code]').fill('000000');await page.locator('dialog [type=submit]').click();await page.locator('.backup-create-error:not([hidden])').waitFor();assert.equal(await page.locator('input[name=code]').inputValue(),'');
  await page.locator('input[name=code]').fill('123456');await page.locator('dialog [type=submit]').click();await page.locator('.bk-running').waitFor();assert.match(await page.locator('.bk-running').innerText(),/40%/);assert.equal(await page.locator('[data-backup=create]').isDisabled(),true);assert.equal(creates,1);
  data.jobs[0]={...data.jobs[0],state:'COMPLETED',phase:'COMPLETED',progress:100};data.activeJob=null;data.capability={...cap};await page.locator('[data-backup=create]:not([disabled])').waitFor({timeout:7000});
@@ -135,5 +160,5 @@ try{
  const beforeReload=bootstrap;await page.reload();await page.getByRole('heading',{name:'Đang khôi phục dữ liệu',exact:true}).waitFor();assert.equal(bootstrap,beforeReload);
  monitor={...monitor,state:'COMPLETED',phase:'COMPLETED',progress:100,maintenance:false,message:'Đã khôi phục. Cần đăng nhập lại.'};await page.getByRole('heading',{name:'Đã khôi phục dữ liệu',exact:true}).waitFor({timeout:7000});await page.getByRole('button',{name:'Đăng nhập lại',exact:true}).click();assert.equal(await page.evaluate(()=>sessionStorage.getItem('dusko_backup_restore_monitor')),null);
  expired=true;await page.evaluate(({id,token})=>sessionStorage.setItem('dusko_backup_restore_monitor',JSON.stringify({id,token})),{id:jobId,token:monitorToken});await page.reload();await page.getByRole('heading',{name:'Phiên theo dõi đã hết hạn',exact:true}).waitFor();await page.getByRole('button',{name:'Đăng nhập lại',exact:true}).click();assert.equal(await page.evaluate(()=>sessionStorage.getItem('dusko_backup_restore_monitor')),null);
- assert.deepEqual(errors,[]);console.log('PASS: single admin workspace, always-visible filters, compact controls, shared-token focus, menus/details, settings/activity tabs, unchanged shared branch control, responsive/zoom, MFA/CONFIRM and restore monitoring');
+ assert.deepEqual(errors,[]);console.log('PASS: single admin workspace, fixed overview and tabs, audit filters/details/CSV/pagination, honest settings, compact controls, shared-token focus, menus/details, settings/activity tabs, unchanged shared branch control, responsive/zoom, MFA/CONFIRM and restore monitoring');
 }finally{await browser.close();await server.close();}

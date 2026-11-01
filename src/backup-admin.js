@@ -1,3 +1,4 @@
+import {backupAuditCsv} from './backup-management.js';
 import { backupStatusHtml, backupSize, backupStates } from './backup-console.js';
 import { escapeHtml as e, dateTime } from './api.js';
 import { sharedToast } from './toast.js';
@@ -7,21 +8,23 @@ export function readBackupMonitor(){try{const item=JSON.parse(sessionStorage.get
 export function clearBackupMonitor(){sessionStorage.removeItem(monitorKey);}
 export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuthError=()=>{}}){
  let disposed=false,timer,loading=false,working=false,dialog,failed=false,data=null,monitor=readBackupMonitor();
- const view={query:'',type:'',from:'',to:'',page:1,pageSize:5,tab:'archives',detailId:null};
+ const view={query:'',type:'',from:'',to:'',page:1,pageSize:5,tab:'archives',detailId:null,auditQuery:'',auditOperation:'',auditState:'',auditPage:1,auditDetailId:null};
  function renderInventory(){
   const focused=root.contains(document.activeElement)?document.activeElement:null;
-  const filter=focused?.dataset?.backupFilter,action=focused?.dataset?.backup,archiveId=focused?.dataset?.archiveId;
+  const filter=focused?.dataset?.backupFilter,action=focused?.dataset?.backup,archiveId=focused?.dataset?.archiveId,jobId=focused?.dataset?.jobId;
   const focusedPage=focused?.classList?.contains('bk-page-number')?focused.dataset.page:null;
   const selection=filter&&focused.type==='search'?[focused.selectionStart,focused.selectionEnd]:null;
-  const scrolls=[...root.querySelectorAll('.table-scroll')].map(el=>el.scrollLeft);
+  const scrolls=[...root.querySelectorAll('.table-scroll,.bk-audit-scroll')].map(el=>el.scrollLeft);
   const expanded=[...root.querySelectorAll('details[data-backup-detail][open]')].map(el=>el.dataset.backupDetail);
   const focusedDetail=focused?.closest('details[data-backup-detail]')?.dataset.backupDetail;
   root.innerHTML=backupStatusHtml(data,view);
   root.querySelectorAll('details[data-backup-detail]').forEach(el=>{el.open=expanded.includes(el.dataset.backupDetail);});
   if(failed)root.querySelectorAll('[data-backup]').forEach(el=>{if(['create','restore','delete','download','schedule'].includes(el.dataset.backup))el.disabled=true;});
-  view.page=Number(root.querySelector('.bk-pagination')?.dataset.page)||1;
-  root.querySelectorAll('.table-scroll').forEach((el,i)=>{el.scrollLeft=scrolls[i]||0;});
-  const target=filter?root.querySelector(`[data-backup-filter="${filter}"]`):focusedDetail?[...root.querySelectorAll('details[data-backup-detail]')].find(el=>el.dataset.backupDetail===focusedDetail)?.querySelector('summary'):[...root.querySelectorAll('[data-backup]')].find(el=>el.dataset.backup===action&&(!archiveId||el.dataset.archiveId===archiveId));
+  const archivePager=root.querySelector('.bk-pagination[data-page]'),auditPager=root.querySelector('[data-audit-page]');
+  if(archivePager)view.page=Number(archivePager.dataset.page)||1;
+  if(auditPager)view.auditPage=Number(auditPager.dataset.auditPage)||1;
+  root.querySelectorAll('.table-scroll,.bk-audit-scroll').forEach((el,i)=>{el.scrollLeft=scrolls[i]||0;});
+  const target=filter?root.querySelector(`[data-backup-filter="${filter}"]`):focusedDetail?[...root.querySelectorAll('details[data-backup-detail]')].find(el=>el.dataset.backupDetail===focusedDetail)?.querySelector('summary'):[...root.querySelectorAll('[data-backup]')].find(el=>el.dataset.backup===action&&(!archiveId||el.dataset.archiveId===archiveId)&&(!jobId||el.dataset.jobId===jobId));
   const pageTarget=focusedPage?[...root.querySelectorAll('.bk-page-number')].find(el=>el.dataset.page===focusedPage):null;
   (pageTarget||target)?.focus({preventScroll:true});if(selection&&target)target.setSelectionRange(...selection);
  }
@@ -104,6 +107,11 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   button.closest('.bk-row-menu')?.removeAttribute('open');
   if(kind==='refresh')void refresh();
   else if(['tab-archives','tab-activity','tab-settings'].includes(kind)){view.tab=kind.slice(4);renderInventory();}
+  else if(kind==='audit-details'){view.auditDetailId=button.dataset.jobId;renderInventory();root.querySelector('.bk-audit-detail h3')?.focus({preventScroll:true});root.querySelector('.bk-audit-detail')?.scrollIntoView({block:'nearest'});}
+  else if(kind==='close-audit-detail'){view.auditDetailId=null;renderInventory();}
+  else if(kind==='clear-audit'){Object.assign(view,{auditQuery:'',auditOperation:'',auditState:'',auditPage:1});renderInventory();}
+  else if(kind==='audit-previous'||kind==='audit-next'){view.auditPage+=kind==='audit-next'?1:-1;renderInventory();root.querySelector(`[data-backup="${kind}"]`)?.focus({preventScroll:true});}
+  else if(kind==='export-audit'){const url=URL.createObjectURL(new Blob([backupAuditCsv(data.jobs||[],view)],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download=`backup-activity-${new Date().toISOString().slice(0,10)}.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);}
   else if(kind==='details'){view.detailId=button.dataset.archiveId;renderInventory();root.querySelector('.bk-archive-detail h3')?.focus({preventScroll:true});root.querySelector('.bk-archive-detail')?.scrollIntoView({block:'nearest'});}
   else if(kind==='close-details'){view.detailId=null;renderInventory();}
   else if(kind==='clear-filters'){Object.assign(view,{query:'',type:'',from:'',to:'',page:1});renderInventory();}
@@ -116,8 +124,9 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
  const filterChange=event=>{
   const field=event.target.dataset.backupFilter;if(!field||!data)return;
   // Search reacts as the user types; native date/select controls commit on change.
-  if((field==='query')!==(event.type==='input'))return;
-  view[field]=event.target.value;view.page=1;renderInventory();
+  if(!Object.hasOwn(view,field))return;
+  if(['query','auditQuery'].includes(field)!==(event.type==='input'))return;
+  view[field]=event.target.value;if(field.startsWith('audit'))view.auditPage=1;else view.page=1;renderInventory();
  };
  const toggle=event=>{if(event.target.matches('.bk-row-menu')&&event.target.open)root.querySelectorAll('.bk-row-menu[open]').forEach(el=>{if(el!==event.target)el.open=false;});};
  const keydown=event=>{if(event.key==='Escape')root.querySelectorAll('.bk-row-menu[open]').forEach(el=>{el.open=false;el.querySelector('summary')?.focus();});};

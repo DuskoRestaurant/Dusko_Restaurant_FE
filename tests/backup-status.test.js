@@ -22,8 +22,9 @@ test('archive summary separates server usage from backup footprint and escapes m
 });
 test('active progress and failures are shown without a blanket safety claim',()=>{
  const data={...base,backups:[{createdAt:'2026-10-29T00:00:00Z',bytes:1}],activeJob:{state:'RUNNING',operation:'RESTORE',phase:'RESTORE_SQL',progress:28},capability:{canCreate:false},jobs:[{operation:'DELETE',state:'FAILED',requestedAt:base.checkedAt,requestedByName:'<private>',message:'<error>'}]};
- const html=backupStatusHtml(data);assert.ok(html.includes('28%'));assert.ok(html.includes('Khôi phục PostgreSQL'));assert.ok(html.includes('Khôi phục đang chạy'));assert.ok(!html.includes('Hệ thống an toàn'));
- const activity=backupStatusHtml(data,{tab:'activity'});assert.ok(activity.includes('&lt;private&gt;'));assert.ok(activity.includes('&lt;error&gt;'));assert.ok(!activity.includes('class="bk-archives"'));
+ const html=backupStatusHtml(data);assert.ok(html.includes('28%'));assert.ok(html.includes('Khôi phục PostgreSQL'));assert.ok(html.includes('Đang chạy'));assert.ok(!html.includes('Hệ thống an toàn'));
+ data.jobs[0].id='failure';
+ const activity=backupStatusHtml(data,{tab:'activity',auditDetailId:'failure'});assert.ok(activity.includes('&lt;private&gt;'));assert.ok(activity.includes('&lt;error&gt;'));assert.ok(!activity.includes('class="bk-archives"'));
 });
 test('archive filters combine text/type and inclusive Vietnam dates before pagination',()=>{
  const records=Array.from({length:12},(_,i)=>({id:`id-${i}`,requestedByName:'Nguyễn Quản Trị',trigger:i%2?'AUTO':'MANUAL',createdAt:'2026-10-31T16:59:59Z'}));
