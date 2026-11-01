@@ -1,0 +1,518 @@
+[
+  {
+    "role": "WAITER",
+    "width": 1440,
+    "body": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 886.171875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "heading": {
+      "fontSize": "18px",
+      "lineHeight": "25.2px",
+      "minHeight": "0px",
+      "height": 25.1875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "650",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "button": {
+      "fontSize": "16px",
+      "lineHeight": "22.4px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "650",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "input": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "10px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "select": {
+      "fontSize": "14px",
+      "lineHeight": "normal",
+      "minHeight": "44px",
+      "height": 51,
+      "padding": "10px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "tabs": {
+      "fontSize": "14px",
+      "lineHeight": "19.6px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "8px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "panel": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 467.6875,
+      "padding": "24px",
+      "borderRadius": "16px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "product": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "210px",
+      "height": 210,
+      "padding": "12px",
+      "borderRadius": "10px",
+      "gap": "8px",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "name": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "auto",
+      "height": 21,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "600",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "meta": {
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "minHeight": "auto",
+      "height": 16.796875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "layout": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 275,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "24px",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "tokens": {
+      "control": "10px",
+      "card": "16px"
+    }
+  },
+  {
+    "role": "WAITER",
+    "width": 390,
+    "body": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 1583.21875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "heading": {
+      "fontSize": "18px",
+      "lineHeight": "25.2px",
+      "minHeight": "0px",
+      "height": 25.1875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "650",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "button": {
+      "fontSize": "16px",
+      "lineHeight": "22.4px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "650",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "input": {
+      "fontSize": "16px",
+      "lineHeight": "24px",
+      "minHeight": "44px",
+      "height": 46,
+      "padding": "10px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "select": {
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "minHeight": "44px",
+      "height": 46,
+      "padding": "10px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "tabs": {
+      "fontSize": "13px",
+      "lineHeight": "18.2px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "8px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "panel": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 921.765625,
+      "padding": "16px 16px 104px",
+      "borderRadius": "16px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "product": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "210px",
+      "height": 210,
+      "padding": "12px",
+      "borderRadius": "10px",
+      "gap": "8px",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "name": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "auto",
+      "height": 21,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "600",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "meta": {
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "minHeight": "auto",
+      "height": 16.796875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "layout": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 589.578125,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "16px",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "tokens": {
+      "control": "10px",
+      "card": "16px"
+    }
+  },
+  {
+    "role": "CASHIER",
+    "width": 1440,
+    "body": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 886.171875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "heading": {
+      "fontSize": "18px",
+      "lineHeight": "25.2px",
+      "minHeight": "0px",
+      "height": 25.1875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "650",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "button": {
+      "fontSize": "16px",
+      "lineHeight": "22.4px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "650",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "input": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "10px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "select": {
+      "fontSize": "14px",
+      "lineHeight": "normal",
+      "minHeight": "44px",
+      "height": 51,
+      "padding": "10px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "tabs": {
+      "fontSize": "14px",
+      "lineHeight": "19.6px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "8px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "panel": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 467.6875,
+      "padding": "24px",
+      "borderRadius": "16px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "product": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "210px",
+      "height": 210,
+      "padding": "12px",
+      "borderRadius": "10px",
+      "gap": "8px",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "name": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "auto",
+      "height": 21,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "600",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "meta": {
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "minHeight": "auto",
+      "height": 16.796875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "layout": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 275,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "24px",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "tokens": {
+      "control": "10px",
+      "card": "16px"
+    }
+  },
+  {
+    "role": "CASHIER",
+    "width": 390,
+    "body": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 1583.21875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "heading": {
+      "fontSize": "18px",
+      "lineHeight": "25.2px",
+      "minHeight": "0px",
+      "height": 25.1875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "650",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "button": {
+      "fontSize": "16px",
+      "lineHeight": "22.4px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "650",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "input": {
+      "fontSize": "16px",
+      "lineHeight": "24px",
+      "minHeight": "44px",
+      "height": 46,
+      "padding": "10px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "select": {
+      "fontSize": "16px",
+      "lineHeight": "normal",
+      "minHeight": "44px",
+      "height": 46,
+      "padding": "10px 12px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "tabs": {
+      "fontSize": "13px",
+      "lineHeight": "18.2px",
+      "minHeight": "44px",
+      "height": 44,
+      "padding": "8px",
+      "borderRadius": "10px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "panel": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 921.765625,
+      "padding": "16px 16px 104px",
+      "borderRadius": "16px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "product": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "210px",
+      "height": 210,
+      "padding": "12px",
+      "borderRadius": "10px",
+      "gap": "8px",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "name": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "auto",
+      "height": 21,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "600",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "meta": {
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "minHeight": "auto",
+      "height": 16.796875,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "normal",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "layout": {
+      "fontSize": "14px",
+      "lineHeight": "21px",
+      "minHeight": "0px",
+      "height": 589.578125,
+      "padding": "0px",
+      "borderRadius": "0px",
+      "gap": "16px",
+      "fontWeight": "400",
+      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+    },
+    "tokens": {
+      "control": "10px",
+      "card": "16px"
+    }
+  }
+]

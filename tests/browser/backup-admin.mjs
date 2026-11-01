@@ -1,9 +1,10 @@
 // Uses only mocked APIs; never restores or deletes production data.
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-import {mkdir} from 'node:fs/promises';
+import {mkdir,readFile} from 'node:fs/promises';
 import {createServer} from 'vite';
 const {chromium}=createRequire(import.meta.url)('playwright');
+const reference=JSON.parse(await readFile('docs/ui/backup-menu-sizing.json','utf8'));
 const server=await createServer({configFile:false,server:{host:'127.0.0.1',port:0}});await server.listen();
 const browser=await chromium.launch({channel:'msedge',headless:true});
 try{
@@ -69,16 +70,23 @@ try{
   const bounds=await page.locator('.backup-console').boundingBox();assert.ok(bounds.width<=1201);assert.ok(bounds.x>=0&&bounds.x+bounds.width<=width);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('[data-backup=create]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(24, 112, 67)');
+  if(width===1440||width===390){
+   const menu=reference.find(item=>item.role==='WAITER'&&item.width===width);
+   const dimensions=await page.evaluate(()=>{const style=selector=>{const s=getComputedStyle(document.querySelector(selector));return {font:s.fontSize,radius:s.borderRadius,minHeight:s.minHeight};};return {button:style('[data-backup=create]'),input:style('[data-backup-filter=query]'),body:style('.backup-console'),name:style('.bk-archives td strong'),meta:style('.bk-archive-actor'),panel:style('.bk-card')};});
+   assert.equal(dimensions.button.font,menu.button.fontSize);assert.equal(dimensions.button.radius,menu.button.borderRadius);assert.equal(dimensions.button.minHeight,menu.button.minHeight);
+   assert.equal(dimensions.input.font,menu.input.fontSize);assert.equal(dimensions.input.radius,menu.input.borderRadius);assert.equal(dimensions.input.minHeight,menu.input.minHeight);
+   assert.equal(dimensions.body.font,menu.body.fontSize);assert.equal(dimensions.name.font,menu.name.fontSize);assert.equal(dimensions.meta.font,menu.meta.fontSize);assert.equal(dimensions.panel.radius,menu.panel.borderRadius);
+  }
   if(width>=1440){
-   const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=140&&overview.height<=165,`overview height ${overview.height} at ${width}px`);
-   const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=56&&row.height<=64,`row height ${row.height}`);
-   assert.equal(await page.locator('.bk-heading h1').evaluate(el=>getComputedStyle(el).fontSize),'22px');
+   const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=140&&overview.height<=190,`overview height ${overview.height} at ${width}px`);
+   const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=64&&row.height<=76,`row height ${row.height}`);
+   assert.equal(await page.locator('.bk-heading h1').evaluate(el=>getComputedStyle(el).fontSize),'24px');
    const filter=await page.locator('.bk-filter-panel>summary').boundingBox(),refresh=await page.locator('[data-backup=refresh]').boundingBox();assert.ok(Math.abs(filter.y-refresh.y)<=1,'filter and refresh share the toolbar baseline');
   }
   if([390,1440,2560].includes(width))await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});
   const menu=page.locator('.bk-row-menu').first();await menu.locator('summary').click();
   for(const kind of ['restore','download','delete']){
-   const rect=await menu.locator(`[data-backup=${kind}]`).boundingBox();assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} menu clipped at ${width}px`);assert.ok(rect.height>=(width===390||width===768?44:36));
+   const rect=await menu.locator(`[data-backup=${kind}]`).boundingBox();assert.ok(rect.x>=0&&rect.x+rect.width<=width,`${kind} menu clipped at ${width}px`);assert.ok(rect.height>=(44));
   }
   assert.equal(await menu.locator('.bk-menu-danger [data-backup=download]').count(),0);
   if(width===1440)await page.screenshot({path:'docs/ui/backup-actions-menu.png',fullPage:true});
@@ -88,7 +96,7 @@ try{
  for(const zoom of [.67,.8,1.25]){
   await page.evaluate(value=>{document.body.style.zoom=String(value);},zoom);
   assert.ok(await page.locator('.backup-console').evaluate(el=>parseFloat(getComputedStyle(el).width)<=1200));
-  assert.ok(await page.locator('[data-backup=create]').evaluate(el=>parseFloat(getComputedStyle(el).minHeight)>=36));
+  assert.ok(await page.locator('[data-backup=create]').evaluate(el=>parseFloat(getComputedStyle(el).minHeight)>=44));
  }
  await page.evaluate(()=>{document.body.style.zoom='';});await page.setViewportSize({width:1440,height:1050});
  const oldFootprint=data.storage.backupBytes;data.backups=[{...originals[0],bytes:4094560}];data.totalBackups=1;data.storage.backupBytes=4100000;

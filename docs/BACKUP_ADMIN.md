@@ -36,3 +36,20 @@ Tổng quan mặc định khoảng 140–165px trên desktop, một hàng trạn
 Tab là tầng điều hướng duy nhất: bỏ tiêu đề card danh sách và bỏ lối tắt Cấu hình cuối trang. Thanh công cụ nhỏ chứa số bản, Bộ lọc và Làm mới. Menu mỗi bản dùng icon ba chấm với title/aria-label; cơ chế xác nhận dữ liệu giữ nguyên.
 
 Typography trong module: tiêu đề trang 22px semibold, tiêu đề khu vực 14px, nội dung 13px, nhãn phụ 12px, chỉ số 20px. Button/input desktop 36px, mobile giữ 44px để thao tác bằng tay. Card padding 16px, section gap 20px, hàng bảng desktop 56–64px. Cột bảng 35/15/12/18/20%. Kiểm thử thêm một bản duy nhất để bảo đảm card không tự kéo chiều cao; ảnh backup-admin-single.png dùng fixture 3,9MB.
+
+## Đồng bộ kích thước theo menu Phục vụ / Thu ngân
+
+Thông số mới ưu tiên kết quả đo trình duyệt của hai màn hình menu, thay cho bộ kích thước 36px ở bản tinh gọn trước. Không sửa các module tham chiếu hoặc bộ chọn chi nhánh.
+
+| Thành phần chung | Đo ở menu | Áp dụng cho Sao lưu |
+| --- | --- | --- |
+| Font / nội dung | Nunito Variable, 14px, line-height 1.5 | Font/token chung, nội dung và tên bản 14px |
+| Nút / pagination menu | 16px (readability.css !important), min-height 44px | 16px, min-height 44px |
+| Input desktop / mobile | 14px / 16px, min-height 44px | 14px / 16px, min-height 44px |
+| Chữ phụ | 12px | 12px |
+| Tiêu đề trong menu | 18px | Tiêu đề khu vực 18px; tiêu đề trang theo workspace 24px |
+| Bo control / panel | 10px / 16px | Dùng --radius-control / --radius-card |
+| Panel desktop / mobile | padding 24px / 16px (không tính footer giỏ hàng riêng) | Bảng/cấu hình 24px / 16px; tổng quan giữ gọn ở 16px |
+| Khoảng cách | 8, 12, 16, 24px | Dùng token --space-* và nhịp chung |
+
+Script tests/browser/backup-menu-scale.mjs mở entry staff thật, vào menu bằng role WAITER và CASHIER với API giả lập, đo computed styles ở 1440/390px và xác nhận hai role dùng cùng kích thước. Kết quả tại docs/ui/backup-menu-sizing.json. tests/browser/backup-admin.mjs so sánh font/control/radius của backup với các giá trị đã đo, cùng các luồng MFA, lọc, menu, lịch và restore monitor. Chiều cao tổng quan/hàng bảng được phép tăng tự nhiên theo kích thước chung, không ép font nhỏ để giữ mốc cũ.

@@ -1,0 +1,32 @@
+{
+  "runUrl": "https://github.com/DuskoRestaurant/Dusko_Restaurant_BE/actions/runs/41258784223",
+  "sourceCommit": "cc78bae4d6c7ca391064604409b68e62cc4ccb0f",
+  "qaCommit": "00428f502f1b5d9ec0fd0907e7bb7babc4fc3fac",
+  "branch": "qa/backup-verification-20261101-menu-scale",
+  "jobs": [
+    {
+      "id": 124707535426,
+      "name": "checks / test-build",
+      "status": "completed",
+      "conclusion": "success",
+      "current": []
+    },
+    {
+      "id": 124707942247,
+      "name": "Test and Publish Image",
+      "status": "completed",
+      "conclusion": "success",
+      "current": []
+    },
+    {
+      "id": 124708329680,
+      "name": "Deploy on EC2",
+      "status": "completed",
+      "conclusion": "skipped",
+      "current": []
+    }
+  ],
+  "integrationProof": [
+    "2026-11-01T00:57:59.1711583Z PASS: real SQL/Mongo/local images restore, safety copy, removal of post-snapshot collections, session revocation"
+  ]
+}
