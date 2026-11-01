@@ -53,3 +53,9 @@ Thông số mới ưu tiên kết quả đo trình duyệt của hai màn hình 
 | Khoảng cách | 8, 12, 16, 24px | Dùng token --space-* và nhịp chung |
 
 Script tests/browser/backup-menu-scale.mjs mở entry staff thật, vào menu bằng role WAITER và CASHIER với API giả lập, đo computed styles ở 1440/390px và xác nhận hai role dùng cùng kích thước. Kết quả tại docs/ui/backup-menu-sizing.json. tests/browser/backup-admin.mjs so sánh font/control/radius của backup với các giá trị đã đo, cùng các luồng MFA, lọc, menu, lịch và restore monitor. Chiều cao tổng quan/hàng bảng được phép tăng tự nhiên theo kích thước chung, không ép font nhỏ để giữ mốc cũ.
+
+## Bảng theo mẫu quản lý danh sách
+
+Tìm kiếm mã/người tạo và lọc loại sao lưu luôn hiển thị ngay phía trên khung bảng; ngày bắt đầu/kết thúc trong Bộ lọc mở rộng. Bảng và chân phân trang dùng chung khung viền mảnh, header nền nhạt, hàng xen kẽ/hover nhẹ và trạng thái dạng pill viền. Cột mã BK rút gọn UUID có thể bấm mở thông tin; tooltip và phần chi tiết giữ ID đầy đủ. Mã rút gọn không dùng làm định danh API.
+
+Phân trang có số trang, trang đầu/cuối và trước/sau, số dòng mỗi trang cùng tổng kết quả trong footer. Các nút số trang hoạt động trên tập metadata đã tải, vẫn có cảnh báo nếu inventory truncated. Không thêm bộ lọc trạng thái giả vì inventory chỉ liệt kê bản hoàn tất; tác vụ thất bại xem ở Nhật ký. Giữ chữ/control theo kích thước đã đo từ menu Phục vụ/Thu ngân và giữ nguyên xác nhận MFA/CONFIRM.

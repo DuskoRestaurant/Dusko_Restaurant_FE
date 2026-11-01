@@ -11,6 +11,7 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
  function renderInventory(){
   const focused=root.contains(document.activeElement)?document.activeElement:null;
   const filter=focused?.dataset?.backupFilter,action=focused?.dataset?.backup,archiveId=focused?.dataset?.archiveId;
+  const focusedPage=focused?.classList?.contains('bk-page-number')?focused.dataset.page:null;
   const selection=filter&&focused.type==='search'?[focused.selectionStart,focused.selectionEnd]:null;
   const scrolls=[...root.querySelectorAll('.table-scroll')].map(el=>el.scrollLeft);
   const expanded=[...root.querySelectorAll('details[data-backup-detail][open]')].map(el=>el.dataset.backupDetail);
@@ -21,7 +22,8 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   view.page=Number(root.querySelector('.bk-pagination')?.dataset.page)||1;
   root.querySelectorAll('.table-scroll').forEach((el,i)=>{el.scrollLeft=scrolls[i]||0;});
   const target=filter?root.querySelector(`[data-backup-filter="${filter}"]`):focusedDetail?[...root.querySelectorAll('details[data-backup-detail]')].find(el=>el.dataset.backupDetail===focusedDetail)?.querySelector('summary'):[...root.querySelectorAll('[data-backup]')].find(el=>el.dataset.backup===action&&(!archiveId||el.dataset.archiveId===archiveId));
-  target?.focus({preventScroll:true});if(selection&&target)target.setSelectionRange(...selection);
+  const pageTarget=focusedPage?[...root.querySelectorAll('.bk-page-number')].find(el=>el.dataset.page===focusedPage):null;
+  (pageTarget||target)?.focus({preventScroll:true});if(selection&&target)target.setSelectionRange(...selection);
  }
  const toast=sharedToast();
  const schedule=()=>{clearTimeout(timer);if(!disposed)timer=setTimeout(()=>void refresh(),pollMs);};
@@ -106,6 +108,7 @@ export function mountBackupAdmin({root,request,canCreate=true,pollMs=4000,onAuth
   else if(kind==='close-details'){view.detailId=null;renderInventory();}
   else if(kind==='clear-filters'){Object.assign(view,{query:'',type:'',from:'',to:'',page:1});renderInventory();}
   else if(kind==='previous-page'||kind==='next-page'){view.page+=kind==='next-page'?1:-1;renderInventory();root.querySelector(`[data-backup="${kind}"]`)?.focus({preventScroll:true});}
+  else if(kind==='goto-page'){const page=Number(button.dataset.page);if(Number.isInteger(page)&&page>=1){view.page=page;renderInventory();root.querySelector('.bk-page-number[aria-current]')?.focus({preventScroll:true});}}
   else if(kind==='relogin'){clearBackupMonitor();onAuthError();}
   else if(kind==='return'){clearBackupMonitor();monitor=null;void refresh();}
   else if(['create','restore','delete','download','schedule'].includes(kind))openOperation(kind,button.dataset.archiveId);

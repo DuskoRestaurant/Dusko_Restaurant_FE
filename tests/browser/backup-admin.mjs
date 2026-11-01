@@ -46,7 +46,7 @@ try{
  assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('.bk-filter-panel').getAttribute('open'),null);
  assert.equal(await page.locator('.bk-activity').count(),0);assert.match(await page.locator('.bk-storage').innerText(),/79%/);assert.equal(await page.locator('.bk-storage--normal').count(),1);assert.equal(await page.locator('.bk-settings-link').count(),0);
  assert.match(await page.locator('.bk-storage').innerText(),/Kho backup/);
- await menuAction('details');await page.getByRole('region',{name:'Thông tin bản sao',exact:true}).waitFor();
+ await page.locator('.bk-record-link').first().click();await page.getByRole('region',{name:'Thông tin bản sao',exact:true}).waitFor();
  assert.match(await page.locator('.bk-archive-detail').innerText(),/tất cả chi nhánh/);assert.match(await page.locator('.bk-archive-detail').innerText(),/Không gồm ảnh cloud/);
  await page.locator('[data-backup=close-details]').click();
  await page.locator('.bk-row-menu').first().locator('summary').click();await page.locator('.bk-row-menu').nth(1).locator('summary').click();
@@ -59,6 +59,10 @@ try{
  await page.locator('[data-backup=refresh]').click();await page.waitForFunction(()=>document.querySelectorAll('.bk-row-menu').length===5);
  await page.locator('.bk-filter-panel>summary').click();await page.getByRole('button',{name:'Trang sau',exact:true}).click();
  assert.match(await page.locator('.bk-pagination').innerText(),/Trang 2 \/ 3/);
+ await page.getByRole('button',{name:'Trang cuối',exact:true}).click();assert.match(await page.locator('.bk-pagination').innerText(),/Trang 3 \/ 3/);assert.equal(await page.locator('.bk-row-menu').count(),2);
+ await page.getByRole('button',{name:'Trang đầu',exact:true}).click();assert.match(await page.locator('.bk-pagination').innerText(),/Trang 1 \/ 3/);
+ await page.locator('.bk-page-number[data-page="2"]').click();assert.match(await page.locator('.bk-pagination').innerText(),/Trang 2 \/ 3/);
+ await page.waitForTimeout(4300);assert.equal(await page.evaluate(()=>document.activeElement?.classList.contains('bk-page-number')&&document.activeElement.dataset.page),'2');
  await page.locator('[data-backup-filter=query]').fill('Tester 8');assert.equal(await page.locator('.bk-row-menu').count(),1);
  await page.waitForTimeout(4300);assert.equal(await page.locator('[data-backup-filter=query]').inputValue(),'Tester 8');assert.equal(await page.locator('.bk-filter-panel').getAttribute('open'),'');
  await page.locator('[data-backup-filter=type]').selectOption('MANUAL');await page.getByRole('heading',{name:'Không có bản sao phù hợp'}).waitFor();
@@ -72,14 +76,14 @@ try{
   assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('[data-backup=create]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(24, 112, 67)');
   if(width===1440||width===390){
    const menu=reference.find(item=>item.role==='WAITER'&&item.width===width);
-   const dimensions=await page.evaluate(()=>{const style=selector=>{const s=getComputedStyle(document.querySelector(selector));return {font:s.fontSize,radius:s.borderRadius,minHeight:s.minHeight};};return {button:style('[data-backup=create]'),input:style('[data-backup-filter=query]'),body:style('.backup-console'),name:style('.bk-archives td strong'),meta:style('.bk-archive-actor'),panel:style('.bk-card')};});
+   const dimensions=await page.evaluate(()=>{const style=selector=>{const s=getComputedStyle(document.querySelector(selector));return {font:s.fontSize,radius:s.borderRadius,minHeight:s.minHeight};};return {button:style('[data-backup=create]'),input:style('[data-backup-filter=query]'),body:style('.backup-console'),name:style('.bk-archives td strong'),meta:style('.bk-archive-actor'),panel:style('.bk-table-frame')};});
    assert.equal(dimensions.button.font,menu.button.fontSize);assert.equal(dimensions.button.radius,menu.button.borderRadius);assert.equal(dimensions.button.minHeight,menu.button.minHeight);
    assert.equal(dimensions.input.font,menu.input.fontSize);assert.equal(dimensions.input.radius,menu.input.borderRadius);assert.equal(dimensions.input.minHeight,menu.input.minHeight);
    assert.equal(dimensions.body.font,menu.body.fontSize);assert.equal(dimensions.name.font,menu.name.fontSize);assert.equal(dimensions.meta.font,menu.meta.fontSize);assert.equal(dimensions.panel.radius,menu.panel.borderRadius);
   }
   if(width>=1440){
    const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=140&&overview.height<=190,`overview height ${overview.height} at ${width}px`);
-   const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=64&&row.height<=76,`row height ${row.height}`);
+   const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=56&&row.height<=64,`row height ${row.height}`);
    assert.equal(await page.locator('.bk-heading h1').evaluate(el=>getComputedStyle(el).fontSize),'24px');
    const filter=await page.locator('.bk-filter-panel>summary').boundingBox(),refresh=await page.locator('[data-backup=refresh]').boundingBox();assert.ok(Math.abs(filter.y-refresh.y)<=1,'filter and refresh share the toolbar baseline');
   }
