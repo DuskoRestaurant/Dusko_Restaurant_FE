@@ -1,0 +1,43 @@
+.ks-policy {
+  padding: 16px 18px;
+  margin: 0 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.ks-policy summary { cursor: pointer; font-weight: 700; }
+.ks-form { margin-top: 14px; }
+.ks-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 12px;
+}
+.ks-fields label { display: grid; gap: 6px; align-content: start; }
+.ks-fields input, .ks-fields select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  padding: 7px 9px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+}
+.ks-form fieldset {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  margin: 16px 0 0;
+  padding: 12px;
+}
+.ks-form small, .ks-help, .ks-status { color: var(--muted); }
+.ks-status:empty { display: none; }
+.ks-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.ks-preview { max-height: 15rem; overflow: auto; margin-bottom: 0; }
+.ks-notice, .ks-timing {
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+}
+.ks-timing { margin: 8px 0; font-size: .9rem; }

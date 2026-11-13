@@ -10,6 +10,7 @@ export const EVENT_TARGETS = {
   'cart.updated': 'cart',
   'order.created': 'orders',
   'kds.updated': 'orders',
+  'kds.schedule.updated': 'kitchen',
   'order.confirmed': 'orders',
   'order.rejected': 'orders',
   'order.served': 'orders',
