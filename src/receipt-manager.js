@@ -8,7 +8,7 @@ const date=value=>new Date(value).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_
 export function mountReceiptManager({root,request,branchId}) {
   let disposed=false, sequence=0, page=1, items=[], closeReceipt;
   const filters={q:'',from:'',to:''};
-  root.innerHTML=`<div class="rm-manager"><div class="rm-heading"><div><h2>Quản lý hóa đơn</h2><p>Tra cứu hóa đơn đã phát hành, xem chi tiết và in lại.</p></div><button type="button" data-rm-refresh>Làm mới</button></div><form class="rm-filters"><label>Tìm hóa đơn<input name="q" type="search" maxlength="100" placeholder="Mã hóa đơn hoặc tên bàn"></label><label>Từ ngày<input name="from" type="date"></label><label>Đến ngày<input name="to" type="date"></label><button type="submit">Tìm kiếm</button><button type="button" data-rm-reset>Xóa lọc</button></form><p data-rm-status role="status"></p><div data-rm-results></div><div class="rm-pagination"><button type="button" data-rm-prev>← Trước</button><span data-rm-page></span><button type="button" data-rm-next>Sau →</button></div></div>`;
+  root.innerHTML=`<div class="rm-manager"><div class="rm-heading"><div><h2>Quản lý hóa đơn</h2><p>Tra cứu hóa đơn đã phát hành, xem chi tiết và in lại.</p></div><button type="button" data-rm-refresh>Làm mới</button></div><form class="rm-filters"><label>Tìm hóa đơn<input name="q" type="search" maxlength="100" placeholder="Mã hóa đơn hoặc tên bàn"></label><label>Từ ngày<input name="from" type="date" aria-describedby="receipt-date-error"></label><label>Đến ngày<input name="to" type="date" aria-describedby="receipt-date-error"></label><p id="receipt-date-error" class="rm-date-error" role="alert" hidden></p><button type="submit">Tìm kiếm</button><button type="button" data-rm-reset>Xóa lọc</button></form><p data-rm-status role="status"></p><div data-rm-results></div><div class="rm-pagination"><button type="button" data-rm-prev>← Trước</button><span data-rm-page></span><button type="button" data-rm-next>Sau →</button></div></div>`;
   const status=root.querySelector('[data-rm-status]'), results=root.querySelector('[data-rm-results]');
   const form=root.querySelector('form'), previous=root.querySelector('[data-rm-prev]'), next=root.querySelector('[data-rm-next]');
   async function load() {
@@ -31,9 +31,12 @@ export function mountReceiptManager({root,request,branchId}) {
     }catch(error){if(disposed||current!==sequence)return;status.textContent=`Không tải được hóa đơn: ${error.message}. Nhấn Làm mới để thử lại.`;root.querySelector('[data-rm-page]').textContent='';}
     finally{if(!disposed&&current===sequence)results.removeAttribute('aria-busy');}
   }
-  form.onsubmit=event=>{event.preventDefault();const fields=new FormData(form);for(const key of Object.keys(filters))filters[key]=fields.get(key).trim();if(filters.from&&filters.to&&filters.from>filters.to){status.textContent='Ngày bắt đầu phải trước ngày kết thúc.';return;}page=1;load();};
+  const dateError=root.querySelector('#receipt-date-error');
+  const validateDates=()=>{const invalid=!!(form.elements.from.value&&form.elements.to.value&&form.elements.from.value>form.elements.to.value);dateError.hidden=!invalid;dateError.textContent=invalid?'Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.':'';for(const name of ['from','to'])form.elements[name].setAttribute('aria-invalid',String(invalid));return !invalid;};
+  form.addEventListener('input',()=>{if(!dateError.hidden)validateDates();});
+  form.onsubmit=event=>{event.preventDefault();if(!validateDates())return;const fields=new FormData(form);for(const key of Object.keys(filters))filters[key]=fields.get(key).trim();page=1;load();};
   root.querySelector('[data-rm-refresh]').onclick=()=>load();
-  root.querySelector('[data-rm-reset]').onclick=()=>{form.reset();for(const key of Object.keys(filters))filters[key]='';page=1;load();};
+  root.querySelector('[data-rm-reset]').onclick=()=>{form.reset();validateDates();for(const key of Object.keys(filters))filters[key]='';page=1;load();};
   previous.onclick=()=>{page--;load();};next.onclick=()=>{page++;load();};
   results.onclick=event=>{const button=event.target.closest('[data-rm-open]');if(button){closeReceipt?.();closeReceipt=showReceipt(items[Number(button.dataset.rmOpen)]);}};
   load();

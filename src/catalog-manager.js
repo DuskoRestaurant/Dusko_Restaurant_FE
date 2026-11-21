@@ -25,8 +25,10 @@ function catalogRows(products,admin,chef){return products.map(p=>{
   const status=catalogStatus(p),label={ready:'Sẵn sàng bán',inactive:'Ngừng bán',recipe:'Chưa có công thức',stock:'Thiếu nguyên liệu'}[status];
   return `<article class="ma-product" data-product-id="${p.id}"><div class="ma-product-name">${productPhoto(p,'product-photo ma-photo')}<div><h3>${e(p.name)}</h3><p>${e(p.category?.name||'Chưa phân nhóm')}</p><small>${e(p.code)} · ${p.requiresPreparation?'Cần chế biến':'Phục vụ trực tiếp'}</small></div></div><strong class="ma-price">${money(p.sellingPrice)}</strong><div class="ma-product-status"><span class="ma-status ma-${status}">${label}</span>${status==='ready'?`<small>Tối đa ${p.maxOrderQuantity??'—'} suất</small>`:''}</div><div class="ma-product-actions">${admin?action('Sửa','edit-product',p.id):''}${admin||chef?action('Công thức','recipe',p.id):''}${admin?action(p.isActive?'Ngừng bán':'Bán lại','toggle-product',p.id):''}</div></article>`;
 }).join('');}
-export function bindCatalog(root,{categories,products,admin,chef}){
-  const state={search:'',category:'all',status:'all',page:1};
+export function bindCatalog(root,{categories,products,admin,chef,viewState={}}){
+  const state=Object.assign(viewState,{search:viewState.search||'',category:viewState.category||'all',status:viewState.status||'all',page:viewState.page||1});
+  if(state.category!=='all'&&!categories.some(c=>String(c.id)===String(state.category)))state.category='all';
+  root.querySelector('#catalog-search').value=state.search;root.querySelector('#catalog-filter').value=state.status;
   const apply=()=>{
     const selected=selectCatalog(products,state);state.page=selected.page;
     root.querySelector('#catalog-results').innerHTML=catalogRows(selected.items,admin,chef);

@@ -26,7 +26,7 @@ import './management.css';
 import './management-workflows.css';
 import { request, uploadProductImage, ApiError, money, number, dateTime, tomorrow, escapeHtml as e } from './api.js';
 import { readQueue, saveQueue, pendingFor, applySyncResults } from './offline.js';
-import { locationsHtml, catalogHtml, numberField, recipeEntries } from './management.js';
+import { locationsHtml, bindLocations, catalogHtml, numberField, recipeEntries } from './management.js';
 import { productPhoto } from './product-photo.js';
 import { API_BASE } from './api.js';
 import { createServiceWorkspace } from './service-workspace.js';
@@ -34,13 +34,15 @@ import { confirmDialog } from './confirm-dialog.js';
 import { showQrPreview } from './qr-preview.js';
 import './font.css';
 import './forecast.css';
-import { kitchenControls, kitchenPanel, kitchenAgeText } from './kitchen-view.js';
+import { kitchenControls, renderKitchenPanel, kitchenAgeText } from './kitchen-view.js';
 import { mountKitchenPolicy, readKitchenSchedule } from './kitchen-scheduling.js';
 import { navIcon } from './ui-icons.js';
 import { createReadCache } from './read-cache.js';
 
 const app = document.querySelector('#app');
 let serviceWorkspace;
+const catalogViews=new Map();
+const catalogView=()=>{const key=state.user?.id+':'+state.branch;if(!catalogViews.has(key))catalogViews.set(key,{});return catalogViews.get(key);};
 function readSessionUser() { try { return JSON.parse(sessionStorage.getItem('dusko_user') || 'null'); } catch { sessionStorage.removeItem('dusko_user'); return null; } }
 document.addEventListener('error', event => {
   const image = event.target;
@@ -51,7 +53,7 @@ document.addEventListener('error', event => {
     image.replaceWith(placeholder);
   }
 }, true);
-const state = { page: ['pipeline','combos','users','backups'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null };
+const state = { page: ['pipeline','combos','users','backups'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null, kitchenError:null };
 const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['receipts','Hóa đơn','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'], ['backups','Sao lưu dữ liệu','▦'] ];
 const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','receipts','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'] };
 // Split lock (user decision 2026-10-25): management is ADMIN/MANAGER only.
@@ -192,6 +194,7 @@ function shell() {
 function title(kicker, heading, text, tools='') { return `<div class="page-head"><div><h1>${heading}</h1><p>${text}</p></div><div class="head-tools">${tools}</div></div>`; }
 function render(html) { document.querySelector('#page').innerHTML=html; }
 async function loadPage() {
+  if(state.page==='catalog'&&document.querySelector('#menu-admin'))catalogView().scrollY=window.scrollY;
   const loadSeq=++state.pageLoadSeq;
   serviceWorkspace?.destroy(); serviceWorkspace=null;
   if(!state.token || !state.user) { showEntry(); return; }
@@ -216,6 +219,7 @@ async function loadPage() {
       if (!stillCurrent()) return;
       state.data.batches = batches;
       state.data.kitchenSchedule = null;
+      state.kitchenError=null;state.kitchenLastUpdated=null;
       kitchen();
       void refreshKitchen(false, batches);
     }
@@ -293,7 +297,7 @@ function kitchen() {
 }
 function updateKitchenLive() {
   const root=document.querySelector('#kds-live');if(!root)return;
-  root.innerHTML=kitchenPanel({batches:state.data.batches||[],status:state.kitchenStatus,station:state.kitchenStation,updated:state.kitchenLastUpdated,schedule:state.data.kitchenSchedule});
+  renderKitchenPanel(root,{batches:state.data.batches||[],status:state.kitchenStatus,station:state.kitchenStation,updated:state.kitchenLastUpdated,schedule:state.data.kitchenSchedule,error:state.kitchenError});
 }
 function inventory() {
   const number=value=>new Intl.NumberFormat('vi-VN',{maximumFractionDigits:3}).format(Number(value)||0);
@@ -431,8 +435,8 @@ async function exportRevenue() {
   toast(`Đã xuất ${report.real.orderCount} đơn thật và ${report.synthetic.orderCount} đơn giả lập.`);
 }
 
-function locations() { render(title('THIẾT LẬP','Chi nhánh, bàn và QR','Quản lý khu vực phục vụ, trạng thái bàn và mã QR cố định.',btn('Làm mới','reload','secondary')) + locationsHtml({branches:access(['ADMIN'])?state.data.branches:state.data.branches.filter(b=>b.id===state.branch),tables:state.data.tables,qr:state.data.qr||[],branchId:state.branch,admin:access(['ADMIN']),canManageQr:access(['ADMIN','MANAGER'])})); }
-function catalog() { const data={categories:state.data.categories,products:state.data.products,admin:access(['ADMIN']),chef:access(['ADMIN','MANAGER','CHEF'])}; render(title('THỰC ĐƠN','Món & nhóm món','Sắp xếp thực đơn, giá bán và công thức chế biến.',btn('Làm mới','reload','secondary')) + catalogHtml(data)); bindCatalog(document.querySelector('#menu-admin'),data); }
+function locations() { render(title('THIẾT LẬP','Chi nhánh, bàn và QR','Quản lý khu vực phục vụ, trạng thái bàn và mã QR cố định.',btn('Làm mới','reload','secondary')) + locationsHtml({branches:access(['ADMIN'])?state.data.branches:state.data.branches.filter(b=>b.id===state.branch),tables:state.data.tables,qr:state.data.qr||[],branchId:state.branch,admin:access(['ADMIN']),canManageQr:access(['ADMIN','MANAGER'])})); bindLocations(document.querySelector('#locations-manager')); }
+function catalog() { const data={categories:state.data.categories,products:state.data.products,admin:access(['ADMIN']),chef:access(['ADMIN','MANAGER','CHEF'])}; render(title('THỰC ĐƠN','Món & nhóm món','Sắp xếp thực đơn, giá bán và công thức chế biến.',btn('Làm mới','reload','secondary')) + catalogHtml(data)); bindCatalog(document.querySelector('#menu-admin'),{...data,viewState:catalogView()}); requestAnimationFrame(()=>window.scrollTo({top:catalogView().scrollY||0})); }
 
 function formModal(heading, fields, submit, {description='',submitLabel='Lưu'}={}) {
   document.querySelector('.modal-wrap')?.remove();
@@ -579,10 +583,12 @@ async function refreshKitchen(strict = false, initialBatches) {
     state.data.batches = batches;
     state.data.kitchenSchedule = schedule;
     state.kitchenLastUpdated = new Date();
+    state.kitchenError=null;
     updateKitchenLive();
   } catch (error) {
     if (!current()) return;
     state.data.kitchenSchedule = null;
+    state.kitchenError=error.message;
     updateKitchenLive();
     if (strict) throw error;
     toast(`Không thể cập nhật màn hình bếp: ${error.message}`, true);

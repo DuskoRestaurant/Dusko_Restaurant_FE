@@ -43,7 +43,7 @@ try {
   await page.locator('[data-rm-prev]').click();await page.getByText(receipt.snapshot.code,{exact:true}).waitFor();
   await page.locator('[name=q]').fill('none');await page.getByRole('button',{name:'Tìm kiếm',exact:true}).click();await page.getByRole('heading',{name:'Không có hóa đơn',exact:true}).waitFor();checks++;
   await page.locator('[data-rm-reset]').click();await page.locator('.rm-row').waitFor();
-  await page.locator('[name=from]').fill('2026-10-26');await page.locator('[name=to]').fill('2026-10-25');await page.getByRole('button',{name:'Tìm kiếm',exact:true}).click();assert.match(await page.locator('[data-rm-status]').innerText(),/Ngày bắt đầu/);checks++;
+  await page.locator('[name=from]').fill('2026-10-26');await page.locator('[name=to]').fill('2026-10-25');await page.getByRole('button',{name:'Tìm kiếm',exact:true}).click();assert.match(await page.locator('#receipt-date-error').innerText(),/Ngày bắt đầu/);checks++;
   await page.locator('[data-rm-reset]').click();await page.locator('.rm-row').waitFor();
   fail=true;await page.locator('[data-rm-refresh]').click();await page.getByText(/Không tải được hóa đơn/).waitFor();fail=false;await page.locator('[data-rm-refresh]').click();await page.locator('.rm-row').waitFor();checks++;
   for(const width of [320,390,768,1440]){
