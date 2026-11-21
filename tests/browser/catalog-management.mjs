@@ -5,7 +5,7 @@ import {mkdir} from 'node:fs/promises';
 const {chromium}=createRequire(import.meta.url)('playwright');
 const server=await createServer({configFile:'vite.config.js',server:{host:'127.0.0.1',port:0}});await server.listen();
 const browser=await chromium.launch({channel:'msedge',headless:true});
-await mkdir('docs/ui',{recursive:true});
+const output=process.env.DUSKO_UI_OUTPUT||'docs/ui';await mkdir(output,{recursive:true});
 let checks=0;
 try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
@@ -35,7 +35,7 @@ try{
   for(const width of [1440,1024,390]){
     await page.setViewportSize({width,height:1000});
     const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth}));assert.ok(size.scroll<=size.width+1,JSON.stringify(size));
-    await page.screenshot({path:`docs/ui/catalog-${width}.png`,fullPage:true});checks++;
+    await page.screenshot({path:`${output}/catalog-${width}.png`,fullPage:true});checks++;
   }
   await page.setViewportSize({width:1440,height:1000});
   await page.locator('[data-action="delete-category"][data-id="1"]').click();
