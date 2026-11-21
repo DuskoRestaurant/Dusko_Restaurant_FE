@@ -20,3 +20,9 @@ export function filterServiceTables(tables, {search='', filter='ALL',prioritizeP
       filter==='CALL' && count(t,'serviceRequestCount')>0 || filter==='CONFIRM' && count(t,'unconfirmedOrderCount')>0 || filter==='READY' && count(t,'readyQuantity')>0))
     .sort((a,b)=>priority(b)-priority(a)||a.tableName.localeCompare(b.tableName,'vi',{numeric:true}));
 }
+
+export function groupServiceTables(tables){
+  const groups=[{id:'attention',label:'Cần xử lý',items:[]},{id:'serving',label:'Đang phục vụ',items:[]},{id:'empty',label:'Bàn trống',items:[]},{id:'reserved',label:'Đã đặt trước',items:[]}];
+  for(const table of tables){const index=table.serviceRequestCount||table.unconfirmedOrderCount||table.readyQuantity||table.billRequested||table.checkoutReady?0:table.status==='SERVING'?1:table.status==='EMPTY'?2:3;groups[index].items.push(table);}
+  return groups.filter(group=>group.items.length);
+}
