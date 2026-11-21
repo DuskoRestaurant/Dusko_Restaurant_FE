@@ -1,4 +1,4 @@
-@import '@fontsource-variable/nunito';
+@import '@fontsource-variable/inter';
 
 :root{font-family:var(--font-ui);font-synthesis:none;font-optical-sizing:auto}
 body,button,input,select,textarea,.service-workspace,.brand,.brand strong,.brand-mark,.nav-item,.page-head h1,.panel-head h2,.metric strong,.modal h2,.batch-card h2,.batch-qty strong,.kds-summary strong,.kds-code,.kds-dish h2,.kds-count strong,.kds-board>section>header h2,.kds-time strong{font-family:var(--font-ui)}

@@ -1,22 +1,133 @@
-/* Shared controls and shell branding. Feature layouts live in their own stylesheet. */
-:where(button,input,select,textarea){font:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--focus-ring);outline-offset:3px}[hidden]{display:none!important}
-body{background:var(--canvas);color:var(--ink)}.dusko-logo{display:block;width:56px;height:56px;object-fit:contain;flex-shrink:0;border-radius:10px;background:#091c2a}.entry-brand,.customer-app-header .brand,.guest-entry-brand{display:flex;align-items:center;gap:14px}.entry-brand .dusko-logo,.entry-form-logo .dusko-logo{width:80px;height:80px}.staff-app-header{background:var(--brand-1);color:var(--on-brand)}.staff-app-header>b{display:flex;align-items:center;gap:12px}.staff-app-header small{display:block;margin:0;color:var(--on-brand)}.staff-app-header>div{display:flex;gap:8px;flex-wrap:wrap}.staff-app-header+main{min-width:0}.staff-work-nav{flex-wrap:wrap}.role-picker{max-width:760px;margin:8vh auto;padding:24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card)}.role-picker>div{display:flex;gap:12px;flex-wrap:wrap}.role-picker button{min-height:56px;flex:1;padding:16px;background:var(--primary);color:var(--on-primary);border:0;border-radius:var(--radius-control);font:inherit;cursor:pointer}
-.layout .sidebar{overflow-y:auto}.layout .sidebar nav{display:block}.layout .nav-group{margin:0 0 8px;border:0}.layout .nav-group>summary{padding:12px 10px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer}.layout .nav-group>div{display:grid;gap:4px}.layout .brand{padding-bottom:20px}.layout .nav-item.active{background:var(--accent-soft);color:var(--ink);box-shadow:inset 3px 0 var(--accent)}
-.btn.primary,.sw-button.sw-primary,.entry-submit,.receipt-actions button,.rm-filters button[type=submit],.staff-work-nav button[aria-pressed=true]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}.btn.secondary,.sw-button{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}.btn,.sw-button,.receipt-actions button{min-height:44px;border-radius:var(--radius-control)}.sw-ready .sw-primary{background:var(--success-soft);color:var(--success);border-color:var(--success)}.sw-table-summary b{color:var(--ink)}.sw-quick-filters{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.sw-quick-filters button{min-height:44px;padding:10px 16px;border:1px solid var(--line-strong);border-radius:var(--radius-control);font:inherit;background:var(--surface);color:var(--ink);cursor:pointer}.sw-quick-filters button[aria-pressed=true]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}.sw-sync,.customer-sync{font-size:13px;color:var(--muted);margin:0 0 12px}.sw-customer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;margin-bottom:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card)}.sw-customer p{margin:4px 0;color:var(--muted);font-size:14px}
-.sw-customer-dialog{box-sizing:border-box;width:460px;max-width:calc(100vw - 24px);max-height:90dvh;overflow:auto;border:1px solid var(--line);border-radius:var(--radius-card);padding:24px;background:var(--surface);color:var(--ink)}.sw-customer-dialog::backdrop{background:var(--backdrop)}.sw-customer-dialog label,.customer-lookup label,.customer-recognition label{display:grid;gap:8px;margin:16px 0}.sw-customer-dialog input:not([type=checkbox]),.customer-lookup input,.customer-recognition input{width:100%;box-sizing:border-box;min-height:44px;padding:10px;border:1px solid var(--line-strong);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);font:inherit}.sw-customer-dialog .sw-customer-check{display:flex;align-items:start;gap:10px;font-size:14px}.sw-customer-dialog [type=checkbox]{width:20px;height:20px;flex-shrink:0}.sw-customer-dialog button,.customer-lookup button,.customer-recognition button{min-height:44px;padding:10px 16px;border:1px solid var(--line-strong);border-radius:var(--radius-control);font:inherit;background:var(--surface);color:var(--ink);cursor:pointer}.sw-customer-dialog button[type=submit],.customer-lookup button[type=submit],.customer-recognition button[type=submit]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}.sw-customer-dialog form>div{display:flex;gap:10px;flex-wrap:wrap}.sw-customer-dialog [data-error]{color:var(--danger)}.customer-lookup{padding:24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card)}.customer-lookup form{max-width:480px}.customer-lookup details{margin-top:24px}.customer-lookup summary,.customer-recognition summary{cursor:pointer;font-weight:700}.customer-recognition{margin:24px 0;padding:20px;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--surface);color:var(--ink)}.customer-recognition form{max-width:440px}.recognition-choices{display:flex;flex-wrap:wrap;gap:8px}.recognition-choices button[aria-pressed=true]{background:var(--accent-soft);color:var(--ink)}
-body:has(.customer-layout)>#app>.customer-app-header{background:var(--brand-1);color:var(--on-brand)}body:has(.customer-layout) .customer-app-header .brand span{color:var(--on-brand);font-size:16px}body:has(.customer-layout) .cart h2{color:var(--on-primary)}body:has(.customer-layout) .cart .primary{color:var(--on-primary)}
-@media(max-width:760px){.layout .sidebar nav{display:flex;align-items:start;gap:10px;overflow:visible;flex-wrap:wrap}.layout .nav-group{flex:1 1 140px}.layout .nav-group>div{display:grid}.layout .nav-item{width:100%;white-space:normal}.layout .sidebar .brand{display:flex;padding:0 0 12px}.layout .sidebar .brand div{display:block}.layout .dusko-logo{width:44px;height:44px}.staff-app-header{align-items:start;padding:12px}.staff-app-header>div{justify-content:flex-end}.staff-app-header button{font-size:12px;padding:6px 9px}.staff-app-header>b{gap:8px}.staff-app-header .dusko-logo{width:42px;height:42px}.sw-customer{align-items:start;flex-direction:column}.staff-work-nav button{flex:1;padding:10px;font-size:14px}.customer-app-header .brand span{font-size:12px!important}.customer-app-header .dusko-logo{width:44px;height:44px}.entry-brand .dusko-logo{width:48px;height:48px}.role-picker{margin:24px 12px}.role-picker>div{flex-direction:column}}
+button { touch-action: manipulation; }
+a { color: var(--primary-ink); }
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+/* Shared controls. Workflow-specific layout belongs to the component. */
+* { box-sizing: border-box; }
+:where(button, input, select, textarea) { font: inherit; }
+:where(button, a, input, select, textarea, summary) { touch-action: manipulation; }
+:where(button, summary) { cursor: pointer; }
+:where(button, input, select, textarea, summary, a):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+:where(input, select, textarea) { accent-color: var(--primary); }
+:where(h1) { font-size: var(--fs-h1); font-weight: 600; line-height: 1.3; }
+:where(h2) { font-size: var(--fs-h2); font-weight: 600; line-height: 1.4; }
+:where(h3, h4) { font-size: var(--fs-h3); font-weight: 600; line-height: 1.5; }
+:where(strong, b) { font-weight: 600; }
+:where(a) { text-underline-offset: 3px; }
+:where(small) { font-size: var(--fs-small); }
+:where(td, output, .total, .sw-bill-total, .ma-price, .metric strong, .ui-metric strong) { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+.dusko-logo { display: block; width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; border-radius: var(--radius-control); }
+.btn, .sw-button, .receipt-actions button, .rm-filters button[type=submit] {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--button-md); padding: 8px 16px; border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control); font-size: 14px; font-weight: 600; line-height: 1.4;
+  background: var(--surface); color: var(--ink); text-decoration: none; box-shadow: none;
+}
+.btn.primary, .sw-button.sw-primary, .receipt-actions button, .rm-filters button[type=submit] { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.btn.primary:hover:not(:disabled), .sw-button.sw-primary:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); }
+.btn.secondary:hover:not(:disabled), .sw-button:hover:not(:disabled) { background: var(--surface-sunken); }
+.btn.text, .btn.ghost { background: transparent; border-color: transparent; color: var(--primary-ink); }
+.btn.text:hover:not(:disabled), .btn.ghost:hover:not(:disabled) { background: var(--primary-soft); }
+.btn.destructive { background: var(--danger); color: var(--on-primary); border-color: var(--danger); }
+.btn.destructive:hover:not(:disabled) { background: var(--danger-hover); border-color: var(--danger-hover); }
+.btn.small, .btn[data-size=small] { min-height: var(--button-sm); padding: 4px 12px; }
+.btn[data-size=large] { min-height: var(--button-lg); }
+.btn[data-size=extra-large] { min-height: var(--button-xl); }
+:where(button):active:not(:disabled) { filter: brightness(.96); }
+:where(button):disabled { cursor: not-allowed; }
+.btn:disabled, .sw-button:disabled, .primary:disabled, .entry-submit:disabled {
+  background: var(--surface-sunken); color: var(--muted); border-color: var(--line); opacity: 1;
+}
+:where(button)[aria-busy=true], :where(form)[aria-busy=true] { cursor: progress; }
+.field, .manage-form label { display: grid; gap: 8px; color: var(--ink); font-size: 14px; font-weight: 400; }
+.field input, .field select, .manage-form input:not([type=checkbox]), .manage-form select, .manage-form textarea, .stock-control input, .rm-manager input {
+  min-height: 40px; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  color: var(--ink); background: var(--surface); font-size: 14px; font-weight: 400;
+}
+:where(input, select, textarea)[aria-invalid=true] { border-color: var(--danger); }
+.form-error, [data-error] { color: var(--danger); }
+.manage-form { gap: 16px; }
+.manage-form label.check-field { display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: var(--surface-sunken); border-radius: var(--radius-control); }
+.manage-form .check-field input { width: 20px; height: 20px; flex: none; margin: 0; }
+.sw-customer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.sw-customer p { margin: 4px 0; color: var(--muted); font-size: 13px; }
+.sw-customer-dialog { width: min(460px, calc(100vw - 32px)); max-height: 90dvh; overflow: auto; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface); color: var(--ink); }
+.sw-customer-dialog::backdrop { background: var(--backdrop); }
+.sw-customer-dialog label, .customer-lookup label, .customer-recognition label { display: grid; gap: 8px; margin: 16px 0; }
+.sw-customer-dialog input:not([type=checkbox]), .customer-lookup input, .customer-recognition input { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); }
+.sw-customer-dialog .sw-customer-check { display: flex; align-items: start; gap: 12px; font-size: 14px; }
+.sw-customer-check input { width: 20px; height: 20px; flex: none; }
+.sw-customer-dialog button, .customer-lookup button, .customer-recognition button { min-height: 48px; padding: 8px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); }
+.sw-customer-dialog button[type=submit], .customer-lookup button[type=submit], .customer-recognition button[type=submit] { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.sw-customer-dialog form>div, .recognition-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.recognition-choices button[aria-pressed=true] { background: var(--primary-soft); color: var(--primary-ink); border-color: var(--primary); }
+.customer-lookup { padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.customer-lookup form, .customer-recognition form { max-width: 480px; }
+.customer-lookup details, .customer-recognition { margin-top: 24px; }
+.customer-lookup summary, .customer-recognition summary { min-height: 44px; font-weight: 600; }
+.customer-recognition { padding: 16px 0; border-top: 1px solid var(--line); }
+.staff-work-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.staff-work-nav button { min-height: 48px; padding: 8px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); }
+.staff-work-nav button[aria-pressed=true] { background: var(--primary-soft); color: var(--primary-ink); border-color: var(--primary); }
+.sw-sync, .customer-sync { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+.pos-cart-jump { display: none; }
+.role-picker { max-width: 1080px; margin: 48px auto; padding: 32px; }
+.role-picker-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.role-picker-header button { min-height: 48px; padding: 8px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); }
+.role-picker h1 { margin: 32px 0 8px; font-size: 24px; font-weight: 600; }
+.role-picker>p { color: var(--muted); }
+.role-picker-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; }
+.role-card { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 12px; padding: 24px; min-height: 192px; border: 1px solid var(--line-strong); border-radius: var(--radius-card); background: var(--surface); color: var(--ink); }
+.role-card:hover:not(:disabled) { background: var(--primary-soft); border-color: var(--primary); }
+.role-card strong { font-size: 18px; font-weight: 600; }
+.role-card>span { font-size: 14px; line-height: 1.5; }
+.role-card-enter { margin-top: auto; color: var(--primary-ink); font-weight: 600; }
+.role-picker-note { font-size: 13px; }
+.role-picker [data-picker-error] { color: var(--danger); }
+@media (max-width: 760px) {
+  .btn { min-height: var(--tap-min); }
+  .sw-customer { align-items: flex-start; flex-direction: column; }
+  .role-picker { margin: 16px auto; padding: 16px; }
+  .role-picker-grid { grid-template-columns: 1fr; }
+  .role-card { min-height: 0; padding: 16px; }
+  .staff-work-nav button { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
 
-.staff-identity strong{color:var(--ink)}.staff-identity small{color:var(--muted)}.rm-manager input,.rm-manager input[type=search]{background:var(--surface);color:var(--ink);border-color:var(--line-strong)}.staff-work-nav button{background:var(--surface);color:var(--ink)}.staff-work-nav button[aria-pressed=true]{background:var(--primary);color:var(--on-primary)}
-body:has(.customer-layout) .customer-app-header p,body:has(.customer-layout) .customer-app-header .brand span{color:var(--on-brand)}body:has(.customer-layout) .customer-app-header .brand span{display:inline;max-width:150px;white-space:normal}.sw-cart h3,.sw-table-summary b{color:var(--ink)}
-@media(max-width:600px){.service-workspace .sw-heading{display:block}.service-workspace .sw-heading>.sw-actions{display:flex;flex-direction:row;gap:8px;flex-wrap:wrap;margin-top:12px}.service-workspace .sw-heading>.sw-actions>.sw-button,.service-workspace .sw-heading>.sw-actions>[data-sw-empty-close]{flex:1 1 auto}.service-workspace .sw-heading>.sw-actions>[data-sw-empty-close]>.sw-button{width:100%}.service-workspace .sw-heading>.sw-actions>[data-sw-empty-close]:empty{display:none}.service-workspace .sw-heading h2{margin:12px 0 4px}.customer-app-header .brand span{font-size:11px!important;max-width:115px!important}}
+/* Global primitives are shared across all three application entry points. */
+*, *::before, *::after { box-sizing: border-box; }
+html { font-size: 16px; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 400 14px/1.5 var(--font-ui); }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, summary { touch-action: manipulation; }
+button { cursor: pointer; }
+:where(a) { color: var(--primary-ink); }
+:where(button, a, input, select, textarea, summary):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+:where(input, textarea)::placeholder { color: var(--muted); opacity: 1; }
+:where(input, select, textarea):not([type=checkbox]):not([type=radio]) { border-color: var(--line-strong); }
+:where(input, textarea)[aria-invalid=true] { border-color: var(--danger); }
+:where(input[type=checkbox], input[type=radio]) { accent-color: var(--primary); }
+h1, h2, h3, h4, strong, b { font-weight: 600; }
+h1 { font-size: 24px; }
+h2 { font-size: 18px; }
+h3, h4 { font-size: 16px; }
+dialog.modal-wrap { position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 16px; border: 0; background: transparent; display: grid; place-items: center; z-index: 1000; overflow: auto; }
+dialog.modal-wrap::backdrop { background: var(--backdrop); }
+.modal { width: min(480px, 100%); max-height: calc(100dvh - 32px); overflow: auto; position: relative; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface); color: var(--ink); }
+.modal h2 { margin: 0 48px 16px 0; font-size: 18px; }
+.modal p { color: var(--muted); font-size: 14px; }
+.modal-close { position: absolute; right: 8px; top: 8px; width: 44px; height: 44px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--muted); font-size: 24px; }
+.service-workspace label { display: grid; gap: 8px; font-size: 14px; font-weight: 400; }
+.service-workspace .sw-filter[aria-pressed=true] { background: var(--primary-soft); color: var(--primary-ink); border-color: var(--primary); box-shadow: none; }
+.service-workspace .sw-tabs button[aria-selected=true] { background: var(--primary-soft); color: var(--primary-ink); font-weight: 600; }
+.service-workspace .sw-progress { background: var(--surface-sunken); }
+.service-workspace .sw-button.sw-primary[data-sw=confirm], .service-workspace .sw-button.sw-primary[data-sw=serve] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.service-workspace .sw-button.sw-primary[data-sw=confirm]:hover:not(:disabled), .service-workspace .sw-button.sw-primary[data-sw=serve]:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); }
+.dusko-toast__icon { color: var(--ink); }
+.dusko-toast__close { width: 44px; min-height: 44px; border-radius: var(--radius-control); }
+.account-dialog input, .account-form input, .account-form select { min-height: 44px; background: var(--surface); color: var(--ink); }
+.account-dialog h2 { font-size: 18px; }
 
-body:has(.customer-layout) .cart h2 span{color:inherit}
-.service-workspace .sw-photo>span{color:var(--muted)}
-:where(input,textarea)::placeholder{color:var(--muted);opacity:1}
-
-/* Staff landing: each employee chooses a workspace after sign-in or reload. */
-.role-picker{max-width:1080px;margin:6vh auto;padding:32px}.role-picker .role-picker-header{display:flex;align-items:center;justify-content:space-between;flex-direction:row}.role-picker-header button{flex:none;min-height:44px;padding:10px 16px;background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}.role-picker h1{font-size:clamp(26px,4vw,36px);margin:28px 0 10px}.role-picker>p{color:var(--muted)}.role-picker .role-picker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:28px 0}.role-picker .role-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:14px;padding:24px;min-height:250px;background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}.role-picker .role-card:hover:not(:disabled){background:var(--primary-soft);border-color:var(--primary)}.role-card:disabled{opacity:.6;cursor:wait}.role-card strong{font-size:25px}.role-card>span{font-size:15px;line-height:1.6}.role-card .role-card-number{color:var(--accent);font-weight:700;font-size:18px}.role-card .role-card-enter{margin-top:auto;color:var(--primary-ink);font-weight:700}.role-picker-note{font-size:14px}.role-picker [data-picker-error]{color:var(--danger)}
-@media(max-width:700px){.role-picker{margin:16px 12px;padding:20px}.role-picker .role-picker-grid{grid-template-columns:1fr;gap:12px;margin:22px 0}.role-picker .role-card{min-height:0;padding:20px;gap:10px}.role-card .role-card-number{display:none}}
-
-body:has(.role-picker){display:flow-root;min-height:100dvh}
+.role-card strong{font-size:var(--fs-h3)}

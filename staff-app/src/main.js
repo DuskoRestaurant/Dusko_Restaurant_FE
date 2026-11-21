@@ -11,9 +11,7 @@ import {mountLogin,managementUrl} from '../../src/app-entry.js';
 import './style.css';
 import {createServiceWorkspace} from '../../src/service-workspace.js';
 import {staffShellsFor, shellLabels, shellDescriptions} from './role-picker.js';
-import '../../src/readability.css';
 import '../../src/font.css';
-import '../../src/pos-theme.css';
 
 
 const api = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
@@ -43,7 +41,7 @@ async function startWorkspace(selectedShell=null) {
   if(!shells.length)throw Error('Tài khoản chưa có vai trò làm việc. Liên hệ quản lý.');
   const shell=shells.includes(selectedShell)?selectedShell:null;
   if(!shell){
-    app.innerHTML=`<main class="role-picker"><div class="role-picker-header"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><button type="button" data-picker-logout>Đăng xuất</button></div><h1>Chọn khu vực làm việc</h1><p>Xin chào ${esc(auth.user.fullName)}. Chọn công việc bạn muốn thực hiện trong ca.</p><div class="role-picker-grid">${shells.map((id,index)=>`<button type="button" class="role-card" data-shell="${id}"><span class="role-card-number" aria-hidden="true">0${index+1}</span><strong>${shellLabels[id]}</strong><span>${shellDescriptions[id]}</span><span class="role-card-enter">Vào khu vực →</span></button>`).join('')}</div><p class="role-picker-note">Bạn có thể đổi khu vực bất cứ lúc nào. Các thao tác được ghi nhận bằng tài khoản của bạn.</p><p role="status" data-picker-error></p></main>`;
+    app.innerHTML=`<main class="role-picker"><div class="role-picker-header"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><button type="button" data-picker-logout>Đăng xuất</button></div><h1>Chọn khu vực làm việc</h1><p>Xin chào ${esc(auth.user.fullName)}. Chọn công việc bạn muốn thực hiện trong ca.</p><div class="role-picker-grid">${shells.map((id,index)=>`<button type="button" class="role-card" data-shell="${id}"><strong>${shellLabels[id]}</strong><span>${shellDescriptions[id]}</span><span class="role-card-enter">Vào khu vực</span></button>`).join('')}</div><p class="role-picker-note">Bạn có thể đổi khu vực bất cứ lúc nào. Các thao tác được ghi nhận bằng tài khoản của bạn.</p><p role="status" data-picker-error></p></main>`;
     app.querySelector('[data-picker-logout]').onclick=()=>{auth=null;sessionStorage.removeItem('dusko-auth');sessionStorage.removeItem('dusko-shell');renderLogin();};
     let selecting=false;
     app.querySelectorAll('[data-shell]').forEach(button=>button.onclick=async()=>{

@@ -1,178 +1,81 @@
-/* =============================================================================
-   Dusko design tokens — the single authoritative source of colour, type,
-   spacing, radius and elevation for all three frontends (management console,
-   staff POS and customer QR ordering).
-
-   Rules for this file:
-   - Nothing else may define these variables. If a stylesheet needs a new
-     value, add a semantic token here instead of redefining an existing one.
-   - `--primary` is a FILL colour (text on it must be --on-primary).
-     `--primary-ink` is the text/link form of the brand colour.
-   - `--line` is a subtle divider. `--line-strong` is for essential UI
-     boundaries (inputs, focusable controls) and meets 3:1.
-
-   Every value below is verified with tools/contrast.js (WCAG AA, both themes).
-   Run `node tools/contrast.js` after editing.
-   ========================================================================== */
-
+/* Shared values for management, staff POS and customer ordering.
+   The requested palette stays light regardless of the operating system.
+   --line is a divider; --line-strong is an accessible control boundary. */
 :root {
   color-scheme: light;
-
-  /* --- Surfaces ---------------------------------------------------------- */
-  --canvas:         #F5F7F8;  /* app background, light neutral                  */
-  --surface:        #FFFFFF;  /* cards, panels, dialogs                      */
-  --surface-sunken: #EEF2F4;  /* table headers, inset wells                   */
-  --surface-raised: #FAFCFD;  /* emphasis panels                             */
-  --surface-brand:  #F4ECD6;  /* tinted brand surface (steppers, draft cards) */
-
-  /* --- Text -------------------------------------------------------------- */
-  --ink:            #142D3D;  /* headings and primary text                    */
-  --muted:          #536775;  /* secondary text, labels, captions            */
-  --on-primary:     #FFFFFF;  /* text placed on a --primary fill             */
-  --on-brand:       #FFFFFF;  /* text placed on a --brand fill               */
-
-  /* --- Lines ------------------------------------------------------------- */
-  --line:           #D9E1E5;  /* subtle divider                              */
-  --line-strong:    #7B8F9B;  /* essential control boundary (3:1)            */
-
-  /* --- Brand ------------------------------------------------------------- */
-  --primary:        #123246;  /* navy fill, buttons                    */
-  --primary-dark:   #0B2030;  /* hover / pressed fill                        */
-  --primary-ink:    #123246;  /* brand-coloured TEXT and links               */
-  --primary-soft:   #E8EFF3;  /* low-emphasis brand tint                     */
-  --accent:         #785D19;  /* gold accent     */
-  --accent-soft:    #F4ECD6;
-
-  /* --- Status ------------------------------------------------------------ */
-  --success:        #3F6B52;
-  --success-soft:   #E6F1E8;
-  --warning:        #8A5A12;
-  --warning-soft:   #F8ECD5;
-  --danger:         #B0403C;
-  --danger-soft:    #F7E4E1;
-
-  /* --- Brand hero (login split panel) ------------------------------------ */
-  --brand-1:        #091C2A;
-  --brand-2:        #15394F;
-
-  /* --- Interactive state ------------------------------------------------- */
-  --focus-ring:     #123246;
-  --overlay:        rgba(21, 17, 15, .48);
-  --shadow-card:    0 8px 24px rgba(9,28,42,.08);
-  --shadow-raised:  0 20px 70px rgba(9,28,42,.10);
-
-  /* --- Inverse surfaces (toasts, tooltips) -------------------------------- */
-  --inverse-surface: #1F2328;
-  --inverse-ink:     #F4F6F8;
-  --inverse-muted:   #C7CDD4;
-  --inverse-line:    #6B7480;
-  --backdrop:        rgba(23, 25, 29, .8);
-
-  /* --- Tints (translucent status fills) ---------------------------------- */
-  --success-tint: rgba(63, 178, 127, .24);
-  --danger-tint:  rgba(224, 101,  95, .24);
-  --warning-tint: rgba(224, 163,  60, .24);
-  --info-tint:    rgba(122, 106,  92, .24);
-
-  /* --- Typography -------------------------------------------------------- */
-  --font-ui: 'Nunito Variable', Nunito, 'Segoe UI', Arial, sans-serif;
-
-  --fs-body:    16px;
-  --fs-small:   14px;
-  --fs-meta:    13px;
-  --fs-lead:    17px;
-  --fs-h3:      19px;
-  --fs-h2:      24px;
-  --fs-h1:      32px;
-  --fs-display: clamp(30px, 3vw, 45px);
-  --fs-price:   16px;
-
-  /* --- Spacing ----------------------------------------------------------- */
+  --canvas: #F8FAFA;
+  --surface: #FFFFFF;
+  --surface-sunken: #F1F5F4;
+  --surface-raised: #F8FAFA;
+  --surface-brand: #E6F4F1;
+  --ink: #1F2933;
+  --muted: #52616B;
+  --on-primary: #FFFFFF;
+  --on-brand: #FFFFFF;
+  --line: #E2E8E7;
+  --line-strong: #7A8B87;
+  --primary: #0F766E;
+  --primary-dark: #115E59;
+  --primary-ink: #0F766E;
+  --primary-soft: #E6F4F1;
+  /* Compatibility aliases use the same accent, never a competing color. */
+  --accent: var(--primary);
+  --accent-soft: var(--primary-soft);
+  --brand-1: var(--primary-dark);
+  --brand-2: var(--primary);
+  --success: #236343;
+  --success-soft: #EAF4ED;
+  --warning: #80540D;
+  --warning-soft: #FFF4DB;
+  --danger: #B42318;
+  --danger-hover: #912018;
+  --danger-soft: #FDECE9;
+  --focus-ring: var(--primary);
+  --overlay: rgba(31, 41, 51, .48);
+  --backdrop: var(--overlay);
+  --shadow-card: none;
+  --shadow-raised: 0 8px 32px rgba(31, 41, 51, .12);
+  --inverse-surface: #1F2933;
+  --inverse-ink: #FFFFFF;
+  --inverse-muted: #E2E8E7;
+  --inverse-line: #7A8B87;
+  --success-tint: var(--success-soft);
+  --danger-tint: var(--danger-soft);
+  --warning-tint: var(--warning-soft);
+  --info-tint: var(--primary-soft);
+  --font-ui: 'Inter Variable', Inter, 'Segoe UI', Arial, sans-serif;
+  --fs-body: 14px;
+  --fs-small: 13px;
+  --fs-meta: 12px;
+  --fs-lead: 16px;
+  --fs-h3: 16px;
+  --fs-h2: 18px;
+  --fs-h1: 24px;
+  --fs-display: 24px;
+  --fs-price: 14px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
-
-  /* --- Radius ------------------------------------------------------------ */
-  --radius-control: 10px;
-  --radius-card:    16px;
-  --radius-pill:    999px;
-  --radius:         12px;  /* legacy alias, kept for readability.css        */
-
-  /* --- Interaction targets ---------------------------------------------- */
-  --tap-min: 44px;
-
-  font-family: var(--font-ui);
-  color: var(--ink);
-  background: var(--canvas);
-}
-
-/* =============================================================================
-   Dark theme — OS-driven only, no JavaScript and no manual toggle.
-   Every value below is verified with tools/contrast.js against the dark
-   surfaces actually used in the UI. Keep it in sync with the light block.
-   ========================================================================== */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    --canvas:         #09151F;
-    --surface:        #102332;
-    --surface-sunken: #132A3A;
-    --surface-raised: #183244;
-    --surface-brand:  #2A291E;
-
-    --ink:            #EDF3F6;
-    --muted:          #B0C2CE;
-    --on-primary:     #102332;
-    --on-brand:       #EDF3F6;
-
-    --line:           #304857;
-    --line-strong:    #748B9A;
-
-    --primary:        #E7C56A;
-    --primary-dark:   #F4D890;
-    --primary-ink:    #F4D890;
-    --primary-soft:   #2A291E;
-    --accent:         #E7C56A;
-    --accent-soft:    #2A291E;
-
-    --success:        #7FB894;
-    --success-soft:   #1E2C22;
-    --warning:        #E0AC5C;
-    --warning-soft:   #3A2D16;
-    --danger:         #E8908A;
-    --danger-soft:    #3A1F1D;
-
-    --brand-1:        #091C2A;
-    --brand-2:        #15394F;
-
-    --focus-ring:     #F4D890;
-    --overlay:        rgba(0, 0, 0, .62);
-    --shadow-card:    0 8px 24px rgba(0,0,0,.42);
-    --shadow-raised:  0 20px 70px rgba(0,0,0,.55);
-
-    --inverse-surface: #EDF3F6;
-    --inverse-ink:     #102332;
-    --inverse-muted:   #5A4E46;
-    --inverse-line:    #8A7C72;
-    --backdrop:        rgba(0, 0, 0, .68);
-
-    --success-tint: rgba(127, 184, 148, .22);
-    --danger-tint:  rgba(232, 144, 138, .22);
-    --warning-tint: rgba(224, 172,  92, .22);
-    --info-tint:    rgba(240, 164, 142, .22);
-  }
-}
-
-/* Retired aliases kept so older selectors keep working during migration.
-   These are one-way: nothing may depend on a --pos-* name long term. */
-:root {
-  --pos-bg:   var(--canvas);
+  --space-7: 48px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --radius: var(--radius-card);
+  --button-sm: 32px;
+  --button-md: 40px;
+  --button-lg: 48px;
+  --button-xl: 56px;
+  --tap-min: 48px;
+  --sidebar-width: 240px;
+  --pos-bg: var(--canvas);
   --pos-line: var(--line);
   --pos-text: var(--ink);
   --pos-blue: var(--primary);
   --pos-dark: var(--primary-dark);
+  font-family: var(--font-ui);
+  color: var(--ink);
+  background: var(--canvas);
 }

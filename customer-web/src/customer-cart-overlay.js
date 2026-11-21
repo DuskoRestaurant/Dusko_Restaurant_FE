@@ -9,7 +9,7 @@ export function createCustomerCartOverlay({root, summary, startOpen = false}) {
   dock.className = 'customer-cart-dock';
   dock.setAttribute('aria-haspopup', 'dialog');
   dock.setAttribute('aria-controls', 'customer-cart-dialog');
-  dock.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 4h2l2.2 11h11.5l2-8H6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><span class="customer-cart-badge"></span>';
+  dock.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 4h2l2.2 11h11.5l2-8H6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><span class="customer-cart-badge"></span><span class="customer-cart-dock-summary"><span data-cart-dock-count></span><strong data-cart-dock-total></strong></span><span class="customer-cart-dock-action">Xem giỏ</span>';
   const feedback = document.createElement('div');
   feedback.className = 'customer-cart-feedback';
   feedback.setAttribute('role', 'status');
@@ -59,6 +59,8 @@ export function createCustomerCartOverlay({root, summary, startOpen = false}) {
   function update() {
     const {count, total, busy} = summary();
     dock.querySelector('.customer-cart-badge').textContent=count>99?'99+':String(count);
+    dock.querySelector('[data-cart-dock-count]').textContent=String(count)+' món';
+    dock.querySelector('[data-cart-dock-total]').textContent=total;
     dock.setAttribute('aria-label', `Xem giỏ món · ${count} món · ${total}${busy?' · Đang cập nhật':''}`);
     dock.title=`Giỏ món · ${count} món · ${total}`;
     dock.setAttribute('aria-busy', String(Boolean(busy)));
@@ -71,10 +73,7 @@ export function createCustomerCartOverlay({root, summary, startOpen = false}) {
     feedback.textContent=`Đã thêm ${name} vào giỏ`;
     feedback.classList.add('is-visible');
     feedbackTimer=setTimeout(()=>feedback.classList.remove('is-visible'),2400);
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      dock.animate([{transform:'scale(1)'},{transform:'scale(1.18) rotate(-8deg)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});
-      if (source?.isConnected) source.animate([{transform:'scale(1)'},{transform:'scale(.85)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],{duration:320});
-    }
+
   }
   return {update, added, close, isOpen:() => dialog.open, destroy() {
     clearTimeout(feedbackTimer);

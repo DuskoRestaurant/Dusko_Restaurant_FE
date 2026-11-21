@@ -7,7 +7,6 @@ import { createToast } from '../../src/toast.js';
 import './style.css';
 import './customer-cart.css';
 import '../../src/font.css';
-import '../../src/pos-theme.css';
 import './customer-cart-overlay.css';
 import { createCustomerCartOverlay } from './customer-cart-overlay.js';
 import {createCustomerMenu} from './customer-menu.js';

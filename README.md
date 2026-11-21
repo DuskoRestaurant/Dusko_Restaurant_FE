@@ -13,7 +13,7 @@ Màn hình bếp tự tải lại mỗi 15 giây, có chế độ toàn màn hì
 
 Dashboard tiếng Việt cho backend Express trong thư mục `Dusko_Restaurant_BE`.
 
-Giao diện dùng Inter Variable thống nhất cho quản trị, KDS, app nhân viên và website khách. Font hỗ trợ tiếng Việt, được đóng gói qua `@fontsource-variable/inter` (giấy phép OFL-1.1), không tải Google Fonts khi mở trang. Cài dependency tại thư mục FE gốc trước khi chạy hoặc build các app con. Chữ nội dung khoảng 17–18 px; màn hình bếp hiển thị phiếu theo lưới dùng đủ chiều ngang, website khách đặt giỏ cạnh thực đơn trên máy tính.
+Giao diện dùng Inter Variable thống nhất cho quản trị, KDS, app nhân viên và website khách. Font hỗ trợ tiếng Việt, được đóng gói qua `@fontsource-variable/inter` (giấy phép OFL-1.1), không tải Google Fonts khi mở trang. Cài dependency tại thư mục FE gốc trước khi chạy hoặc build các app con. Hệ thống thiết kế dùng Neutral + Deep Teal, nội dung 14px, tiêu đề trang 24px, bo góc thẻ 12px và bo góc nút 8px; màn hình bếp hiển thị phiếu theo lưới dùng đủ chiều ngang, website khách đặt giỏ cạnh thực đơn trên máy tính.
 
 ## Chạy local
 
