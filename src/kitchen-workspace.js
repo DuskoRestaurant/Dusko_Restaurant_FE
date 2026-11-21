@@ -1,7 +1,19 @@
 import {watchChanges} from './live-updates.js';
 import {escapeHtml as e} from './api.js';
+import {kitchenAgeText} from './kitchen-view.js';
 import { kitchenAssignments, kitchenScheduleNotice, kitchenTiming, readKitchenSchedule, sortKitchenBatches } from './kitchen-scheduling.js';
 import './kitchen-workspace.css';
+
+// Match the existing management KDS policy: scheduled batches waiting at least
+// 60 minutes need verification. This is elapsed time, not a promised cook time.
+function receivedTime(batch) {
+  if (batch.status === 'COMPLETED') return '';
+  const received = Date.parse(batch.scheduledTime);
+  if (!Number.isFinite(received)) return '<p class="kw-wait">Chưa có giờ nhận mẻ.</p>';
+  const elapsed = Math.max(0, Date.now() - received);
+  const late = batch.status === 'SCHEDULED' && elapsed >= 60 * 60 * 1000;
+  return `<p class="kw-wait${late?' is-late':''}">Từ lúc nhận: <strong>${kitchenAgeText(elapsed)}</strong>${late?'<span>Chờ lâu · Cần kiểm tra</span>':''}</p>`;
+}
 
 export function mountKitchen({root,request,branchId,pollMs=15000}) {
   let disposed=false,pending=null,busy=false,again=false,batches=[],finished=[],filter='SCHEDULED',updated=null,live=false,failed=false;
@@ -16,7 +28,7 @@ export function mountKitchen({root,request,branchId,pollMs=15000}) {
     const assignments = kitchenAssignments(schedule, batches);
     const selected=filter==='COMPLETED'?finished:sortKitchenBatches(batches.filter(b=>b.status===filter), assignments);
     root.querySelector('[data-ks-notice]').innerHTML=kitchenScheduleNotice(schedule, assignments);
-    root.querySelector('.kw-list').innerHTML=(filter==='COMPLETED'?'<p class="kw-history-note">Các mẻ hoàn thành trong lần mở màn hình này (tối đa 30 mẻ).</p>':'')+(selected.map(batch=>`<article class="kw-ticket"><div class="kw-ticket-heading"><h3>${e(batch.product?.name||'Món ăn')}</h3><strong>${batch.totalQuantity} suất</strong></div><p>Mẻ ${e(batch.batchCode||batch.id)} · ${e({SCHEDULED:'Chờ làm',COOKING:'Đang làm',COMPLETED:'Đã hoàn thành'}[batch.status])}</p>${kitchenTiming(assignments.get(batch.id),batch.status==='COOKING')}<ul>${(batch.orderItems||[]).map(item=>`<li><strong>${e(item.order?.table?.tableName||'Mang đi')} · ${item.quantity} suất${item.isGift?' · Quà tặng':''}</strong>${item.note?`<p>${e(item.note)}</p>`:''}</li>`).join('')}</ul>${batch.status!=='COMPLETED'?`<button type="button" data-kw-batch="${batch.id}" data-next="${batch.status==='SCHEDULED'?'COOKING':'COMPLETED'}" ${busy?'disabled':''}>${batch.status==='SCHEDULED'?'Bắt đầu nấu':'Đã làm xong'}</button>`:''}</article>`).join('')||'<p class="kw-empty">Không có mẻ ở trạng thái này. Món mới sẽ tự cập nhật.</p>');
+    root.querySelector('.kw-list').innerHTML=(filter==='COMPLETED'?'<p class="kw-history-note">Các mẻ hoàn thành trong lần mở màn hình này (tối đa 30 mẻ).</p>':'')+(selected.map(batch=>`<article class="kw-ticket"><div class="kw-ticket-heading"><h3>${e(batch.product?.name||'Món ăn')}</h3><strong>${batch.totalQuantity} suất</strong></div><p>Mẻ ${e(batch.batchCode||batch.id)} · ${e({SCHEDULED:'Chờ làm',COOKING:'Đang làm',COMPLETED:'Đã hoàn thành'}[batch.status])}</p>${receivedTime(batch)}${kitchenTiming(assignments.get(batch.id),batch.status==='COOKING')}<ul>${(batch.orderItems||[]).map(item=>`<li><strong>${e(item.order?.table?.tableName||'Mang đi')} · ${item.quantity} suất${item.isGift?' · Quà tặng':''}</strong>${item.note?`<p>${e(item.note)}</p>`:''}</li>`).join('')}</ul>${batch.status!=='COMPLETED'?`<button type="button" data-kw-batch="${batch.id}" data-next="${batch.status==='SCHEDULED'?'COOKING':'COMPLETED'}" ${busy?'disabled':''}>${batch.status==='SCHEDULED'?'Bắt đầu nấu':'Đã làm xong'}</button>`:''}</article>`).join('')||'<p class="kw-empty">Không có mẻ ở trạng thái này. Món mới sẽ tự cập nhật.</p>');
     sync();
   }
   function refresh(){

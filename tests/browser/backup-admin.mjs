@@ -61,7 +61,7 @@ try{
  assert.deepEqual(await layoutPosition(),initialPositions,'activity retains overview and tab geometry');
  await page.locator('[data-backup=refresh]').click();await page.locator('[data-backup=audit-next]:not([disabled])').waitFor();
  await page.locator('[data-backup=audit-next]').click();await switchTab('archives');await switchTab('activity');assert.equal(await page.locator('[data-audit-page]').getAttribute('data-audit-page'),'2');
- await page.locator('[data-backup=audit-previous]').click();assert.equal(await page.locator('.bk-activity [data-backup=audit-next]').evaluate(el=>el.getBoundingClientRect().height),28);
+ await page.locator('[data-backup=audit-previous]').click();assert.equal(await page.locator('.bk-activity [data-backup=audit-next]').evaluate(el=>el.getBoundingClientRect().height),32);
  await page.locator('[data-backup-filter=auditQuery]').fill('Audit 1');
  await page.locator('[data-backup-filter=auditOperation]').selectOption('RESTORE');await page.locator('[data-backup-filter=auditState]').selectOption('FAILED');
  assert.equal(await page.locator('.bk-audit-open').count(),1);
@@ -93,20 +93,20 @@ try{
   await page.setViewportSize({width,height:1050});await page.evaluate(()=>window.scrollTo(0,0));
   const bounds=await page.locator('.backup-console').boundingBox();assert.ok(bounds.width<=1201);assert.ok(bounds.x>=0&&bounds.x+bounds.width<=width);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-  assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('[data-backup=create]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(24, 112, 67)');
+  assert.equal(await page.locator('[data-backup=create]').count(),1);assert.equal(await page.locator('[data-backup=create]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(15, 118, 110)');
   if(width===1440||width===390){
    const menu=reference.find(item=>item.role==='WAITER'&&item.width===width);
    const dimensions=await page.evaluate(()=>{const style=selector=>{const s=getComputedStyle(document.querySelector(selector));return {font:s.fontSize,radius:s.borderRadius,minHeight:s.minHeight};};return {button:style('[data-backup=create]'),input:style('[data-backup-filter=query]'),body:style('.backup-console'),name:style('.bk-archives td strong'),panel:style('.bk-table-frame')};});
    assert.equal(dimensions.button.font,menu.button.fontSize);assert.equal(dimensions.button.radius,menu.button.borderRadius);assert.equal(dimensions.button.minHeight,menu.button.minHeight);
-   assert.equal(dimensions.input.font,width===390?'16px':'14px');assert.equal(dimensions.input.radius,menu.input.borderRadius);assert.equal(dimensions.input.minHeight,width===390?'40px':'36px');
-   assert.equal(dimensions.body.font,menu.body.fontSize);assert.equal(dimensions.name.font,'12px');assert.equal(dimensions.panel.radius,'10px');
+   assert.equal(dimensions.input.font,width===390?'16px':'14px');assert.equal(dimensions.input.radius,menu.input.borderRadius);assert.equal(dimensions.input.minHeight,'44px');
+   assert.equal(dimensions.body.font,menu.body.fontSize);assert.equal(dimensions.name.font,'14px');assert.equal(dimensions.panel.radius,'8px');
   }
   if(width>=1440){
-   const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=140&&overview.height<=300,`overview height ${overview.height} at ${width}px`);
-   const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=59&&row.height<=90,`row height ${row.height}`);
+   const overview=await page.locator('.bk-overview').boundingBox();assert.ok(overview.height>=100&&overview.height<=300,`overview height ${overview.height} at ${width}px`);
+   const row=await page.locator('.bk-archives tbody tr').first().boundingBox();assert.ok(row.height>=48&&row.height<=56,`row height ${row.height}`);
    assert.equal(await page.locator('.bk-heading h1').evaluate(el=>getComputedStyle(el).fontSize),'24px');
-   const filter=await page.locator('[data-backup-filter=from]').boundingBox(),refresh=await page.locator('[data-backup=refresh]').boundingBox();assert.ok(Math.abs(filter.y-refresh.y)<=1,'date fields and refresh share the toolbar baseline');
-   assert.equal(await page.locator('.bk-page-number').first().evaluate(el=>el.getBoundingClientRect().height),28);
+   const filter=await page.locator('[data-backup-filter=from]').boundingBox(),refresh=await page.locator('[data-backup=refresh]').boundingBox();assert.ok(Math.abs(filter.y+filter.height-refresh.y-refresh.height)<=1,'date fields and refresh share the toolbar baseline');
+   assert.equal(await page.locator('.bk-page-number').first().evaluate(el=>el.getBoundingClientRect().height),32);
    for(const key of ['query','type','from','to','pageSize']){
     const field=page.locator(`[data-backup-filter=${key}]`);
     const idle=await field.evaluate(el=>{const s=getComputedStyle(el);return {border:s.borderColor,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height};});
@@ -118,7 +118,7 @@ try{
   }
   const cards=await page.locator('.ui-metric').evaluateAll(els=>els.map(el=>({top:el.getBoundingClientRect().top,left:el.getBoundingClientRect().left,height:el.getBoundingClientRect().height})));
   if(width>=1440){assert.equal(new Set(cards.map(card=>card.top)).size,1);assert.equal(new Set(cards.map(card=>card.height)).size,1);}
-  if(width===390)assert.equal(new Set(cards.map(card=>card.left)).size,2);
+  if(width===390)assert.equal(new Set(cards.map(card=>card.left)).size,1);
   const position=await layoutPosition();
   for(const tab of ['activity','settings','archives']){await switchTab(tab);assert.deepEqual(await layoutPosition(),position,`${tab} layout stable at ${width}`);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));if(width===1440&&tab==='settings')await page.screenshot({path:'docs/ui/backup-settings.png',fullPage:true});if(width===390&&tab!=='archives')await page.screenshot({path:`docs/ui/backup-${tab}-390.png`,fullPage:true});}
   if([390,1440,2560].includes(width))await page.screenshot({path:`docs/ui/backup-admin-${width}.png`,fullPage:true});

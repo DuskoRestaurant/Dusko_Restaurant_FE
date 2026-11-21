@@ -1,4 +1,4 @@
-.qr-preview { position:fixed; border:0; border-radius:20px; padding:28px; max-width:420px; width:calc(100% - 32px); max-height:90dvh; overflow:auto; text-align:center; color:var(--ink); background:var(--surface); box-shadow:var(--shadow-raised); }
+.qr-preview { position:fixed; border:0; border-radius:var(--radius-card); padding:24px; max-width:420px; width:calc(100% - 32px); max-height:90dvh; overflow:auto; text-align:center; color:var(--ink); background:var(--surface); box-shadow:none; }
 .qr-preview::backdrop { background:var(--backdrop); }
 .qr-preview h2 { margin:4px 24px 8px; }
 .qr-preview p { line-height:1.5; }

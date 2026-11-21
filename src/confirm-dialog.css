@@ -1,14 +1,14 @@
-.app-confirm{width:min(460px,calc(100vw - 32px));max-width:none;border:1px solid var(--line);border-radius:var(--radius-card);padding:0;color:var(--ink);background:var(--surface);box-shadow:var(--shadow-raised)}
+.app-confirm{width:min(460px,calc(100vw - 32px));max-width:none;border:1px solid var(--line);border-radius:var(--radius-card);padding:0;color:var(--ink);background:var(--surface);box-shadow:none}
 .app-confirm::backdrop{background:var(--backdrop);backdrop-filter:blur(2px)}
 .app-confirm__body{padding:24px}
-.app-confirm__title{margin:0;font-size:21px;line-height:1.35;font-weight:650;letter-spacing:-.02em}
+.app-confirm__title{margin:0;font-size:21px;line-height:1.35;font-weight:600;letter-spacing:normal}
 .app-confirm__message{margin:12px 0 0;color:var(--muted);font-size:16px;line-height:1.6;white-space:pre-line}
-.app-confirm__actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
-.app-confirm__button{min-height:44px;padding:9px 15px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.app-confirm__actions{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}
+.app-confirm__button{min-height:48px;padding:8px 16px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 .app-confirm__button:hover{background:var(--surface-sunken)}
 .app-confirm__button:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}
 .app-confirm__button--primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
 .app-confirm__button--primary:hover{background:var(--primary-dark)}
 .app-confirm__button--danger{background:var(--danger);border-color:var(--danger);color:var(--on-primary)}
 .app-confirm__button--danger:hover{filter:brightness(.92)}
-@media(max-width:480px){.app-confirm__body{padding:20px}.app-confirm__title{font-size:19px}.app-confirm__actions{flex-direction:column-reverse}.app-confirm__button{width:100%}}
+@media(max-width:480px){.app-confirm__body{padding:16px}.app-confirm__title{font-size:19px}.app-confirm__actions{flex-direction:column-reverse}.app-confirm__button{width:100%}}

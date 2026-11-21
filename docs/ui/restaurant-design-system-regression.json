@@ -1,0 +1,193 @@
+{
+  "date": "2026-11-21",
+  "timezone": "Asia/Saigon",
+  "scope": [
+    "management",
+    "staff-app",
+    "customer-web"
+  ],
+  "specification": "RESTAURANT UI DESIGN SYSTEM — STRICT RULES (user attachment)",
+  "baseline": "ff32609731c72cda4563033dff615bc898b0031a",
+  "criteria": [
+    {
+      "sections": [
+        1,
+        2
+      ],
+      "status": "reviewed",
+      "result": "Task-oriented existing workflows retained; simplified login and account navigation; no invented restaurant data or decorative KPIs."
+    },
+    {
+      "sections": [
+        3
+      ],
+      "status": "verified",
+      "result": "All nine requested palette tokens centralized. Teal is the shared accent; semantic states include text. 28 foreground/background and control-boundary contrast pairs pass."
+    },
+    {
+      "sections": [
+        4
+      ],
+      "status": "verified-in-covered-workflows",
+      "result": "Shared 4px spacing scale, management desktop padding 24–32px, mobile 16px, cards 16–24px, form field gap 16px, label gap 8px. Fixed image sizes, safe-area offsets and printer geometry remain component constraints."
+    },
+    {
+      "sections": [
+        5
+      ],
+      "status": "verified-in-covered-workflows",
+      "result": "Locally bundled Vietnamese Inter; common page/section/card/body/secondary/caption/KPI scale is 24/18/16/14/13/12/28px. Amounts use tabular numbers. Kitchen ticket uses 16px name, 14px details and 28px quantity."
+    },
+    {
+      "sections": [
+        6
+      ],
+      "status": "reviewed",
+      "result": "Existing shell and module templates retained. Shared management cards/tables reused; tablet/mobile content reflows. Grid track counts adapt to each workflow rather than forcing one density."
+    },
+    {
+      "sections": [
+        7
+      ],
+      "status": "verified-in-covered-workflows",
+      "result": "Primary/secondary/ghost/destructive controls and 32/40/48/56px sizes. Corrected 44px action buttons to 48px, including POS; inputs and sidebar retain their separately specified sizes. Hover/focus/disabled/loading and payment-retry behavior checked."
+    },
+    {
+      "sections": [
+        8
+      ],
+      "status": "verified-in-covered-workflows",
+      "result": "Common white cards, 1px divider border, 12px radius, no default card shadow. Removed redundant kitchen workspace card. Semantic alerts and overlays remain functional."
+    },
+    {
+      "sections": [
+        9
+      ],
+      "status": "verified",
+      "result": "Shared desktop table header 44px; operational rows 52–56px; 12px vertical and 16px horizontal padding. Separators drawn inside rows. Numbers align right; identifiers left. Shared mobile tables become labeled lists; mobile list padding is 8px vertically."
+    },
+    {
+      "sections": [
+        10
+      ],
+      "status": "verified-in-covered-workflows",
+      "result": "Single-column forms preferred, 40–44px inputs, 8px radius, visible labels above search/filter fields. Validation, empty/error/retry and modal confirmation workflows retained."
+    },
+    {
+      "sections": [
+        11
+      ],
+      "status": "verified-in-covered-workflows",
+      "result": "240px management sidebar, 44px navigation items, 20px icons, teal-soft active state. Mobile navigation collapses; account actions use progressive disclosure."
+    },
+    {
+      "sections": [
+        12
+      ],
+      "status": "verified",
+      "result": "25 UI contexts across widths 320/390/768/1024/1440 have no document overflow or JavaScript errors. Mobile customer cart keeps count/total/action visible."
+    },
+    {
+      "sections": [
+        13
+      ],
+      "status": "verified-in-covered-workflows",
+      "result": "POS preserves item selection, quantities, totals and checkout. Dashboard keeps actionable exceptions. Kitchen shows dish, quantity, table, elapsed receipt time and the existing 60-minute long-wait warning. Customer menu keeps imagery, names, prices, availability and add actions. No shift/availability data is invented where the backend has no such workflow."
+    },
+    {
+      "sections": [
+        14
+      ],
+      "status": "verified-in-covered-workflows",
+      "result": "Keyboard login/navigation, native dialog Escape, visible focus, disabled states, error recovery and reduced motion checked. Destructive operations retain confirmations; backup regression covers MFA/CONFIRM and restore monitoring."
+    },
+    {
+      "sections": [
+        15
+      ],
+      "status": "reviewed-and-tested",
+      "result": "Shared tokens/components reused with explicit ownership; visual review and automated regression cover all three applications."
+    }
+  ],
+  "validation": {
+    "dependencyInstall": "npm ci --no-fund --no-audit; Vite 6.4.5 matches package-lock",
+    "unit": {
+      "passed": 112,
+      "failed": 0
+    },
+    "productionBuilds": [
+      "management",
+      "staff-app",
+      "customer-web"
+    ],
+    "contrast": {
+      "pairs": 28,
+      "failures": 0
+    },
+    "npmAudit": {
+      "vulnerabilities": 0
+    },
+    "browserSuites": [
+      {
+        "name": "backup-menu-scale",
+        "result": "passed"
+      },
+      {
+        "name": "design-system",
+        "contexts": 25,
+        "result": "passed"
+      },
+      {
+        "name": "admin-components",
+        "result": "passed"
+      },
+      {
+        "name": "catalog-management",
+        "checks": 8,
+        "result": "passed"
+      },
+      {
+        "name": "staff-picker",
+        "checks": 22,
+        "result": "passed"
+      },
+      {
+        "name": "receipt-management",
+        "checks": 15,
+        "result": "passed"
+      },
+      {
+        "name": "checkout-promotion",
+        "result": "passed"
+      },
+      {
+        "name": "vnpay-checkout",
+        "result": "passed"
+      },
+      {
+        "name": "ai-explanations",
+        "checks": 17,
+        "result": "passed"
+      },
+      {
+        "name": "backup-admin",
+        "result": "passed"
+      }
+    ]
+  },
+  "coverageLimits": [
+    "Browser mutations use isolated API fixtures. No orders, payments, backup restores or customer records are changed in production.",
+    "Contrast checks and keyboard scenarios are targeted verification, not an independent complete WCAG audit of every screen/state.",
+    "Existing receipt printing keeps thermal-printer typography and millimeter constraints.",
+    "Production checks must confirm the deployed commit, actual JavaScript/CSS assets, HTTPS/CORS and the same UI scenarios against deployed bundles."
+  ],
+  "deployment": {
+    "provider": "existing GitHub/Vercel integration",
+    "targets": [
+      "https://admin.dusko.io.vn",
+      "https://staff.dusko.io.vn",
+      "https://order.dusko.io.vn"
+    ],
+    "status": "verified-separately-after-this-source-snapshot"
+  }
+}

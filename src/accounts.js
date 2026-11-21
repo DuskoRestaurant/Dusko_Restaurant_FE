@@ -1,3 +1,4 @@
+import {dataTable} from './ui/admin-components.js';
 import { escapeHtml as e } from './api.js';
 
 export function passwordDialog(api, signedOut) {
@@ -34,7 +35,7 @@ export async function mountAccounts(root, api, branches, session = {}) {
     return;
   }
   if (!root.isConnected) return;
-  root.querySelector('#accounts-body').innerHTML = `<div class="table-scroll"><table><thead><tr><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Chi nhánh</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${users.map(user => `<tr><td>${e(user.username)}</td><td>${e(user.fullName)}</td><td>${e(roles[user.role])}</td><td>${e(branches.find(b => b.id === user.branchId)?.name || 'Toàn hệ thống')}</td><td>${user.isActive ? 'Hoạt động' : 'Đã khóa'}</td><td><button class="btn secondary" data-edit="${user.id}">Chỉnh sửa</button> <button class="btn secondary" data-revoke="${user.id}">Thu hồi phiên</button></td></tr>`).join('')}</tbody></table></div>`;
+  root.querySelector('#accounts-body').innerHTML = dataTable({headers:['Tài khoản','Họ tên','Vai trò','Chi nhánh','Trạng thái','Thao tác'],rowsHtml:users.map(user => `<tr><td>${e(user.username)}</td><td>${e(user.fullName)}</td><td>${e(roles[user.role])}</td><td>${e(branches.find(b => b.id === user.branchId)?.name || 'Toàn hệ thống')}</td><td>${user.isActive ? 'Hoạt động' : 'Đã khóa'}</td><td><button class="btn secondary" data-edit="${user.id}">Chỉnh sửa</button> <button class="btn secondary" data-revoke="${user.id}">Thu hồi phiên</button></td></tr>`).join('')});
   const editor = root.querySelector('#account-editor');
   function edit(user) {
     selected = user; editor.hidden = false;

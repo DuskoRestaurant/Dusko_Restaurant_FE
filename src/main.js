@@ -23,7 +23,7 @@ import { mountLogin, staffUrl } from './app-entry.js';
 import './style.css';
 import './offline.css';
 import './management.css';
-import './theme.css';
+import './management-workflows.css';
 import { request, uploadProductImage, ApiError, money, number, dateTime, tomorrow, escapeHtml as e } from './api.js';
 import { readQueue, saveQueue, pendingFor, applySyncResults } from './offline.js';
 import { locationsHtml, catalogHtml, numberField, recipeEntries } from './management.js';
@@ -32,7 +32,6 @@ import { API_BASE } from './api.js';
 import { createServiceWorkspace } from './service-workspace.js';
 import { confirmDialog } from './confirm-dialog.js';
 import { showQrPreview } from './qr-preview.js';
-import './readability.css';
 import './font.css';
 import './forecast.css';
 import { kitchenControls, kitchenPanel, kitchenAgeText } from './kitchen-view.js';
@@ -65,7 +64,7 @@ const defaultPage = () => allowedPages()[0] || 'overview';
 const statusLabel = { AWAITING_CONFIRMATION:'Chờ nhân viên xác nhận', PENDING:'Chờ thanh toán', PAID:'Đã thanh toán', CANCELLED:'Đã hủy', SCHEDULED:'Chờ nấu', COOKING:'Đang nấu', COMPLETED:'Hoàn thành' };
 const badge = s => statusBadge(statusLabel[s]||s,{tone:['PAID','COMPLETED','GOOD'].includes(s)?'success':['PENDING','SCHEDULED','WARNING'].includes(s)?'warning':['CANCELLED','FAILED'].includes(s)?'danger':s==='COOKING'?'info':'neutral',className:`badge ${String(s).toLowerCase()}`});
 const originBadge = order => order.dataOrigin==='SYNTHETIC'?'<span class="data-origin">Dữ liệu mô phỏng đồ án</span>':'';
-const empty = (title, detail) => `<div class="empty"><span>◇</span><strong>${title}</strong><p>${detail}</p></div>`;
+const empty = (title, detail) => `<div class="empty"><strong>${title}</strong><p>${detail}</p></div>`;
 const row = (cells) => `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
 const table = (headers, rows) => dataTable({headers,rowsHtml:rows.join(''),scrollClassName:'table-scroll'});
 const field = (label, html) => `<label class="field"><span>${label}</span>${html}</label>`;
@@ -179,12 +178,18 @@ function shell() {
   serviceWorkspace?.destroy(); serviceWorkspace=null;
   if(!allowedPages().includes(state.page)) state.page=defaultPage();
   const branchControl=canAdminister(state.user) ? `<select id="branch" aria-label="Chi nhánh">${state.branches.map(b=>`<option value="${b.id}" ${b.id===state.branch?'selected':''}>${e(b.name)}</option>`).join('')}</select>` : `<span>${e(state.user?.branchName || state.branches.find(b=>b.id===state.branch)?.name || 'Chi nhánh')}</span>`;
-  app.innerHTML = `<div class="layout ${state.user?'':'auth-layout'}"><aside class="sidebar"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><div><strong>DUSKO</strong><small>RESTAURANT OS</small></div></div><div class="workspace-label">ĐIỀU HÀNH NHÀ HÀNG</div><nav>${navigationMarkup()}</nav><a class="staff-entry-link" href="${e(staffUrl)}">App nhân viên ↗</a><div class="sidebar-foot"><div class="online-dot"></div><div><strong>Dusko Restaurant</strong><small>Quản lý & phục vụ</small></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumb">Hệ thống <span>/</span> ${state.user?nav.find(n=>n[0]===state.page)[1]:'Đăng nhập'}</div><div class="top-actions"><label class="branch-picker">Chi nhánh ${branchControl}</label><span class="date-pill">${new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium'}).format(new Date())}</span><span class="avatar">${e((state.user?.fullName || 'K').slice(0,1).toUpperCase())}</span></div></header><div class="content"><div id="page"></div></div></main></div>`;
+  app.innerHTML = `<div class="layout ${state.user?'':'auth-layout'}"><aside class="sidebar" data-nav-open="false"><div class="brand"><img class="dusko-logo" src="/dusko-logo-v1.png" alt="Dusko Restaurant"><div><strong>DUSKO</strong><small>Quản lý nhà hàng</small></div></div><button type="button" class="mobile-nav-toggle" data-navigation-toggle aria-expanded="false" aria-controls="management-navigation">Menu</button><nav id="management-navigation" aria-label="Điều hướng quản lý">${navigationMarkup()}</nav><a class="staff-entry-link" href="${e(staffUrl)}">App nhân viên ↗</a><div class="sidebar-foot"><div class="online-dot"></div><div><strong>Dusko Restaurant</strong><small>Quản lý & phục vụ</small></div></div></aside><main class="main"><header class="topbar"><div class="breadcrumb">Hệ thống <span>/</span> ${state.user?nav.find(n=>n[0]===state.page)[1]:'Đăng nhập'}</div><div class="top-actions"><label class="branch-picker">Chi nhánh ${branchControl}</label><span class="date-pill">${new Intl.DateTimeFormat('vi-VN',{dateStyle:'medium'}).format(new Date())}</span><span class="avatar">${e((state.user?.fullName || 'K').slice(0,1).toUpperCase())}</span></div></header><div class="content"><div id="page"></div></div></main></div>`;
   document.querySelector('#branch')?.addEventListener('change', ev=>{ state.branch=Number(ev.target.value); state.cart=[]; state.tableId=''; localStorage.setItem('dusko_branch',state.branch); loadPage(); });
   document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>{state.page=el.dataset.page; shell(); loadPage();}));
+  const navigationToggle = app.querySelector("[data-navigation-toggle]");
+  if (navigationToggle) navigationToggle.onclick = () => {
+    const open = navigationToggle.getAttribute("aria-expanded") !== "true";
+    navigationToggle.setAttribute("aria-expanded", String(open));
+    app.querySelector(".sidebar").dataset.navOpen = String(open);
+  };
   loginPanel();
 }
-function title(kicker, heading, text, tools='') { return `<div class="page-head"><div><span class="eyebrow">${kicker}</span><h1>${heading}</h1><p>${text}</p></div><div class="head-tools">${tools}</div></div>`; }
+function title(kicker, heading, text, tools='') { return `<div class="page-head"><div><h1>${heading}</h1><p>${text}</p></div><div class="head-tools">${tools}</div></div>`; }
 function render(html) { document.querySelector('#page').innerHTML=html; }
 async function loadPage() {
   const loadSeq=++state.pageLoadSeq;
@@ -241,10 +246,10 @@ function overview() {
   const {dashboard:d,orders,batches}=state.data;
   render(title('TRUNG TÂM ĐIỀU HÀNH','Tổng quan vận hành','Theo dõi các chỉ số quan trọng trong ngày.',btn('Làm mới','reload','secondary')+(canAdminister(state.user)?btn('Sao lưu dữ liệu','goto-backups','secondary'):''))+
   metricGrid([
-    metricCard({label:'DOANH THU ĐƠN TẠO HÔM NAY',value:money(d.todayRevenue),description:`${number(d.totalOrdersCount)} đơn đã thanh toán · ngày tạo đơn UTC+7`,icon:'↗'}),
-    metricCard({label:'ĐƠN CHỜ THANH TOÁN',value:orders.filter(o=>o.status==='PENDING').length,description:'Cần xử lý tại quầy',icon:'▤',tone:'warning'}),
-    metricCard({label:'MẺ BẾP ĐANG HOẠT ĐỘNG',value:batches.length,description:'Chờ nấu và đang nấu',icon:'◈',tone:'accent'}),
-    metricCard({label:'NGUYÊN LIỆU SẮP HẾT',value:d.lowStockCount,description:'Cần kiểm tra tồn kho',icon:'!',tone:'danger'})
+    metricCard({label:'Doanh thu đơn tạo hôm nay',value:money(d.todayRevenue),description:`${number(d.totalOrdersCount)} đơn đã thanh toán · ngày tạo đơn UTC+7`,icon:'↗'}),
+    metricCard({label:'Đơn chờ thanh toán',value:orders.filter(o=>o.status==='PENDING').length,description:'Cần xử lý tại quầy',icon:'▤',tone:'warning'}),
+    metricCard({label:'Mẻ bếp đang hoạt động',value:batches.length,description:'Chờ nấu và đang nấu',icon:'◈',tone:'accent'}),
+    metricCard({label:'Nguyên liệu sắp hết',value:d.lowStockCount,description:'Cần kiểm tra tồn kho',icon:'!',tone:'danger'})
   ])+
   `<div class="two-col"><section class="panel"><div class="panel-head"><div><h2>Đơn hàng gần đây</h2><p>Hoạt động tại chi nhánh ${state.branch}</p></div>${btn('Xem tất cả →','goto-orders','text')}</div>${orders.length?table(['Mã đơn','Thời gian','Giá trị','Trạng thái'],orders.slice(0,5).map(o=>row([`<span class="order-ref" title="${e(o.orderCode)}">${e(String(o.orderCode).length>18?String(o.orderCode).slice(0,12)+"…":o.orderCode)}</span>`,dateTime(o.createdAt),money(o.finalAmount),badge(o.status)]))):empty('Chưa có đơn hàng','Đơn mới sẽ xuất hiện tại đây.')}</section><section class="panel"><div class="panel-head"><div><h2>Cần chú ý</h2><p>Nguyên liệu cần bổ sung</p></div></div>${d.lowStockItems?.length?d.lowStockItems.slice(0,5).map(i=>`<div class="notice"><span class="notice-icon">!</span><div><strong>${e(i.name)}</strong><small>Còn ${number(i.availableStock??i.currentStock)} ${e(i.unit)} khả dụng · mức tối thiểu ${number(i.minStock)}</small></div></div>`).join(''):empty('Kho đang ổn định','Không có nguyên liệu dưới ngưỡng tối thiểu.')}</section></div>`);
 }
@@ -546,7 +551,7 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='logout') signOut();
 }
 function signOut() { clearBackupMonitor(); startSeq++; closeVnpayPayment?.(); stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
-function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<span class="user-name">${e(state.user.fullName)} · ${e(state.user.role)}</span>${canAdminister(state.user)?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}`); }
+function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<details class="account-menu"><summary>Tài khoản</summary><div><strong>${e(state.user.fullName)}</strong><small>${e(state.user.role)}</small>${canAdminister(state.user)?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}</div></details>`); }
 function showEntry() {
   serviceWorkspace?.destroy();serviceWorkspace=null;
   mountLogin(app,{submit:async(username,password)=>{
@@ -638,7 +643,6 @@ async function start() {
 }
 start();
 
-import './pos-theme.css';
 
 import './ui-foundation.css';
 import './backup-status.css';

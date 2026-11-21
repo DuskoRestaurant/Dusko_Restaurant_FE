@@ -17,3 +17,12 @@ test('shared table preserves module action markup and footer but escapes heading
  assert.ok(statusBadge('<paid>',{tone:'success'}).includes('ui-status--success'));
  assert.ok(statusBadge('<paid>').includes('&lt;paid&gt;'));
 });
+
+test('responsive tables label cells safely and align amounts while preserving actions',()=>{
+ const html=dataTable({headers:['Tên "món"','Tổng tiền','Thao tác'],rowsHtml:'<tr><td>Canh</td><td class="amount">65.000 ₫</td><td><button data-edit="1">Sửa</button></td></tr>'});
+ assert.ok(html.includes('ui-responsive'));
+ assert.ok(html.includes('data-label="Tên &quot;món&quot;"'));
+ assert.ok(html.includes('class="ui-numeric amount" data-label="Tổng tiền"'));
+ assert.ok(html.includes('<th scope="col" class="ui-numeric">Tổng tiền</th>'));
+ assert.ok(html.includes('data-edit="1"'));
+});

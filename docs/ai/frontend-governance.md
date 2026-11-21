@@ -4,7 +4,7 @@
 
 This document defines operational rules for AI agents modifying the Dusko Restaurant frontend.
 
-The goal is consistency without forcing migration, redesign, or refactoring.
+The goal is a consistent, minimal restaurant interface. The user authorized the Neutral + Deep Teal design system across management, staff and customer apps on 2026-11-21. That explicit redesign supersedes the previous palette and typography below.
 
 ## 2. Scope
 
@@ -53,7 +53,7 @@ AI MUST inspect:
 - Relevant helper functions.
 - Relevant CSS selectors.
 - Nearby components/templates.
-- `src/readability.css`.
+- `src/tokens.css`.
 - Relevant application-specific styles.
 
 AI SHOULD use source search before writing code.
@@ -74,41 +74,37 @@ Examples:
 
 ## 7. Visual Token Rules
 
-When introducing NEW visual values, AI MUST inspect `src/readability.css` first.
+When introducing NEW visual values, AI MUST inspect `src/tokens.css` first.
 
 If an appropriate existing token/value exists, AI MUST prefer it.
 
 If no appropriate value exists, AI MAY introduce a new value only when justified by the requirement.
 
-AI MUST NOT perform broad token migration.
+Broad token migration requires an explicit design-system request.
 
 Runtime theme rules:
-- `src/pos-theme.css` is the final visual layer for Root/Admin, Customer, and Staff.
-- `src/readability.css` is a supporting/reference layer and may be overridden at runtime.
-- A visual change intended to be visible in the application MUST be added to the owning runtime stylesheet, normally `pos-theme.css` for shared theme values.
-- AI MUST NOT add a token to `readability.css` alone and claim the runtime UI is updated.
-- Any change to `pos-theme.css` MUST be checked against all three application contexts.
+- `src/tokens.css` owns all shared colors, typography, spacing and radii.
+- `src/font.css` bundles Inter locally, including Vietnamese.
+- `src/ui-foundation.css` owns shared controls, interaction states and accessibility.
+- `src/style.css` owns the management shell; `src/management-workflows.css` owns its workflow layouts.
+- `src/service-workspace.css` owns the shared management/staff service component.
+- Customer and staff shell layouts remain in their own application stylesheets.
+- `pos-theme.css`, `readability.css` and `theme.css` are compatibility imports for older previews, not runtime override layers.
+- Check changes to shared styles in all three applications.
 
 Approved visual foundation:
-- Canvas: `#FBF7F2`
-- Surface: `#FFFFFF`
-- Ink: `#3B2923`
-- Muted: `#7C6D64`
-- Line: `#E8DED5`
-- Primary terracotta: `#C85A3F`
-- Primary dark: `#9F3F2D`
-- Sage accent: `#71856A`
-- Sage soft: `#E7EEE3`
-- Warning: `#C58A32`
-- Danger: `#B84A45`
-- Success: `#4F8060`
-- Spacing scale: `4px`, `8px`, `12px`, `16px`, `24px`, `32px`
-- Control radius: `10px`
-- Card radius: `16px`
-- Pill radius: `999px`
-- Shadows are reserved for elevated cards and remain subtle.
+- Canvas: `#F8FAFA`; surface: `#FFFFFF`; subtle surface: `#F1F5F4`.
+- Primary: `#0F766E`; hover: `#115E59`; soft: `#E6F4F1`.
+- Primary text: `#1F2933`; secondary text: `#52616B`; divider: `#E2E8E7`.
+- Essential control boundaries use `--line-strong` to meet 3:1 contrast.
+- Semantic success, warning and danger colors are for actual state and feedback.
+- Spacing: 4, 8, 12, 16, 24, 32, 48px. Desktop padding 24–32px; mobile 16px.
+- Control radius: 8px; card radius: 12px. Cards have no default shadow.
+- Desktop sidebar: 240px; sidebar targets: 44px; active state uses primary soft.
+- No decorative gradients, colored KPI accents, invented content or unused widgets.
+- Thermal receipt typography and millimeter geometry are constrained by the printer and remain isolated in `receipt-format.js`.
 
-AI MUST NOT rewrite existing CSS merely because it does not yet use `readability.css`.
+AI MUST NOT rewrite unrelated CSS merely to enforce a preferred implementation style.
 
 ## 8. Layout Rules
 
@@ -148,7 +144,7 @@ AI MUST NOT create new layout primitives without checking these first.
 
 AI SHOULD reuse nearby spacing values from the owning application.
 
-AI SHOULD inspect `readability.css` for new root/shared visual work.
+AI SHOULD inspect `tokens.css` for new root/shared visual work.
 
 AI MUST NOT introduce arbitrary spacing values when an existing nearby value satisfies the requirement.
 
@@ -156,32 +152,33 @@ AI MUST NOT normalize or migrate all existing spacing during unrelated feature w
 
 ## 10. Typography Rules
 
-AI MUST inspect `src/font.css` and `src/readability.css` before introducing new typography direction.
+AI MUST inspect `src/font.css` and `src/tokens.css` before introducing new typography direction.
 
-AI MUST use the approved Nunito-based direction for new root/shared/customer/staff work after the design-foundation implementation phase.
+AI MUST use the approved Inter-based direction for new root/shared/customer/staff work after the design-foundation implementation phase.
 
 AI MUST NOT replace existing typography globally during unrelated work.
 
-AI MUST NOT introduce any font other than Nunito without explicit approval.
+AI MUST NOT introduce any font other than Inter without explicit approval.
 
 Approved typography scale:
-- Body: `16px / 1.5`
+- Body: `14px / 1.5 / 400`
 - Caption: `12px / 1.4`
 - Label: `13px / 1.4`
 - Button: `14px / 1.4`
-- H3: `18px / 1.3`
-- H2: `24px / 1.25`
-- H1: `32px / 1.2`
+- Card title: `16px / 1.4 / 600`
+- Section title: `18px / 1.4 / 600`
+- Page title: `24px / 1.3 / 600`
+- KPI value: `28px / 1.25 / 600`; use tabular numbers for amounts and operations.
 
 ## 11. Color Rules
 
-AI MUST inspect `readability.css` before adding new colors.
+AI MUST inspect `tokens.css` before adding new colors.
 
 AI SHOULD prefer existing neutral values and variables where appropriate.
 
 AI MUST NOT introduce arbitrary colors when an existing color/value satisfies the requirement.
 
-AI MUST NOT perform broad color migration.
+Broad color migration requires an explicit design-system request.
 
 ## 12. Button Rules
 
@@ -254,7 +251,7 @@ AI MUST inspect:
 ```text
 src/service-workspace.js
 src/service-workspace.css
-src/readability.css
+src/tokens.css
 staff-app/src/main.js
 src/main.js
 ```

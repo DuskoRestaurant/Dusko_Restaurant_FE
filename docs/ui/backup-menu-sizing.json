@@ -6,78 +6,78 @@
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 886.171875,
+      "height": 912.484375,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "heading": {
-      "fontSize": "18px",
-      "lineHeight": "25.2px",
+      "fontSize": "16px",
+      "lineHeight": "22.4px",
       "minHeight": "0px",
-      "height": 25.1875,
+      "height": 22.390625,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "normal",
-      "fontWeight": "650",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontWeight": "600",
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "button": {
-      "fontSize": "16px",
-      "lineHeight": "22.4px",
-      "minHeight": "44px",
-      "height": 44,
+      "fontSize": "14px",
+      "lineHeight": "19.6px",
+      "minHeight": "48px",
+      "height": 48,
       "padding": "8px 12px",
-      "borderRadius": "10px",
-      "gap": "normal",
-      "fontWeight": "650",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "borderRadius": "8px",
+      "gap": "8px",
+      "fontWeight": "600",
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "input": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "44px",
       "height": 44,
-      "padding": "10px 12px",
-      "borderRadius": "10px",
+      "padding": "8px 12px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "select": {
       "fontSize": "14px",
       "lineHeight": "normal",
       "minHeight": "44px",
-      "height": 51,
-      "padding": "10px 12px",
-      "borderRadius": "10px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "tabs": {
       "fontSize": "14px",
       "lineHeight": "19.6px",
-      "minHeight": "44px",
-      "height": 44,
+      "minHeight": "48px",
+      "height": 48,
       "padding": "8px",
-      "borderRadius": "10px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "panel": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 467.6875,
+      "height": 491.890625,
       "padding": "24px",
-      "borderRadius": "16px",
+      "borderRadius": "12px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "product": {
       "fontSize": "14px",
@@ -85,10 +85,10 @@
       "minHeight": "210px",
       "height": 210,
       "padding": "12px",
-      "borderRadius": "10px",
+      "borderRadius": "12px",
       "gap": "8px",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "name": {
       "fontSize": "14px",
@@ -99,7 +99,7 @@
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "600",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "meta": {
       "fontSize": "12px",
@@ -110,22 +110,22 @@
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "layout": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 275,
+      "height": 279,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "24px",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "tokens": {
-      "control": "10px",
-      "card": "16px"
+      "control": "8px",
+      "card": "12px"
     }
   },
   {
@@ -135,78 +135,78 @@
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 1583.21875,
+      "height": 1669.671875,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "heading": {
-      "fontSize": "18px",
-      "lineHeight": "25.2px",
+      "fontSize": "16px",
+      "lineHeight": "22.4px",
       "minHeight": "0px",
-      "height": 25.1875,
+      "height": 22.390625,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "normal",
-      "fontWeight": "650",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontWeight": "600",
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "button": {
-      "fontSize": "16px",
-      "lineHeight": "22.4px",
-      "minHeight": "44px",
-      "height": 44,
+      "fontSize": "14px",
+      "lineHeight": "19.6px",
+      "minHeight": "48px",
+      "height": 48,
       "padding": "8px 12px",
-      "borderRadius": "10px",
-      "gap": "normal",
-      "fontWeight": "650",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "borderRadius": "8px",
+      "gap": "8px",
+      "fontWeight": "600",
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "input": {
       "fontSize": "16px",
       "lineHeight": "24px",
       "minHeight": "44px",
-      "height": 46,
-      "padding": "10px 12px",
-      "borderRadius": "10px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "select": {
       "fontSize": "16px",
       "lineHeight": "normal",
       "minHeight": "44px",
-      "height": 46,
-      "padding": "10px 12px",
-      "borderRadius": "10px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "tabs": {
       "fontSize": "13px",
       "lineHeight": "18.2px",
-      "minHeight": "44px",
-      "height": 44,
+      "minHeight": "48px",
+      "height": 48,
       "padding": "8px",
-      "borderRadius": "10px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "panel": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 921.765625,
+      "height": 967.78125,
       "padding": "16px 16px 104px",
-      "borderRadius": "16px",
+      "borderRadius": "12px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "product": {
       "fontSize": "14px",
@@ -214,10 +214,10 @@
       "minHeight": "210px",
       "height": 210,
       "padding": "12px",
-      "borderRadius": "10px",
+      "borderRadius": "12px",
       "gap": "8px",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "name": {
       "fontSize": "14px",
@@ -228,7 +228,7 @@
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "600",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "meta": {
       "fontSize": "12px",
@@ -239,22 +239,22 @@
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "layout": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 589.578125,
+      "height": 590.390625,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "16px",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "tokens": {
-      "control": "10px",
-      "card": "16px"
+      "control": "8px",
+      "card": "12px"
     }
   },
   {
@@ -264,78 +264,78 @@
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 886.171875,
+      "height": 912.484375,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "heading": {
-      "fontSize": "18px",
-      "lineHeight": "25.2px",
+      "fontSize": "16px",
+      "lineHeight": "22.4px",
       "minHeight": "0px",
-      "height": 25.1875,
+      "height": 22.390625,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "normal",
-      "fontWeight": "650",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontWeight": "600",
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "button": {
-      "fontSize": "16px",
-      "lineHeight": "22.4px",
-      "minHeight": "44px",
-      "height": 44,
+      "fontSize": "14px",
+      "lineHeight": "19.6px",
+      "minHeight": "48px",
+      "height": 48,
       "padding": "8px 12px",
-      "borderRadius": "10px",
-      "gap": "normal",
-      "fontWeight": "650",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "borderRadius": "8px",
+      "gap": "8px",
+      "fontWeight": "600",
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "input": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "44px",
       "height": 44,
-      "padding": "10px 12px",
-      "borderRadius": "10px",
+      "padding": "8px 12px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "select": {
       "fontSize": "14px",
       "lineHeight": "normal",
       "minHeight": "44px",
-      "height": 51,
-      "padding": "10px 12px",
-      "borderRadius": "10px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "tabs": {
       "fontSize": "14px",
       "lineHeight": "19.6px",
-      "minHeight": "44px",
-      "height": 44,
+      "minHeight": "48px",
+      "height": 48,
       "padding": "8px",
-      "borderRadius": "10px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "panel": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 467.6875,
+      "height": 491.890625,
       "padding": "24px",
-      "borderRadius": "16px",
+      "borderRadius": "12px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "product": {
       "fontSize": "14px",
@@ -343,10 +343,10 @@
       "minHeight": "210px",
       "height": 210,
       "padding": "12px",
-      "borderRadius": "10px",
+      "borderRadius": "12px",
       "gap": "8px",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "name": {
       "fontSize": "14px",
@@ -357,7 +357,7 @@
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "600",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "meta": {
       "fontSize": "12px",
@@ -368,22 +368,22 @@
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "layout": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 275,
+      "height": 279,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "24px",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "tokens": {
-      "control": "10px",
-      "card": "16px"
+      "control": "8px",
+      "card": "12px"
     }
   },
   {
@@ -393,78 +393,78 @@
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 1583.21875,
+      "height": 1669.671875,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "heading": {
-      "fontSize": "18px",
-      "lineHeight": "25.2px",
+      "fontSize": "16px",
+      "lineHeight": "22.4px",
       "minHeight": "0px",
-      "height": 25.1875,
+      "height": 22.390625,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "normal",
-      "fontWeight": "650",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontWeight": "600",
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "button": {
-      "fontSize": "16px",
-      "lineHeight": "22.4px",
-      "minHeight": "44px",
-      "height": 44,
+      "fontSize": "14px",
+      "lineHeight": "19.6px",
+      "minHeight": "48px",
+      "height": 48,
       "padding": "8px 12px",
-      "borderRadius": "10px",
-      "gap": "normal",
-      "fontWeight": "650",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "borderRadius": "8px",
+      "gap": "8px",
+      "fontWeight": "600",
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "input": {
       "fontSize": "16px",
       "lineHeight": "24px",
       "minHeight": "44px",
-      "height": 46,
-      "padding": "10px 12px",
-      "borderRadius": "10px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "select": {
       "fontSize": "16px",
       "lineHeight": "normal",
       "minHeight": "44px",
-      "height": 46,
-      "padding": "10px 12px",
-      "borderRadius": "10px",
+      "height": 44,
+      "padding": "8px 12px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "tabs": {
       "fontSize": "13px",
       "lineHeight": "18.2px",
-      "minHeight": "44px",
-      "height": 44,
+      "minHeight": "48px",
+      "height": 48,
       "padding": "8px",
-      "borderRadius": "10px",
+      "borderRadius": "8px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "panel": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 921.765625,
+      "height": 967.78125,
       "padding": "16px 16px 104px",
-      "borderRadius": "16px",
+      "borderRadius": "12px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "product": {
       "fontSize": "14px",
@@ -472,10 +472,10 @@
       "minHeight": "210px",
       "height": 210,
       "padding": "12px",
-      "borderRadius": "10px",
+      "borderRadius": "12px",
       "gap": "8px",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "name": {
       "fontSize": "14px",
@@ -486,7 +486,7 @@
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "600",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "meta": {
       "fontSize": "12px",
@@ -497,22 +497,22 @@
       "borderRadius": "0px",
       "gap": "normal",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "layout": {
       "fontSize": "14px",
       "lineHeight": "21px",
       "minHeight": "0px",
-      "height": 589.578125,
+      "height": 590.390625,
       "padding": "0px",
       "borderRadius": "0px",
       "gap": "16px",
       "fontWeight": "400",
-      "fontFamily": "\"Nunito Variable\", Nunito, \"Segoe UI\", Arial, sans-serif"
+      "fontFamily": "\"Inter Variable\", Inter, \"Segoe UI\", Arial, sans-serif"
     },
     "tokens": {
-      "control": "10px",
-      "card": "16px"
+      "control": "8px",
+      "card": "12px"
     }
   }
 ]
