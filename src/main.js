@@ -53,7 +53,7 @@ document.addEventListener('error', event => {
     image.replaceWith(placeholder);
   }
 }, true);
-const state = { page: ['pipeline','combos','users','backups'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null, kitchenError:null };
+const state = { page: ['pipeline','combos','users','backups'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'overview', pageLoadSeq: 0, branch: Number(localStorage.getItem('dusko_branch') || 1), token: sessionStorage.getItem('dusko_token') || '', user: readSessionUser(), branches: [], data: {}, cart: [], tableId: '', date: tomorrow(), status: '', loading: false, kitchenStatus:'ALL', kitchenStation:'ALL', kitchenLastUpdated:null, kitchenError:null, ordersTab:'tables' };
 const nav = [ ['overview','Tổng quan','◫'], ['orders','Phục vụ & thu ngân','▤'], ['receipts','Hóa đơn','▤'], ['kitchen','Màn hình bếp','◈'], ['inventory','Kho hiện tại','▦'], ['forecast','Dự báo AI','✧'], ['combos','Duyệt combo','◇'], ['pipeline','Luồng FP-Growth','◇'], ['analytics','Phân tích món','◉'], ['locations','Chi nhánh & bàn','▥'], ['catalog','Thực đơn','◧'], ['users','Tài khoản','◉'], ['customers','Khách hàng','◎'], ['tiers','Hạng thành viên','◆'], ['promotions','Khuyến mãi','%'], ['backups','Sao lưu dữ liệu','▦'] ];
 const pages = { ADMIN: nav.map(x=>x[0]), MANAGER: ['overview','orders','receipts','kitchen','inventory','forecast','pipeline','analytics','locations','catalog','customers'] };
 // Split lock (user decision 2026-10-25): management is ADMIN/MANAGER only.
@@ -260,18 +260,40 @@ function overview() {
 function ordersPage() {
   serviceWorkspace?.destroy();
   legacyOrdersPage();
-  const page=document.querySelector('#page'), legacy=page.querySelector('.order-layout');
+  const page=document.querySelector('#page'),legacy=page.querySelector('.order-layout');
   page.querySelector('.page-head')?.remove();
-  const heading=document.createElement('div');
-  heading.className='service-page-heading';
-  heading.innerHTML=title('VẬN HÀNH','Phục vụ & thu ngân','Quản lý bàn và hoàn tất thanh toán tại một nơi.');
-  page.prepend(heading);
-  const workspace=document.createElement('div'); workspace.id='service-workspace'; heading.after(workspace);
-  const details=document.createElement('details'); details.className='legacy-order-tools';
-  details.innerHTML='<summary>Mang đi và đơn cũ</summary><p>Tạo đơn mang đi hoặc đối soát các đơn trước khi áp dụng phiên bàn.</p>';
-  legacy.replaceWith(details);details.append(legacy);
+  const heading=document.createElement('div');heading.className='service-page-heading';
+  heading.innerHTML=title('VẬN HÀNH','Phục vụ & thu ngân','Chọn công việc: phục vụ tại bàn, tạo đơn mang đi hoặc theo dõi đơn tại quầy.');page.prepend(heading);
+  const nav=document.createElement('div');nav.className='service-operation-tabs';nav.setAttribute('role','tablist');nav.setAttribute('aria-label','Công việc phục vụ và thu ngân');
+  const definitions=[['tables','Phục vụ tại bàn'],['takeaway','Tạo đơn mang đi'],['orders','Đơn mang đi & đơn cũ']];
+  nav.innerHTML=definitions.map(([id,label])=>'<button type="button" role="tab" id="service-section-'+id+'" data-service-section="'+id+'" aria-controls="service-panel-'+id+'">'+label+'</button>').join('');heading.after(nav);
+  const workspace=document.createElement('div');workspace.id='service-workspace';
+  const panels=definitions.map(([id])=>{const panel=document.createElement('section');panel.id='service-panel-'+id;panel.className='service-operation-panel';panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby','service-section-'+id);page.append(panel);return panel;});
+  panels[0].append(workspace);panels[1].append(legacy.children[0]);panels[2].append(legacy.children[0]);legacy.remove();
+  const takeaway=panels[1].querySelector('.panel');
+  const compose=document.createElement('div');compose.className='takeaway-compose';
+  const menu=document.createElement('div');menu.className='takeaway-menu';
+  const basket=document.createElement('aside');basket.className='takeaway-summary';basket.setAttribute('aria-label','Đơn mang đi đang tạo');basket.innerHTML='<h3>Đơn đang tạo</h3>';
+  [...takeaway.children].filter(el=>!el.matches('.panel-head')).forEach(el=>{(el.matches('.cart,.cart-total,[data-action="create-order"]')?basket:menu).append(el);});const quantity=menu.querySelector('.inline-controls'),picker=menu.querySelector('.product-picker');if(quantity&&picker)menu.insertBefore(quantity,picker);compose.append(menu,basket);takeaway.append(compose);
+  const select=id=>{state.ordersTab=id;definitions.forEach(([key],index)=>{const active=key===id;panels[index].hidden=!active;const button=nav.querySelector('[data-service-section="'+key+'"]');button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;});};
+  nav.addEventListener('click',event=>{const button=event.target.closest('[data-service-section]');if(button)select(button.dataset.serviceSection);});
+  nav.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();let index=definitions.findIndex(([id])=>id===state.ordersTab);index=event.key==='Home'?0:event.key==='End'?definitions.length-1:(index+(event.key==='ArrowRight'?1:-1)+definitions.length)%definitions.length;select(definitions[index][0]);nav.querySelector('[aria-selected="true"]').focus();});
+  select(definitions.some(([id])=>id===state.ordersTab)?state.ordersTab:'tables');
   serviceWorkspace=createServiceWorkspace({root:workspace,request:(path,options)=>api(path,{...options,cache:'no-store'}),branchId:state.branch,role:canAdminister(state.user)?'ADMIN':hasRole(state.user,['MANAGER'])?'MANAGER':state.user.role,userId:state.user.id,imageBase:API_BASE,initialData:{tables:state.data.tables,products:state.data.products}});
 }
+
+function updateTakeawayCart(){
+  const basket=document.querySelector('.takeaway-summary');if(!basket)return;
+  basket.querySelector('.cart').innerHTML=state.cart.length?state.cart.map((item,i)=>'<div class="cart-item"><div><strong>'+e(item.name)+'</strong><small>'+item.quantity+' × '+money(item.price)+(item.note?' · '+e(item.note):'')+'</small></div><span>'+money(item.price*item.quantity)+'</span><button data-action="remove-item" data-index="'+i+'" aria-label="Xóa món">×</button></div>').join(''):empty('Chưa chọn món','Thêm món để tạo đơn hàng.');
+  basket.querySelector('.cart-total strong').textContent=money(state.cart.reduce((sum,item)=>sum+item.price*item.quantity,0));basket.querySelector('[data-action=create-order]').disabled=!state.cart.length;
+}
+async function refreshCounterOrders(branch){
+  const orders=await api('/api/orders?branchId='+branch,{cache:'no-store'});
+  if(state.page!=='orders'||state.branch!==branch)return;
+  state.data.orders=orders;const filter=document.querySelector('#order-filter')?.value;
+  const list=document.querySelector('#orders-list');if(list)list.innerHTML=orderCards(orders.filter(order=>!order.diningSessionId&&(!filter||order.status===filter)));
+}
+
 function legacyOrdersPage() {
  const {products,tables}=state.data; const orders=state.data.orders.filter(o=>!o.diningSessionId); const total=state.cart.reduce((s,x)=>s+x.price*x.quantity,0);
  const pending=pendingFor(readQueue(localStorage),state.user.id,state.branch);
@@ -507,9 +529,9 @@ async function onClick(ev) {
   if(action==='goto-backups' && canAdminister(state.user)) { state.page='backups'; shell(); return loadPage(); }
   if(action==='goto-orders') { state.page='orders'; shell(); return loadPage(); }
   if(action==='select-product') { const select=document.querySelector('#product-select'); if(select) select.value=id; document.querySelectorAll('.product-choice').forEach(card=>card.classList.toggle('selected',card.dataset.id===id)); return; }
-  if(action==='add-item') { const id=Number(document.querySelector('#product-select').value), qty=Number(document.querySelector('#qty').value), p=state.data.products.find(x=>x.id===id && x.isActive); if(!p||p.canOrder===false||!Number.isInteger(qty)||qty<1) return toast('Chọn món và số lượng hợp lệ.',true); const note=document.querySelector('#item-note').value.trim(); state.tableId=document.querySelector('#table-id').value; state.cart.push({productId:id,name:p.name,price:p.sellingPrice,quantity:qty,note}); return ordersPage(); }
-  if(action==='remove-item') { state.cart.splice(Number(target.dataset.index),1); return ordersPage(); }
-  if(action==='create-order') { if(!state.cart.length) return; const tableId=Number(document.querySelector('#table-id').value)||undefined; const order={id:crypto.randomUUID(),userId:state.user.id,branchId:state.branch,...(tableId?{tableId}:{}),items:state.cart.map(({productId,price,quantity,note})=>({productId,price,quantity,note}))}; busy(true); try { if(navigator.onLine===false) throw new TypeError('Mất kết nối'); await api('/api/orders',{method:'POST',body:order}); state.cart=[]; state.tableId=''; toast('Đã tạo đơn hàng.'); await loadPage(); } catch(err) { if(!(err instanceof ApiError) && err instanceof TypeError) { try { const queue=readQueue(localStorage); saveQueue(localStorage,[...queue,order]); state.cart=[]; state.tableId=''; toast('Đã lưu đơn trên máy. Đồng bộ khi có mạng.'); ordersPage(); } catch(storageError) { toast('Không thể lưu đơn offline: '+storageError.message,true); } } else toast(err.message,true); } finally { busy(false); } return; }
+  if(action==='add-item') { const id=Number(document.querySelector('#product-select').value), qty=Number(document.querySelector('#qty').value), p=state.data.products.find(x=>x.id===id && x.isActive); if(!p||p.canOrder===false||!Number.isInteger(qty)||qty<1) return toast('Chọn món và số lượng hợp lệ.',true); const note=document.querySelector('#item-note').value.trim(); state.tableId=document.querySelector('#table-id').value; state.cart.push({productId:id,name:p.name,price:p.sellingPrice,quantity:qty,note}); return updateTakeawayCart(); }
+  if(action==='remove-item') { state.cart.splice(Number(target.dataset.index),1); return updateTakeawayCart(); }
+  if(action==='create-order') { if(!state.cart.length) return; const tableId=Number(document.querySelector('#table-id').value)||undefined; const order={id:crypto.randomUUID(),userId:state.user.id,branchId:state.branch,...(tableId?{tableId}:{}),items:state.cart.map(({productId,price,quantity,note})=>({productId,price,quantity,note}))}; busy(true); try { if(navigator.onLine===false) throw new TypeError('Mất kết nối'); await api('/api/orders',{method:'POST',body:order}); state.cart=[]; state.tableId=''; toast('Đã tạo đơn hàng.'); updateTakeawayCart(); try{await refreshCounterOrders(order.branchId);}catch{toast('Đơn đã được tạo. Chưa cập nhật được danh sách đơn; nhấn Làm mới để tải lại.',true);} } catch(err) { if(!(err instanceof ApiError) && err instanceof TypeError) { try { const queue=readQueue(localStorage); saveQueue(localStorage,[...queue,order]); state.cart=[]; state.tableId=''; toast('Đã lưu đơn trên máy. Đồng bộ khi có mạng.'); ordersPage(); } catch(storageError) { toast('Không thể lưu đơn offline: '+storageError.message,true); } } else toast(err.message,true); } finally { busy(false);updateTakeawayCart(); } return; }
   if(action==='sync-orders') { const queue=readQueue(localStorage), pending=pendingFor(queue,state.user.id,state.branch).slice(0,100); if(!pending.length) return; const result=await perform(()=>api('/api/orders/sync-offline',{method:'POST',body:{orders:pending.map(({userId,error,...order})=>order)}})); if(result) { saveQueue(localStorage,applySyncResults(queue,result.details||[])); toast(`Đồng bộ ${result.syncedCount||0} đơn, ${result.duplicateCount||0} đơn đã tồn tại, ${result.failedCount||0} đơn lỗi.`,!!result.failedCount); loadPage(); } return; }
   if(action==='remove-pending') { if(!await confirmDialog({title:'Xóa đơn chờ đồng bộ?',message:'Đơn này sẽ bị xóa khỏi hàng đợi trên trình duyệt hiện tại.',confirmLabel:'Xóa đơn',danger:true})) return; saveQueue(localStorage,readQueue(localStorage).filter(o=>o.id!==id || o.userId!==state.user.id)); return ordersPage(); }
   if(action==='receipt') return perform(()=>openReceipt(api,target.dataset.session?'session':'order',target.dataset.session||id));

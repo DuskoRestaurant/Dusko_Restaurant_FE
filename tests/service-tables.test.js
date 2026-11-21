@@ -1,3 +1,4 @@
+import {groupServiceTables} from '../src/service-tables.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {filterServiceTables,serviceTableFilters} from '../src/service-tables.js';
@@ -28,4 +29,9 @@ test('cashier filter keeps payment-ready tables and prioritizes bill requests',(
   const input=[...tables,{id:6,tableName:'Bàn 6',status:'SERVING',checkoutReady:true},{id:7,tableName:'Bàn 7',status:'SERVING',billRequested:true}];
   assert.deepEqual(filterServiceTables(input,{filter:'PAY'}).map(t=>t.id),[6,7]);
   assert.deepEqual(filterServiceTables(input,{prioritizePayment:true}).slice(0,2).map(t=>t.id),[6,7]);
+});
+
+test('operational groups put exceptions first and include every table exactly once',()=>{
+  const tables=[{id:1,status:'EMPTY'},{id:2,status:'SERVING'},{id:3,status:'RESERVED'},{id:4,status:'SERVING',billRequested:true},{id:5,status:'EMPTY',serviceRequestCount:1}];
+  const groups=groupServiceTables(tables);assert.deepEqual(groups.map(g=>g.id),['attention','serving','empty','reserved']);assert.deepEqual(groups[0].items.map(t=>t.id),[4,5]);assert.equal(new Set(groups.flatMap(g=>g.items.map(t=>t.id))).size,tables.length);assert.deepEqual(groupServiceTables([]),[]);
 });

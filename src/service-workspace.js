@@ -6,7 +6,7 @@ import './service-workspace.css';
 import { showQrPreview } from './qr-preview.js';
 import { confirmDialog } from './confirm-dialog.js';
 import { serviceMenuPage } from './service-menu.js';
-import { filterServiceTables, serviceTableFilters } from './service-tables.js';
+import { filterServiceTables, serviceTableFilters, groupServiceTables } from './service-tables.js';
 
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[c]);
 const money = value => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(value || 0);
@@ -20,7 +20,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   // Shares the console toast stack so the workspace and the shell announce
   // through one live region instead of two.
   const toast = sharedToast();
-  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', paymentMethod:'CASH', promotionCode:'', promotions:[], promotionError:'', filter:role==='CASHIER'?'PAY':'ALL', search:'', menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
+  const state = {tables:[], products:[], table:null, session:null, tab:'confirm', paymentMethod:'CASH', promotionCode:'', promotions:[], promotionError:'', filter:role==='CASHIER'?'PAY':'ALL', search:'', tablePage:1, menuSearch:'', menuPage:1, category:'ALL', cart:new Map(), notes:new Map(), busy:false, message:'', bad:false, draft:null,serviceRequests:[]};
   let disposed = false;
   let closeVnpay, customerDialog;
   let lastUpdated=null,syncError=false;
@@ -56,8 +56,13 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   function setBusy(busy) { state.busy = busy; root.setAttribute('aria-busy',String(busy)); root.querySelectorAll('button[data-sw]').forEach(el => el.disabled = busy || el.dataset.locked === 'true'); }
   function tableCards() {
     const tables = filterServiceTables(state.tables,{search:state.search,filter:state.filter,prioritizePayment:cashierView});
-    return tables.map(table => `<button type="button" class="sw-table ${table.serviceRequestCount||table.unconfirmedOrderCount||table.readyQuantity?'sw-attention':''}" data-state="${table.status}" data-priority="${table.serviceRequestCount?'call':table.unconfirmedOrderCount?'confirm':table.readyQuantity?'ready':'idle'}" data-sw="table" data-id="${table.id}"><span class="sw-table-state">${table.status==='EMPTY'?'Trống':table.status==='RESERVED'?'Đã đặt trước':'Đang phục vụ'}</span><strong>${e(table.tableName)}</strong><small>${table.seatingCapacity} chỗ</small><div>${table.billRequested?'<b class="sw-table-call">Khách yêu cầu thanh toán</b>':table.checkoutReady?'<b class="sw-table-ready">Sẵn sàng thanh toán</b>':''}${table.serviceRequestCount?`<b class="sw-table-call">${table.serviceRequestCount} yêu cầu hỗ trợ</b>`:''}${table.unconfirmedOrderCount?`<b class="sw-table-confirm">${table.unconfirmedOrderCount} cần xác nhận</b>`:''}${table.readyQuantity?`<b class="sw-table-ready">${table.readyQuantity} món sẵn sàng</b>`:''}${!table.serviceRequestCount&&!table.unconfirmedOrderCount&&!table.readyQuantity?(table.pendingOrderCount?'<span>Đang phục vụ món</span>':'<span>Chọn để xem bàn</span>'):''}</div></button>`).join('') || empty('Không có bàn phù hợp');
+    const pages=Math.max(1,Math.ceil(tables.length/12));state.tablePage=Math.min(state.tablePage,pages);
+    const start=(state.tablePage-1)*12,visible=tables.slice(start,start+12);
+    const card=table=>`<button type="button" class="sw-table ${table.serviceRequestCount||table.unconfirmedOrderCount||table.readyQuantity?'sw-attention':''}" data-state="${table.status}" data-priority="${table.serviceRequestCount?'call':table.unconfirmedOrderCount?'confirm':table.readyQuantity?'ready':'idle'}" data-sw="table" data-id="${table.id}"><span class="sw-table-state">${table.status==='EMPTY'?'Trống':table.status==='RESERVED'?'Đã đặt trước':'Đang phục vụ'}</span><strong>${e(table.tableName)}</strong><small>${table.seatingCapacity} chỗ</small><div>${table.billRequested?'<b class="sw-table-call">Khách yêu cầu thanh toán</b>':table.checkoutReady?'<b class="sw-table-ready">Sẵn sàng thanh toán</b>':''}${table.serviceRequestCount?`<b class="sw-table-call">${table.serviceRequestCount} yêu cầu hỗ trợ</b>`:''}${table.unconfirmedOrderCount?`<b class="sw-table-confirm">${table.unconfirmedOrderCount} cần xác nhận</b>`:''}${table.readyQuantity?`<b class="sw-table-ready">${table.readyQuantity} món sẵn sàng</b>`:''}${!table.serviceRequestCount&&!table.unconfirmedOrderCount&&!table.readyQuantity?(table.pendingOrderCount?'<span>Đang phục vụ món</span>':'<span>Chọn để xem bàn</span>'):''}</div></button>`;
+    const groups=groupServiceTables(visible);
+    return (groups.map(group=>'<section class="sw-table-group" aria-label="'+e(group.label)+'"><div class="sw-table-group-heading"><h3>'+e(group.label)+'</h3><span>'+group.items.length+' bàn</span></div><div class="sw-table-grid">'+group.items.map(card).join('')+'</div></section>').join('')||empty('Không có bàn phù hợp','Thử thay đổi tên bàn hoặc trạng thái.'))+'<div class="sw-table-pagination"><span role="status">'+(tables.length?start+1:0)+'–'+Math.min(start+12,tables.length)+' / '+tables.length+' bàn</span><div>'+button('Trước','tables-prev',state.tablePage===1?'data-locked="true"':'')+'<span>Trang '+state.tablePage+' / '+pages+'</span>'+button('Sau','tables-next',state.tablePage===pages?'data-locked="true"':'')+'</div></div>';
   }
+
   function render() {
     if(disposed) return;
     panelSnapshot = '';
@@ -67,7 +72,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     setBusy(state.busy);
   }
   function listView() {
-    return `<div class="sw-heading sw-list-heading"><div><h2>Danh sách bàn</h2><p>Bàn cần xử lý được xếp trước. Chọn trạng thái để lọc nhanh.</p></div><div class="sw-heading-actions">${button('Làm mới','refresh')}</div></div><div class="sw-overview" role="group" aria-label="Lọc trạng thái bàn">${listOverview()}</div><div class="sw-filters sw-table-filters"><label>Tìm bàn<input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></label></div><div class="sw-tables">${tableCards()}</div><details class="sw-guide"><summary>Hướng dẫn phục vụ</summary><p>Mở bàn → xác nhận yêu cầu QR hoặc gọi món giúp khách → mang món đã hoàn thành ra bàn → thanh toán.</p></details>`;
+    return `<div class="sw-heading sw-list-heading"><div><h2>Danh sách bàn</h2><p>Bàn cần xử lý được xếp trước. Chọn trạng thái để lọc nhanh.</p></div><div class="sw-heading-actions">${button('Làm mới','refresh')}</div></div><div class="sw-table-controls"><label>Tìm bàn<input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></label><div class="sw-overview">${listOverview()}</div></div><div class="sw-tables">${tableCards()}</div><details class="sw-guide"><summary>Hướng dẫn phục vụ</summary><p>Mở bàn → xác nhận yêu cầu QR hoặc gọi món giúp khách → mang món đã hoàn thành ra bàn → thanh toán.</p></details>`;
   }
   const mayCloseEmpty = () => Boolean(state.session) && !(state.session.orders||[]).some(order=>['AWAITING_CONFIRMATION','PENDING'].includes(order.status));
   function tableView() {
@@ -233,7 +238,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
         const filters=root.querySelector('.sw-overview');
         const filterFocused=filters.contains(document.activeElement);
         cards.innerHTML=tableCards();filters.innerHTML=listOverview();setBusy(state.busy);
-        if(filterFocused) filters.querySelector(`[data-filter="${state.filter}"]`).focus({preventScroll:true});
+        if(filterFocused) filters.querySelector('[data-sw-input="table-filter"]').focus({preventScroll:true});
       } else render();
       return;
     }
@@ -256,7 +261,8 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       root.querySelectorAll('.sw-cart-item').forEach(row=>{const id=Number(row.querySelector('[data-product]').dataset.product),p=products.find(p=>p.id===id);if(p)row.querySelector('div>span').textContent=money(p.sellingPrice*(state.cart.get(id)||0));});const invalid=[...state.cart].some(([id,q])=>{const p=products.find(p=>p.id===id);return !p?.canOrder||q>(p.maxOrderQuantity??1000)});const send=root.querySelector('[data-sw=send]');if(send){if(invalid||state.draft||!state.cart.size)send.dataset.locked='true';else delete send.dataset.locked;}const warning=root.querySelector('[data-sw-cart-warning]');if(warning)warning.hidden=!invalid;setBusy(state.busy);const totalEl=root.querySelector('[data-sw-cart] .sw-bill-total strong');if(totalEl)totalEl.textContent=money([...state.cart].reduce((sum,[id,q])=>sum+products.find(p=>p.id===id).sellingPrice*q,0));
     }
   }
-  function listOverview() { return serviceTableFilters(state.tables).filter(filter=>filter.id!=='PAY'||mayPay).map(filter=>`<button type="button" class="sw-filter" data-sw="table-filter" data-filter="${filter.id}" aria-pressed="${state.filter===filter.id}">${filter.label} <b>${filter.count}</b></button>`).join(''); }
+  function listOverview() { return '<label>Trạng thái<select data-sw-input="table-filter" aria-label="Trạng thái bàn">'+serviceTableFilters(state.tables).filter(filter=>filter.id!=='PAY'||mayPay).map(filter=>'<option value="'+filter.id+'" '+(state.filter===filter.id?'selected':'')+'>'+filter.label+' ('+filter.count+')</option>').join('')+'</select></label>'; }
+
   function readDraft(id) { try { return JSON.parse(localStorage.getItem(draftKey(id))||localStorage.getItem(`dusko-staff-draft:${userId}:${branchId}:${id}`)||'null'); } catch { return null; } }
   function clearDraft(id) { localStorage.removeItem(draftKey(id));localStorage.removeItem(`dusko-staff-draft:${userId}:${branchId}:${id}`); }
   async function selectTable(id) {
@@ -308,8 +314,9 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
       if(action==='table') {setBusy(true);target.textContent='Đang mở bàn…';try{showMessage('');await selectTable(Number(target.dataset.id));}finally{setBusy(false);if(!state.table)render();}return;}
       if(action==='back') { closeVnpay?.();++selection;state.table=null;state.session=null;state.cart.clear();state.notes.clear();render();await refresh();return; }
       if(action==='tab') {state.tab=target.dataset.tab;render();root.querySelector('.sw-tabs [aria-selected="true"]')?.focus({preventScroll:true});return;}
+      if(action==='tables-prev'||action==='tables-next'){state.tablePage+=action==='tables-next'?1:-1;root.querySelector('.sw-tables').innerHTML=tableCards();setBusy(state.busy);root.querySelector('.sw-tables').scrollIntoView({block:'start'});return;}
       if(action==='table-filter') {
-        state.filter=target.dataset.filter;
+        state.filter=target.dataset.filter;state.tablePage=1;
         root.querySelector('.sw-tables').innerHTML=tableCards();
         root.querySelector('.sw-overview').innerHTML=listOverview();
         setBusy(state.busy);
@@ -343,9 +350,10 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   }
   function onInput(event) {
     const type=event.target.dataset.swInput;
+    if(type==='table-filter'){state.filter=event.target.value;state.tablePage=1;root.querySelector('.sw-tables').innerHTML=tableCards();setBusy(state.busy);}
     if(type==='promotion')state.promotionCode=event.target.value;
     if(type==='payment'&&['CASH','QR_BANKING','POS_CARD'].includes(event.target.value)) state.paymentMethod=event.target.value;
-    if(type==='table-search') {state.search=event.target.value;root.querySelector('.sw-tables').innerHTML=tableCards();}
+    if(type==='table-search') {state.search=event.target.value;state.tablePage=1;root.querySelector('.sw-tables').innerHTML=tableCards();}
     if(type==='note') state.notes.set(Number(event.target.dataset.product),event.target.value);
     if(type==='menu-search'||type==='category') {if(type==='menu-search')state.menuSearch=event.target.value;else state.category=event.target.value;state.menuPage=1;updateMenuResults();}
   }
