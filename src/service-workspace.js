@@ -62,13 +62,23 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     const start=(state.tablePage-1)*pageSize,visible=tables.slice(start,start+pageSize);
     const card=table=>{
       const minutes=elapsedMinutes(table.sessionOpenedAt);
-      const party=table.partySize?`${table.partySize}/${table.seatingCapacity||0} khách`:`${table.seatingCapacity||0} chỗ`;
-      const occupancy=minutes!==null?(minutes<60?`${minutes} phút`:`${Math.floor(minutes/60)} giờ ${minutes%60} phút`):(table.status==='RESERVED'?'Đã đặt trước':table.status==='EMPTY'?'Bàn trống':'Đang phục vụ');
-      const tasks=`${table.billRequested||table.checkoutReady?'<b class="sw-table-call">Chờ thanh toán</b>':''}${table.serviceRequestCount?`<b class="sw-table-call">${table.serviceRequestCount} cần hỗ trợ</b>`:''}${table.unconfirmedOrderCount?`<b class="sw-table-confirm">${table.unconfirmedOrderCount} chờ xác nhận</b>`:''}${table.readyQuantity?`<b class="sw-table-ready">${table.readyQuantity} món sẵn sàng</b>`:''}${table.pendingOrderCount&&!table.readyQuantity&&!table.unconfirmedOrderCount&&!table.serviceRequestCount&&!table.billRequested&&!table.checkoutReady?'<span>Chờ lên món</span>':''}`;
-      return `<button type="button" class="sw-table ${tasks?'sw-attention':''}" data-state="${table.status}" data-priority="${table.billRequested||table.checkoutReady?'payment':table.serviceRequestCount?'call':table.unconfirmedOrderCount?'confirm':table.readyQuantity?'ready':'idle'}" data-sw="table" data-id="${table.id}" title="${e(table.tableName)}"><span class="sw-table-head"><strong>${e(table.tableName)}</strong><small>${party}</small></span><span class="sw-table-time">${occupancy}</span><div class="sw-table-tasks">${tasks||'<span>'+ (table.status==='EMPTY'?'Có thể mở bàn':table.status==='RESERVED'?'Chờ khách':'Chọn để xem bàn')+'</span>'}</div></button>`;
+      const duration=minutes===null?'':minutes<60?`${minutes} phút`:`${Math.floor(minutes/60)} giờ${minutes%60?` ${minutes%60} phút`:''}`;
+      // Service request counts include the bill call; do not show it twice as assistance.
+      const assistance=Math.max(0,(Number(table.serviceRequestCount)||0)-(table.billRequested?1:0));
+      const bill=table.billRequested?{label:'Khách gọi thanh toán',tone:'call'}:null;
+      const checkout=!bill&&table.checkoutReady?{label:'Có thể thanh toán',tone:'ready'}:null;
+      const tasks=[bill,mayPay?checkout:null,
+        assistance?{count:assistance,label:'yêu cầu hỗ trợ',tone:'call'}:null,
+        table.unconfirmedOrderCount?{count:table.unconfirmedOrderCount,label:'đơn chờ xác nhận',tone:'confirm'}:null,
+        table.readyQuantity?{count:table.readyQuantity,label:'món sẵn sàng',tone:'ready'}:null,
+        !mayPay?checkout:null,
+      ].filter(Boolean);
+      const primary=tasks[0]||{label:table.status==='EMPTY'?'Bàn trống':table.status==='RESERVED'?'Đã đặt trước':'Đang phục vụ',tone:'idle'};
+      const party=table.partySize?`${table.partySize} khách`:table.seatingCapacity?`${table.seatingCapacity} chỗ`:'';
+      return `<button type="button" class="sw-table ${tasks.length?'sw-attention':''}" data-state="${table.status}" data-priority="${primary.tone}" data-sw="table" data-id="${table.id}" title="${e(table.tableName)}"><span class="sw-table-head"><strong>${e(table.tableName)}</strong>${duration?`<small aria-label="Đã mở ${duration}">${duration}</small>`:''}</span><span class="sw-table-action" data-tone="${primary.tone}">${primary.count?`<b>${primary.count}</b> `:''}${primary.label}</span>${tasks.length>1?`<span class="sw-table-secondary">${tasks.slice(1).map(task=>`<span>${task.count?`<b>${task.count}</b> `:''}${task.label}</span>`).join('')}</span>`:''}${party?`<small class="sw-table-meta">${party}</small>`:''}</button>`;
     };
     const groups=groupServiceTables(visible,role);
-    return (groups.map(group=>'<section class="sw-table-group" aria-label="'+e(group.label)+'"><div class="sw-table-group-heading"><h3>'+e(group.label)+'</h3><span>'+group.items.length+' bàn</span></div><div class="sw-table-grid">'+group.items.map(card).join('')+'</div></section>').join('')||empty('Không có bàn phù hợp','Thử thay đổi tên bàn hoặc trạng thái.'))+'<div class="sw-table-pagination"><span role="status">'+(tables.length?start+1:0)+'–'+Math.min(start+pageSize,tables.length)+' / '+tables.length+' bàn</span><div>'+button('Trước','tables-prev',state.tablePage===1?'data-locked="true"':'')+'<span>Trang '+state.tablePage+' / '+pages+'</span>'+button('Sau','tables-next',state.tablePage===pages?'data-locked="true"':'')+'</div></div>';
+    return (visible.length?'<section class="sw-table-group" aria-label="Danh sách bàn"><div class="sw-table-grid">'+groups.flatMap(group=>group.items).map(card).join('')+'</div></section>':empty('Không có bàn phù hợp','Thử thay đổi tên bàn hoặc trạng thái.'))+'<div class="sw-table-pagination"><span role="status">'+(tables.length?start+1:0)+'–'+Math.min(start+pageSize,tables.length)+' / '+tables.length+' bàn</span><div>'+button('Trước','tables-prev',state.tablePage===1?'data-locked="true"':'')+'<span>Trang '+state.tablePage+' / '+pages+'</span>'+button('Sau','tables-next',state.tablePage===pages?'data-locked="true"':'')+'</div></div>';
   }
 
   function render() {
@@ -80,7 +90,7 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
     setBusy(state.busy);
   }
   function listView() {
-    return `<div class="sw-heading sw-list-heading"><div><h2>${cashierView?'Bàn chờ thanh toán':'Sơ đồ bàn phục vụ'}</h2></div><div class="sw-heading-actions">${button('Làm mới','refresh')}</div></div><div class="sw-table-controls"><label>Tìm bàn<input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></label><div class="sw-overview">${listOverview()}</div></div><div class="sw-tables">${tableCards()}</div>`;
+    return `<div class="sw-heading sw-list-heading"><div><h2>Danh sách bàn</h2></div><div class="sw-heading-actions">${button('Làm mới','refresh')}</div></div><div class="sw-table-controls"><label>Tìm bàn<input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></label><div class="sw-overview">${listOverview()}</div></div><div class="sw-tables">${tableCards()}</div>`;
   }
   const mayCloseEmpty = () => Boolean(state.session) && !(state.session.orders||[]).some(order=>['AWAITING_CONFIRMATION','PENDING'].includes(order.status));
   function tableView() {
