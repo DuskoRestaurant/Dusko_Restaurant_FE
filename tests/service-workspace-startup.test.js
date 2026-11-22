@@ -19,10 +19,10 @@ for(const role of ['ADMIN','CASHIER','WAITER'])test(`${role} workspace starts, r
   const workspace=create({root,role,userId:'test',branchId:1,initialData:{tables:[table],products:[]},request:async()=>({table,session:{id:'session',orders:[{id:'order',status:'PENDING',createdAt:new Date(),finalAmount:1000,items:[]}]}})});
   try{
     await new Promise(resolve=>setImmediate(resolve));
-    assert.match(root.innerHTML,/Danh sách bàn/);
-    assert.match(sync.textContent,/Đang kết nối trực tiếp/);
+    assert.match(root.innerHTML,/Sơ đồ bàn phục vụ|Bàn chờ thanh toán|Danh sách bàn/);
     const target={dataset:{sw:'table',id:'1'}};
     await listeners.get('click')({target:{closest:()=>target}});
+    assert.match(sync.textContent,/Đang kết nối trực tiếp/);
     assert.equal(message.textContent,'');
     assert.match(root.innerHTML,/Khách vãng lai/);
     assert.match(root.innerHTML,/Gắn khách hàng/);

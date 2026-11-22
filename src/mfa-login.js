@@ -33,11 +33,12 @@ export async function completeMfaLogin(result,request,username){
   dialog.addEventListener('close',()=>{dialog.remove();if(!done)reject(Error('Đã hủy xác thực. Vui lòng đăng nhập lại khi sẵn sàng.'));},{once:true});document.body.append(dialog);dialog.showModal();input.focus();
  });
 }
-export async function authenticatorLogin(request,username,password){
+export async function authenticatorLogin(request,username,password,onProgress=()=>{}){
  const stored=getTrustedDevice(username);
  const result=await request('/api/auth/login',{method:'POST',body:{username,password,...(stored?{trustedDeviceToken:stored.token}:{})}});
- if(result.token&&!result.mfaRequired)return {token:result.token,user:result.user};
+ if(result.token&&!result.mfaRequired)return {token:result.token,user:result.user,usedTrustedDevice:!!stored};
  if(stored&&result.mfaRequired)clearTrustedDevice(username);
+ onProgress(result.setupRequired?'Mật khẩu đã đúng. Quét mã QR trong hộp Authenticator để thiết lập xác thực hai lớp.':'Mật khẩu đã đúng. Nhập mã Authenticator trong hộp xác thực để hoàn tất đăng nhập.');
  const verified=await completeMfaLogin(result,request,username);
  return {token:verified.token,user:verified.user};
 }
