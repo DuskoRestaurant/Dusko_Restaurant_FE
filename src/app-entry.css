@@ -22,3 +22,5 @@
 .staff-entry-link:hover { background: var(--primary-soft); }
 .service-workspace[aria-busy=true] { cursor: progress; }
 @media (max-width: 540px) { .entry-page { padding: 24px 16px; gap: 24px; } .entry-form-box { padding: 16px; } }
+
+.entry-error[data-kind=progress]{color:var(--primary)}

@@ -21,8 +21,41 @@ export function filterServiceTables(tables, {search='', filter='ALL',prioritizeP
     .sort((a,b)=>priority(b)-priority(a)||a.tableName.localeCompare(b.tableName,'vi',{numeric:true}));
 }
 
-export function groupServiceTables(tables){
-  const groups=[{id:'attention',label:'Cần xử lý',items:[]},{id:'serving',label:'Đang phục vụ',items:[]},{id:'empty',label:'Bàn trống',items:[]},{id:'reserved',label:'Đã đặt trước',items:[]}];
-  for(const table of tables){const index=table.serviceRequestCount||table.unconfirmedOrderCount||table.readyQuantity||table.billRequested||table.checkoutReady?0:table.status==='SERVING'?1:table.status==='EMPTY'?2:3;groups[index].items.push(table);}
+const naturalTableOrder = (a,b) => a.tableName.localeCompare(b.tableName,'vi',{numeric:true});
+
+export function groupServiceTables(tables, role='STAFF'){
+  const cashier = ['ADMIN','MANAGER','CASHIER'].includes(role);
+  const groups = cashier
+    ? [
+        {id:'payment',label:'Cần thanh toán',items:[]},
+        {id:'serving',label:'Đang phục vụ',items:[]},
+        {id:'empty',label:'Bàn trống',items:[]},
+        {id:'reserved',label:'Đã đặt trước',items:[]},
+      ]
+    : [
+        {id:'support',label:'Cần hỗ trợ',items:[]},
+        {id:'confirm',label:'Chờ xác nhận',items:[]},
+        {id:'ready',label:'Món sẵn sàng',items:[]},
+        {id:'serving',label:'Đang phục vụ',items:[]},
+        {id:'empty',label:'Bàn trống',items:[]},
+        {id:'reserved',label:'Đã đặt trước',items:[]},
+      ];
+
+  for(const table of tables){
+    let index;
+    if(cashier){
+      index = table.billRequested||table.checkoutReady ? 0 : table.status==='SERVING' ? 1 : table.status==='EMPTY' ? 2 : 3;
+    }else{
+      index = table.serviceRequestCount ? 0
+        : table.unconfirmedOrderCount ? 1
+        : table.readyQuantity ? 2
+        : table.status==='SERVING' ? 3
+        : table.status==='EMPTY' ? 4
+        : 5;
+    }
+    groups[index].items.push(table);
+  }
+
+  groups.forEach(group=>group.items.sort(naturalTableOrder));
   return groups.filter(group=>group.items.length);
 }

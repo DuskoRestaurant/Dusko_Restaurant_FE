@@ -31,7 +31,20 @@ test('cashier filter keeps payment-ready tables and prioritizes bill requests',(
   assert.deepEqual(filterServiceTables(input,{prioritizePayment:true}).slice(0,2).map(t=>t.id),[6,7]);
 });
 
-test('operational groups put exceptions first and include every table exactly once',()=>{
-  const tables=[{id:1,status:'EMPTY'},{id:2,status:'SERVING'},{id:3,status:'RESERVED'},{id:4,status:'SERVING',billRequested:true},{id:5,status:'EMPTY',serviceRequestCount:1}];
-  const groups=groupServiceTables(tables);assert.deepEqual(groups.map(g=>g.id),['attention','serving','empty','reserved']);assert.deepEqual(groups[0].items.map(t=>t.id),[4,5]);assert.equal(new Set(groups.flatMap(g=>g.items.map(t=>t.id))).size,tables.length);assert.deepEqual(groupServiceTables([]),[]);
+test('operational groups put waiter tasks and cashier tasks in role-specific sections',()=>{
+  const tables=[
+    {id:1,tableName:'Bàn 1',status:'EMPTY'},
+    {id:2,tableName:'Bàn 2',status:'SERVING'},
+    {id:3,tableName:'Bàn 3',status:'RESERVED'},
+    {id:4,tableName:'Bàn 4',status:'SERVING',billRequested:true},
+    {id:5,tableName:'Bàn 5',status:'EMPTY',serviceRequestCount:1},
+    {id:6,tableName:'Bàn 6',status:'SERVING',unconfirmedOrderCount:1},
+  ];
+  const cashier=groupServiceTables(tables,'CASHIER');
+  assert.deepEqual(cashier.map(g=>g.id),['payment','serving','empty','reserved']);
+  assert.deepEqual(cashier[0].items.map(t=>t.id),[4]);
+  const waiter=groupServiceTables(tables,'WAITER');
+  assert.deepEqual(waiter.map(g=>g.id),['support','confirm','serving','empty','reserved']);
+  assert.equal(new Set(waiter.flatMap(g=>g.items.map(t=>t.id))).size,tables.length);
+  assert.deepEqual(groupServiceTables([],'CASHIER'),[]);
 });

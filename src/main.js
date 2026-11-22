@@ -6,7 +6,7 @@ import {algorithmGuideMarkup,forecastEvidenceMarkup,ruleEvidenceMarkup} from './
 import {effectiveRoles,hasRole,canAdminister} from './permissions.js';
 import {mountReceiptManager} from './receipt-manager.js';
 import './tokens.css';
-import {authenticatorLogin,reconfigureAuthenticator} from './mfa-login.js';
+import {authenticatorLogin,reconfigureAuthenticator,clearTrustedDevice} from './mfa-login.js';
 import {forecastSummary,showAiActionResult,ingredientPlanMarkup} from './ai-workflow.js';
 import {openReceipt} from './receipt.js';
 import { showVnpayPayment } from './vnpay-payment.js';
@@ -576,13 +576,21 @@ if(action==='receive-stock'||action==='adjust-stock') {
   if(action==='password') return passwordDialog(api,()=>{signOut();toast('Đã đổi mật khẩu. Vui lòng đăng nhập lại.');});
   if(action==='logout') signOut();
 }
-function signOut() { clearBackupMonitor(); startSeq++; closeVnpayPayment?.(); stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');shell();loadPage(); }
+function signOut(message='') { clearBackupMonitor(); startSeq++; closeVnpayPayment?.(); stopLive?.(); stopLive=null; invalidateReads(); pipelineViews.clear(); state.token='';state.user=null;state.cart=[];state.data={};sessionStorage.removeItem('dusko_token');sessionStorage.removeItem('dusko_user');state.pageLoadSeq++;showEntry(typeof message==='string'?message:''); }
 function loginPanel() { document.querySelector('.avatar')?.remove(); if(state.user) document.querySelector('.top-actions')?.insertAdjacentHTML('beforeend',`<details class="account-menu"><summary>Tài khoản</summary><div><strong>${e(state.user.fullName)}</strong><small>${e(state.user.role)}</small>${canAdminister(state.user)?btn('Authenticator','mfa-settings','text'):''}${btn('Đổi mật khẩu','password','text')}${btn('Đăng xuất','logout','text')}</div></details>`); }
-function showEntry() {
+function showEntry(message='') {
   serviceWorkspace?.destroy();serviceWorkspace=null;
-  mountLogin(app,{submit:async(username,password)=>{
-    const result=await authenticatorLogin(api,username,password);
-    state.token=result.token;state.user=result.user;
+  mountLogin(app,{message,submit:async(username,password)=>{
+    const progress=text=>{const status=app.querySelector('.entry-error');if(status){status.dataset.kind='progress';status.textContent=text;}};
+    let result=await authenticatorLogin(api,username,password,progress);
+    const accept=async session=>{if(!session?.token||!session.user)throw Error('Máy chủ chưa trả về phiên đăng nhập hợp lệ. Vui lòng thử lại.');state.token=session.token;state.user=session.user;await api('/api/auth/profile');};
+    try{await accept(result);}catch(error){
+      state.token='';state.user=null;
+      if(error.status!==401||!result.usedTrustedDevice)throw error;
+      clearTrustedDevice(username);progress('Phiên thiết bị đã lưu không còn phù hợp. Đang yêu cầu xác thực Authenticator lại.');
+      result=await authenticatorLogin(api,username,password,progress);
+      try{await accept(result);}catch(retryError){state.token='';state.user=null;throw retryError;}
+    }
     sessionStorage.setItem('dusko_token',result.token);sessionStorage.setItem('dusko_user',JSON.stringify(result.user));
     await start();
   }});
@@ -663,7 +671,7 @@ async function start() {
     }});
   } catch(error) {
     if(seq!==startSeq||token!==state.token)return;
-    if(error.status===401){signOut();return;}
+    if(error.status===401){signOut(error.message||'Phiên đăng nhập chưa được chấp nhận. Vui lòng đăng nhập lại.');return;}
     app.innerHTML=`<div class="loading" role="alert">${e(error.message)} <button id="startup-retry" class="btn">Thử lại</button><button id="startup-logout" class="btn">Đăng xuất</button></div>`;
     document.querySelector('#startup-retry').onclick=start;
     document.querySelector('#startup-logout').onclick=signOut;

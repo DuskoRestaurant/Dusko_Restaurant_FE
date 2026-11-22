@@ -19,7 +19,7 @@ export function mountLogin(root, {staff = false, submit, message = ''}) {
     event.preventDefault();if(button.disabled)return;
     button.disabled=true;button.textContent='Đang đăng nhập…';error.textContent='';
     try {await submit(form.elements.username.value.trim(),form.elements.password.value);}
-    catch(err){error.textContent=err.message;}
+    catch(err){error.dataset.kind='error';error.textContent=err.message||'Không thể đăng nhập. Vui lòng thử lại.';}
     finally{button.disabled=false;button.textContent='Đăng nhập';}
   };
 }

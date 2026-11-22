@@ -11,6 +11,7 @@ import { filterServiceTables, serviceTableFilters, groupServiceTables } from './
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'})[c]);
 const money = value => new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND'}).format(value || 0);
 const time = value => new Date(value).toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+const elapsedMinutes=value=>{const timestamp=Date.parse(value||'');return Number.isFinite(timestamp)?Math.max(0,Math.floor((Date.now()-timestamp)/60000)):null;};
 const shortCode = order => String(order.orderCode || order.id).replace(/^HD-/, '').slice(0, 8).toUpperCase();
 const statusText = item => item.servedAt ? 'Đã mang ra bàn' : item.kdsStatus === 'DONE' ? 'Sẵn sàng mang ra' : item.kdsStatus === 'COOKING' ? 'Đang chế biến' : 'Đang chờ chế biến';
 
@@ -56,23 +57,30 @@ export function createServiceWorkspace({root, request, branchId, role, userId, i
   function setBusy(busy) { state.busy = busy; root.setAttribute('aria-busy',String(busy)); root.querySelectorAll('button[data-sw]').forEach(el => el.disabled = busy || el.dataset.locked === 'true'); }
   function tableCards() {
     const tables = filterServiceTables(state.tables,{search:state.search,filter:state.filter,prioritizePayment:cashierView});
-    const pages=Math.max(1,Math.ceil(tables.length/12));state.tablePage=Math.min(state.tablePage,pages);
-    const start=(state.tablePage-1)*12,visible=tables.slice(start,start+12);
-    const card=table=>`<button type="button" class="sw-table ${table.serviceRequestCount||table.unconfirmedOrderCount||table.readyQuantity?'sw-attention':''}" data-state="${table.status}" data-priority="${table.serviceRequestCount?'call':table.unconfirmedOrderCount?'confirm':table.readyQuantity?'ready':'idle'}" data-sw="table" data-id="${table.id}"><span class="sw-table-state">${table.status==='EMPTY'?'Trống':table.status==='RESERVED'?'Đã đặt trước':'Đang phục vụ'}</span><strong>${e(table.tableName)}</strong><small>${table.seatingCapacity} chỗ</small><div>${table.billRequested?'<b class="sw-table-call">Khách yêu cầu thanh toán</b>':table.checkoutReady?'<b class="sw-table-ready">Sẵn sàng thanh toán</b>':''}${table.serviceRequestCount?`<b class="sw-table-call">${table.serviceRequestCount} yêu cầu hỗ trợ</b>`:''}${table.unconfirmedOrderCount?`<b class="sw-table-confirm">${table.unconfirmedOrderCount} cần xác nhận</b>`:''}${table.readyQuantity?`<b class="sw-table-ready">${table.readyQuantity} món sẵn sàng</b>`:''}${!table.serviceRequestCount&&!table.unconfirmedOrderCount&&!table.readyQuantity?(table.pendingOrderCount?'<span>Đang phục vụ món</span>':'<span>Chọn để xem bàn</span>'):''}</div></button>`;
-    const groups=groupServiceTables(visible);
-    return (groups.map(group=>'<section class="sw-table-group" aria-label="'+e(group.label)+'"><div class="sw-table-group-heading"><h3>'+e(group.label)+'</h3><span>'+group.items.length+' bàn</span></div><div class="sw-table-grid">'+group.items.map(card).join('')+'</div></section>').join('')||empty('Không có bàn phù hợp','Thử thay đổi tên bàn hoặc trạng thái.'))+'<div class="sw-table-pagination"><span role="status">'+(tables.length?start+1:0)+'–'+Math.min(start+12,tables.length)+' / '+tables.length+' bàn</span><div>'+button('Trước','tables-prev',state.tablePage===1?'data-locked="true"':'')+'<span>Trang '+state.tablePage+' / '+pages+'</span>'+button('Sau','tables-next',state.tablePage===pages?'data-locked="true"':'')+'</div></div>';
+    const pageSize=12;
+    const pages=Math.max(1,Math.ceil(tables.length/pageSize));state.tablePage=Math.min(state.tablePage,pages);
+    const start=(state.tablePage-1)*pageSize,visible=tables.slice(start,start+pageSize);
+    const card=table=>{
+      const minutes=elapsedMinutes(table.sessionOpenedAt);
+      const party=table.partySize?`${table.partySize}/${table.seatingCapacity||0} khách`:`${table.seatingCapacity||0} chỗ`;
+      const occupancy=minutes!==null?(minutes<60?`${minutes} phút`:`${Math.floor(minutes/60)} giờ ${minutes%60} phút`):(table.status==='RESERVED'?'Đã đặt trước':table.status==='EMPTY'?'Bàn trống':'Đang phục vụ');
+      const tasks=`${table.billRequested||table.checkoutReady?'<b class="sw-table-call">Chờ thanh toán</b>':''}${table.serviceRequestCount?`<b class="sw-table-call">${table.serviceRequestCount} cần hỗ trợ</b>`:''}${table.unconfirmedOrderCount?`<b class="sw-table-confirm">${table.unconfirmedOrderCount} chờ xác nhận</b>`:''}${table.readyQuantity?`<b class="sw-table-ready">${table.readyQuantity} món sẵn sàng</b>`:''}${table.pendingOrderCount&&!table.readyQuantity&&!table.unconfirmedOrderCount&&!table.serviceRequestCount&&!table.billRequested&&!table.checkoutReady?'<span>Chờ lên món</span>':''}`;
+      return `<button type="button" class="sw-table ${tasks?'sw-attention':''}" data-state="${table.status}" data-priority="${table.billRequested||table.checkoutReady?'payment':table.serviceRequestCount?'call':table.unconfirmedOrderCount?'confirm':table.readyQuantity?'ready':'idle'}" data-sw="table" data-id="${table.id}" title="${e(table.tableName)}"><span class="sw-table-head"><strong>${e(table.tableName)}</strong><small>${party}</small></span><span class="sw-table-time">${occupancy}</span><div class="sw-table-tasks">${tasks||'<span>'+ (table.status==='EMPTY'?'Có thể mở bàn':table.status==='RESERVED'?'Chờ khách':'Chọn để xem bàn')+'</span>'}</div></button>`;
+    };
+    const groups=groupServiceTables(visible,role);
+    return (groups.map(group=>'<section class="sw-table-group" aria-label="'+e(group.label)+'"><div class="sw-table-group-heading"><h3>'+e(group.label)+'</h3><span>'+group.items.length+' bàn</span></div><div class="sw-table-grid">'+group.items.map(card).join('')+'</div></section>').join('')||empty('Không có bàn phù hợp','Thử thay đổi tên bàn hoặc trạng thái.'))+'<div class="sw-table-pagination"><span role="status">'+(tables.length?start+1:0)+'–'+Math.min(start+pageSize,tables.length)+' / '+tables.length+' bàn</span><div>'+button('Trước','tables-prev',state.tablePage===1?'data-locked="true"':'')+'<span>Trang '+state.tablePage+' / '+pages+'</span>'+button('Sau','tables-next',state.tablePage===pages?'data-locked="true"':'')+'</div></div>';
   }
 
   function render() {
     if(disposed) return;
     panelSnapshot = '';
-    root.innerHTML = `<p class="sw-sync" data-sw-sync role="status"></p><p class="sw-message ${state.bad?'sw-error':''}" data-sw-message role="status" ${state.message?'':'hidden'}>${e(state.message)}</p>${state.table?tableView():listView()}`;
+    root.innerHTML = `${state.table?'<p class="sw-sync" data-sw-sync role="status"></p>':''}<p class="sw-message ${state.bad?'sw-error':''}" data-sw-message role="status" ${state.message?'':'hidden'}>${e(state.message)}</p>${state.table?tableView():listView()}`;
     updateCart();
     updateSync();
     setBusy(state.busy);
   }
   function listView() {
-    return `<div class="sw-heading sw-list-heading"><div><h2>Danh sách bàn</h2><p>Bàn cần xử lý được xếp trước. Chọn trạng thái để lọc nhanh.</p></div><div class="sw-heading-actions">${button('Làm mới','refresh')}</div></div><div class="sw-table-controls"><label>Tìm bàn<input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></label><div class="sw-overview">${listOverview()}</div></div><div class="sw-tables">${tableCards()}</div><details class="sw-guide"><summary>Hướng dẫn phục vụ</summary><p>Mở bàn → xác nhận yêu cầu QR hoặc gọi món giúp khách → mang món đã hoàn thành ra bàn → thanh toán.</p></details>`;
+    return `<div class="sw-heading sw-list-heading"><div><h2>${cashierView?'Bàn chờ thanh toán':'Sơ đồ bàn phục vụ'}</h2></div><div class="sw-heading-actions">${button('Làm mới','refresh')}</div></div><div class="sw-table-controls"><label>Tìm bàn<input data-sw-input="table-search" type="search" placeholder="Tìm tên bàn…" aria-label="Tìm bàn" value="${e(state.search)}"></label><div class="sw-overview">${listOverview()}</div></div><div class="sw-tables">${tableCards()}</div>`;
   }
   const mayCloseEmpty = () => Boolean(state.session) && !(state.session.orders||[]).some(order=>['AWAITING_CONFIRMATION','PENDING'].includes(order.status));
   function tableView() {
