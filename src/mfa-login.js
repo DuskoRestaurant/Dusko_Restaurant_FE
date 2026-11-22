@@ -7,14 +7,15 @@ export function clearTrustedDevice(username){try{localStorage.removeItem(trusted
 export async function forgetTrustedDevice(request,username){const stored=getTrustedDevice(username);if(stored){try{await request('/api/auth/trusted-device',{method:'DELETE',body:{trustedDeviceToken:stored.token}});}catch{}}clearTrustedDevice(username);}
 export async function completeMfaLogin(result,request,username){
  if(!result.mfaRequired)return result;
+ if(result.enrollmentRequired||!result.challengeToken)throw Error('Tài khoản chưa được cấp quyền thiết lập Authenticator. Liên hệ người vận hành hệ thống.');
  const setup=result.setupRequired?await request('/api/auth/mfa/setup',{method:'POST',body:{challengeToken:result.challengeToken}}):null;
  return new Promise((resolve,reject)=>{
   const dialog=document.createElement('dialog');dialog.className='mfa-dialog';dialog.setAttribute('aria-labelledby','mfa-title');let done=false,recovery=false;
-  dialog.innerHTML=`<button type="button" data-close class="mfa-close" aria-label="Đóng">×</button><span class="mfa-kicker">BẢO VỆ TÀI KHOẢN QUẢN TRỊ</span><h2 id="mfa-title">${setup?'Thiết lập Authenticator':'Xác thực hai bước'}</h2>${setup?`<p>Mở Google Authenticator hoặc Microsoft Authenticator, chọn thêm tài khoản và quét mã QR bên dưới.</p><img alt="QR liên kết Authenticator" width="240" height="240"><details><summary>Không quét được mã QR?</summary><p>Chọn nhập khóa thiết lập trong ứng dụng:</p><code class="mfa-secret"></code></details><p>Nhập mã 6 số đang hiển thị để xác nhận thiết lập.</p>`:'<p>Nhập mã 6 số trong ứng dụng Authenticator để tiếp tục vào quản trị.</p>'}<form><label data-code-label>Mã Authenticator<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required autofocus></label><label class="mfa-trust"><input name="trustDevice" type="checkbox"> Lưu thiết bị này trong 1 ngày (chỉ dùng trên thiết bị cá nhân)</label><p class="mfa-error" role="status"></p><button type="submit" class="btn">${setup?'Xác nhận và bật xác thực':'Xác thực'}</button></form>${!setup?'<button type="button" data-recovery class="mfa-link">Dùng mã khôi phục</button>':''}<p class="mfa-help">Phiên xác thực có hiệu lực 5 phút. Bật ngày giờ tự động trên điện thoại. Mỗi mã chỉ dùng một lần. Thiết bị đã lưu hết hạn sau đúng 24 giờ và không tự gia hạn.</p>`;
+  dialog.innerHTML=`<button type="button" data-close class="mfa-close" aria-label="Đóng">×</button><span class="mfa-kicker">BẢO VỆ TÀI KHOẢN QUẢN TRỊ</span><h2 id="mfa-title">${setup?'Thiết lập Authenticator':'Xác thực hai bước'}</h2>${setup?`<p>Mở Google Authenticator hoặc Microsoft Authenticator, chọn thêm tài khoản và quét mã QR bên dưới.</p><img alt="QR liên kết Authenticator" width="240" height="240"><details><summary>Không quét được mã QR?</summary><p>Chọn nhập khóa thiết lập trong ứng dụng:</p><code class="mfa-secret"></code></details><p>Nhập mã 6 số đang hiển thị để xác nhận thiết lập.</p>`:'<p>Nhập mã 6 số từ ứng dụng Authenticator đã liên kết với tài khoản.</p>'}<form><label data-code-label>Mã Authenticator<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required autofocus></label><label class="mfa-trust"><input name="trustDevice" type="checkbox"> Lưu thiết bị này trong 1 ngày (chỉ dùng trên thiết bị cá nhân)</label><p class="mfa-error" role="status"></p><button type="submit" class="btn">${setup?'Xác nhận và bật xác thực':'Xác thực'}</button></form>${!setup?'<button type="button" data-recovery class="mfa-link">Mất Authenticator? Dùng mã khôi phục</button><p data-recovery-help class="mfa-help" hidden>Nhập một mã khôi phục đã lưu khi liên kết thiết bị. Sau khi đăng nhập, vào Tài khoản → Authenticator để liên kết điện thoại mới. Nếu mất cả mã khôi phục, liên hệ người vận hành hệ thống để xác minh danh tính và nhận mã cấp quyền thiết lập lại. Chỉ có mật khẩu không đủ để đổi thiết bị.</p>':''}<p class="mfa-help">Phiên xác thực có hiệu lực 5 phút. Bật ngày giờ tự động trên điện thoại. Mỗi mã chỉ dùng một lần. Thiết bị đã lưu hết hạn sau đúng 24 giờ và không tự gia hạn.</p>`;
   if(setup){dialog.querySelector('img').src=setup.qrDataUrl;dialog.querySelector('code').textContent=setup.secret;}
   const form=dialog.querySelector('form'),input=form.elements.code,submit=form.querySelector('[type=submit]'),error=dialog.querySelector('.mfa-error');
   dialog.querySelector('[data-close]').onclick=()=>dialog.close();
-  dialog.querySelector('[data-recovery]')?.addEventListener('click',event=>{recovery=!recovery;input.value='';input.type='text';input.inputMode=recovery?'text':'numeric';input.minLength=recovery?16:6;input.maxLength=recovery?32:6;input.pattern=recovery?'[A-Fa-f0-9 -]{16,32}':'[0-9]{6}';event.target.textContent=recovery?'Dùng mã Authenticator':'Dùng mã khôi phục';dialog.querySelector('[data-code-label]').firstChild.textContent=recovery?'Mã khôi phục dùng một lần':'Mã Authenticator';const trust=form.elements.trustDevice;if(trust){trust.disabled=recovery;if(recovery)trust.checked=false;}input.focus();});
+  dialog.querySelector('[data-recovery]')?.addEventListener('click',event=>{recovery=!recovery;input.value='';input.type='text';input.inputMode=recovery?'text':'numeric';input.removeAttribute('minlength');input.removeAttribute('maxlength');input.minLength=recovery?16:6;input.maxLength=recovery?32:6;input.pattern=recovery?'[A-Fa-f0-9 -]{16,32}':'[0-9]{6}';event.target.textContent=recovery?'Dùng mã Authenticator':'Mất Authenticator? Dùng mã khôi phục';dialog.querySelector('[data-recovery-help]').hidden=!recovery;dialog.querySelector('[data-code-label]').firstChild.textContent=recovery?'Mã khôi phục dùng một lần':'Mã Authenticator';const trust=form.elements.trustDevice;if(trust){trust.disabled=recovery;if(recovery)trust.checked=false;}input.focus();});
   form.onsubmit=async event=>{
    event.preventDefault();if(submit.disabled)return;submit.disabled=true;error.textContent='';
    try{
@@ -33,12 +34,36 @@ export async function completeMfaLogin(result,request,username){
   dialog.addEventListener('close',()=>{dialog.remove();if(!done)reject(Error('Đã hủy xác thực. Vui lòng đăng nhập lại khi sẵn sàng.'));},{once:true});document.body.append(dialog);dialog.showModal();input.focus();
  });
 }
+function authorizeEnrollment(request,username,password){
+ return new Promise((resolve,reject)=>{
+  let done=false;
+  const dialog=document.createElement('dialog');dialog.className='mfa-dialog';
+  dialog.innerHTML='<button type="button" data-close class="mfa-close" aria-label="Đóng">×</button><h2>Cấp quyền thiết lập Authenticator</h2><p>Tài khoản chưa liên kết thiết bị xác thực. Liên hệ người vận hành để xác minh danh tính và nhận mã cấp quyền riêng. Mã này khác với mã 6 số trong Authenticator.</p><form><label>Mã cấp quyền thiết lập<input name="enrollmentToken" type="password" autocomplete="off" required minlength="64" maxlength="64" pattern="[a-f0-9]{64}"></label><p class="mfa-error" role="status"></p><button type="submit" class="btn">Tiếp tục thiết lập</button></form>';
+  dialog.querySelector('[data-close]').onclick=()=>dialog.close();
+  dialog.querySelector('form').onsubmit=async event=>{
+   event.preventDefault();const form=event.target,button=form.querySelector('button');if(button.disabled)return;button.disabled=true;
+   try{
+    const result=await request('/api/auth/login',{method:'POST',body:{username,password,enrollmentToken:form.elements.enrollmentToken.value.trim()}});
+    if(!dialog.isConnected)return;
+    if(result.enrollmentRequired||!result.challengeToken)throw Error('Chưa được cấp quyền thiết lập. Liên hệ người vận hành hệ thống.');
+    done=true;dialog.close();resolve(result);
+   }catch(error){if(dialog.isConnected){dialog.querySelector('[role=status]').textContent=error.message;form.elements.enrollmentToken.value='';}}
+   finally{button.disabled=false;}
+  };
+  dialog.addEventListener('close',()=>{dialog.remove();if(!done)reject(Error('Đã hủy thiết lập xác thực.'));},{once:true});
+  document.body.append(dialog);dialog.showModal();dialog.querySelector('input').focus();
+ });
+}
 export async function authenticatorLogin(request,username,password,onProgress=()=>{}){
  const stored=getTrustedDevice(username);
- const result=await request('/api/auth/login',{method:'POST',body:{username,password,...(stored?{trustedDeviceToken:stored.token}:{})}});
+ let result=await request('/api/auth/login',{method:'POST',body:{username,password,...(stored?{trustedDeviceToken:stored.token}:{})}});
  if(result.token&&!result.mfaRequired)return {token:result.token,user:result.user,usedTrustedDevice:!!stored};
  if(stored&&result.mfaRequired)clearTrustedDevice(username);
- onProgress(result.setupRequired?'Mật khẩu đã đúng. Quét mã QR trong hộp Authenticator để thiết lập xác thực hai lớp.':'Mật khẩu đã đúng. Nhập mã Authenticator trong hộp xác thực để hoàn tất đăng nhập.');
+ if(result.enrollmentRequired){
+  onProgress('Cần mã cấp quyền từ người vận hành để thiết lập Authenticator.');
+  result=await authorizeEnrollment(request,username,password);
+ }
+ onProgress(result.setupRequired?'Liên kết Authenticator sau khi đã xác minh quyền thiết lập.':'Nhập mã từ ứng dụng Authenticator đã liên kết để tiếp tục.');
  const verified=await completeMfaLogin(result,request,username);
  return {token:verified.token,user:verified.user};
 }
